@@ -4,7 +4,7 @@ La línea de instaladores comienza en **1.0.0**. El ejecutable incluye Python, T
 
 ## Instalar y actualizar
 
-1. Ejecutar `TresVizo-Med-1.0.2-x64.msi` en Windows de 64 bits. Se instala para la cuenta actual, en `%LocalAppData%\Programs\TresVizo-Med`, con accesos en Inicio y Escritorio.
+1. Ejecutar `TresVizo-Med-1.0.3-x64.msi` en Windows de 64 bits. Se instala para la cuenta actual, en `%LocalAppData%\Programs\TresVizo-Med`, con accesos en Inicio y Escritorio.
 2. Abrir TresVizo Med. La primera ejecución sin datos pide crear la clínica y el administrador; no hay credenciales predeterminadas.
 3. Para una nueva versión, guardar el trabajo, cerrar TresVizo Med y ejecutar su nuevo MSI. Se conserva la ubicación de instalación. El instalador detecta una app compilada abierta y cancela antes de cambiar archivos; no termina consultas ni fuerza reinicios.
 4. El MSI sustituye los archivos de programa. Los pacientes, consultas, borradores, usuarios, contraseñas, adjuntos, temas y preferencias siguen en la carpeta real `Documentos\RegistroClinico`. También se conservan si se desinstala el programa.

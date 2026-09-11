@@ -1,6 +1,8 @@
 # Uso del espacio clínico
 
-El primer arranque permite crear al administrador. Después, el acceso muestra tarjetas de doctores y una contraseña para el perfil seleccionado. El enlace tresvizo.com se abre únicamente al pulsarlo.
+El primer arranque configura la clínica en dos pasos: nombre y logo (cruz azul/turquesa o PNG/JPG/ICO propio), y administrador con contraseña maestra de recuperación. Puede usarse el logo también como icono de las ventanas. Después, el acceso muestra tarjetas de doctores y una contraseña para el perfil seleccionado. El enlace tresvizo.com se abre únicamente al pulsarlo.
+
+Todas las contraseñas requieren al menos ocho caracteres. Si un médico olvida su acceso, selecciona su tarjeta y pulsa Olvidé mi contraseña: la clave maestra permite establecer una contraseña nueva sin modificar pacientes ni consultas. El administrador configura o cambia la clave en Configuración → Seguridad, verificando primero su contraseña de administrador. No existe una clave universal distribuida con la aplicación. Los intentos fallidos de recuperación tienen una espera que se conserva al reiniciar.
 
 ## Pacientes y borradores
 
@@ -48,7 +50,7 @@ Los cambios incompletos del título, fecha o descripción se conservan como edic
 
 ## Perfil, apariencia y sesión
 
-Mi perfil ofrece 16 ilustraciones, iniciales o foto con encuadre y zoom, datos profesionales y reducción de movimiento. El administrador puede editar el perfil de otros doctores en Configuración → Doctores. Las fotos de perfil se limitan a 10 MiB y 12 megapíxeles.
+Mi perfil ofrece 16 ilustraciones, iniciales o foto con encuadre y zoom, datos profesionales y reducción de movimiento. Elegir foto abre el recorte; Guardar foto de perfil guarda y actualiza la imagen inmediatamente en el perfil y la cabecera. También aparecerá al volver al selector de médicos. Los otros cambios se aplican con Guardar perfil. El administrador puede editar el perfil de otros doctores en Configuración → Doctores. Las fotos de perfil se limitan a 10 MiB y 12 megapíxeles.
 
 Apariencia presenta paletas y vista previa. Personalización avanzada contiene los selectores y valores hexadecimales; Más opciones contiene guardar con nombre, duplicar, renombrar, importar, exportar, restablecer y eliminar temas propios. Aplicar cambia la interfaz actual sin reconstruir formularios. La preferencia de cada doctor puede heredar la paleta clínica. La pantalla de acceso usa la apariencia general.
 
@@ -61,6 +63,8 @@ El administrador archiva o restaura pacientes desde Pacientes. Las consultas his
 Exportar y respaldar incluye copias verificadas, restauración en una carpeta nueva y revisión de documentos ausentes. Abrir la copia restaurada es una acción separada; nunca reemplaza automáticamente los datos activos. Véase [Migración y recuperación](migracion.md).
 
 ## Estadísticas y transferencia de datos
+
+Exportar consultas → CSV permite elegir periodo y consultas propias; los borradores del médico autenticado son opcionales. Nunca incluye borradores ajenos ni consultas archivadas. Cada fila conserva paciente, médico, estado, tipo, nota, diagnóstico, tratamiento y la última toma de signos vitales con unidades. Las columnas con sufijo _json contienen todas las tomas, medicamentos con sus dosis/frecuencias, diagnósticos, estudios, adendas y seguimiento histórico. Los adjuntos se exportan por separado en el paquete del expediente.
 
 Mis estadísticas muestra consultas finalizadas, pacientes únicos y diagnósticos del periodo y doctor indicados. Al modificar filtros se deshabilita exportar hasta pulsar Actualizar y recibir los datos correspondientes. CSV y PDF llevan el doctor y periodo de ese resultado; las cifras previas se identifican como pendientes de actualización.
 

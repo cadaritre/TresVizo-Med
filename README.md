@@ -37,7 +37,7 @@ Configuración → Clínica e identidad permite cambiar nombre, contacto, logo c
 
 ## Recorrido cotidiano
 
-El instalador **TresVizo-Med-1.0.2-x64.msi** está en `dist/installer`. Incluye el acceso renovado por médico, la consulta simplificada con motivo, diagnóstico e indicaciones visibles y desinstalación desde Inicio o Aplicaciones de Windows. Consulta el [recorrido](docs/recorrido-simple.md) y las [instrucciones para instalar, actualizar y desinstalar](docs/distribucion.md). Los MSI anteriores permanecen intactos.
+El instalador **TresVizo-Med-1.0.3-x64.msi** está en `dist/installer`. Incluye identidad médica con cruz azul y turquesa, configuración inicial del logo de la clínica, recuperación de acceso, exportación de consultas CSV y correcciones del calendario y foto de perfil. Conserva la consulta simplificada y desinstalación desde Inicio o Aplicaciones de Windows. Consulta el [recorrido](docs/recorrido-simple.md) y las [instrucciones para instalar, actualizar y desinstalar](docs/distribucion.md). Los MSI anteriores permanecen intactos.
 
 ## Funciones clínicas disponibles
 

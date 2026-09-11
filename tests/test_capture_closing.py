@@ -79,14 +79,22 @@ def test_all_consultation_captures_close_and_allow_reopening(tmp_path, control):
                 else:
                     capture.cancel_button.invoke()
             else:
-                capture.event_generate('<Escape>')
+                # Entregar el evento con foco actual, aunque se use otra app en
+                # el escritorio compartido entre dos aperturas de la captura.
+                for attempt in range(3):
+                    capture.focus_force()
+                    app.update()
+                    capture.event_generate('<Escape>', when='now')
+                    app.update()
+                    if not capture.winfo_exists() or capture.resolution.winfo_manager():
+                        break
             app.update()
             assert not capture.winfo_exists(), (kind, control)
             assert not app.tk.call('grab', 'current', app._w)
             assert not getattr(app, 'active_capture', None)
             assert note.get('1.0', 'end-1c') == 'Nota que debe conservarse'
             assert note.index('insert') == '1.5'
-            assert app.focus_get() is note
+            assert app.focus_lastfor() is note
             settle(app)
 
 

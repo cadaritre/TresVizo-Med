@@ -103,6 +103,14 @@ def main():
     clinic.save('encounters', {'patient_id': patient['id'], 'attended_at': now(), 'status': 'Borrador', 'subjective': 'Texto pendiente de prueba'})
     store.write('config/identity.json', {'clinic_name': 'Clínica sintética MSI'})
     store.write('config/preferencia-sintetica.json', {'theme': 'TresVizo', 'doctor': actor})
+    auth.set_recovery_password('Recuperacion-MSI-sintetica', 'Sintetica-MSI-12345')
+    from app.branding import Identity, APP_MARK
+    from app.profiles import Profiles
+    from PIL import Image
+    identity = Identity(store, auth)
+    identity.set_clinic_logo(APP_MARK)
+    identity.save({'use_clinic_icon': True})
+    Profiles(store, auth).save(actor, {'specialty': 'Prueba MSI'}, Image.new('RGB', (256, 256), '#167F92'))
     (data_dir/'attachments').mkdir(exist_ok=True)
     (data_dir/'attachments'/'original-prueba.bin').write_bytes(b'ORIGINAL SINTETICO\x00\x01')
     before = hashes(data_dir)
@@ -231,6 +239,11 @@ def main():
         migrate(reopened)
         assert hashes(data_dir) == before
         Auth(reopened).login(actor, 'Sintetica-MSI-12345')
+        from app.services import password_matches
+        assert password_matches('Recuperacion-MSI-sintetica', reopened.read('config/recovery.json')['password'])
+        profile = reopened.read(f'config/profiles/{actor}.json')
+        assert profile['avatar'] == 'photo' and reopened.path(profile['photo']).is_file()
+        assert Path(reopened.read('config/identity.json')['clinic_icon']).is_file()
         assert reopened.records('patients')[0]['id'] == patient['id']
         assert reopened.records('encounters')[0]['subjective'] == 'Texto pendiente de prueba'
         record('Desinstalar conserva datos; reapertura y autenticación de prueba correctas')
