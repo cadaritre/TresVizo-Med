@@ -4,7 +4,7 @@ La línea de instaladores comienza en **1.0.0**. El ejecutable incluye Python, T
 
 ## Instalar y actualizar
 
-1. Ejecutar `TresVizo-Med-1.0.0-x64.msi` en Windows de 64 bits. Se instala para la cuenta actual, en `%LocalAppData%\Programs\TresVizo-Med`, con accesos en Inicio y Escritorio.
+1. Ejecutar `TresVizo-Med-1.0.1-x64.msi` en Windows de 64 bits. Se instala para la cuenta actual, en `%LocalAppData%\Programs\TresVizo-Med`, con accesos en Inicio y Escritorio.
 2. Abrir TresVizo Med. La primera ejecución sin datos pide crear la clínica y el administrador; no hay credenciales predeterminadas.
 3. Para una nueva versión, guardar el trabajo, cerrar TresVizo Med y ejecutar su nuevo MSI. Se conserva la ubicación de instalación. El instalador detecta una app compilada abierta y cancela antes de cambiar archivos; no termina consultas ni fuerza reinicios.
 4. El MSI sustituye los archivos de programa. Los pacientes, consultas, borradores, usuarios, contraseñas, adjuntos, temas y preferencias siguen en la carpeta real `Documentos\RegistroClinico`. También se conservan si se desinstala el programa.
@@ -14,6 +14,12 @@ La cuenta de Windows debe ser la misma al actualizar. Instalar desde otra cuenta
 La misma versión permite mantenimiento con su MSI original. Una versión inferior se rechaza. No se debe desinstalar antes de actualizar: la nueva versión instala sus archivos antes de retirar el producto anterior, dentro de la transacción de Windows Installer (`afterInstallExecute`). Esto requiere conservar las identidades de los componentes compartidos. Si una versión futura necesita cambiar el esquema clínico, la migración debe crear y verificar un respaldo antes de modificarlo; la aplicación rechaza esquemas más nuevos que los que entiende.
 
 La actualización se entrega como un nuevo archivo MSI. La aplicación no contacta un servidor de actualizaciones.
+
+## Desinstalar
+
+Cerrar la aplicación y elegir **Configuración de Windows → Aplicaciones → TresVizo Med → Desinstalar**. También está el acceso **Inicio → TresVizo Med → Desinstalar TresVizo Med**, que abre la confirmación normal de Windows Installer.
+
+Se retiran los archivos del programa, los accesos y su inicio automático. Los pacientes, consultas, documentos, usuarios y preferencias en Documentos se conservan para reinstalar. No es necesario ni recomendable desinstalar antes de actualizar: ejecutar directamente el MSI de la versión nueva.
 
 ## Inicio de Windows
 

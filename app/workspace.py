@@ -25,69 +25,10 @@ class Workspace:
             return self._legacy_login_screen()
         self.clear()
         self.theme.apply(self.appearance.tokens())
-        scroll = ScrollFrame(self)
-        scroll.pack(fill='both', expand=True)
-        scroll.body.columnconfigure(0, weight=1)
-        outer = ttk.Frame(scroll.body, padding=24)
-        outer.grid(row=0, column=0, pady=18)
-        self.brand(outer).pack(pady=6)
-        ttk.Label(outer, text='TresVizo Med', style='Title.TLabel').pack()
-        ttk.Label(outer, text=self.identity.values['clinic_name'], style='Subtitle.TLabel').pack(pady=(4,20))
-        ttk.Label(outer, text='Selecciona tu perfil', style='Section.TLabel').pack(anchor='w', pady=8)
-        query = tk.StringVar()
-        if len(users) > 6:
-            ttk.Entry(outer, textvariable=query, width=45).pack(fill='x', pady=8)
-        gallery = ttk.Frame(outer)
-        gallery.pack(fill='x')
-        chosen = tk.StringVar(value=users[0]['id'])
-        self.login_cards = {}
-        self.login_photos = []
-        page = [0]
-        password = tk.StringVar()
-        selected_name = tk.StringVar(value=users[0]['name'])
-        def select(user):
-            chosen.set(user['id'])
-            password.set('')
-            selected_name.set(user['name'])
-            for uid, button in self.login_cards.items():
-                button.configure(style='Active.Nav.TButton' if uid == user['id'] else 'TButton')
-            entry.focus_set()
-        def render(*args):
-            for child in gallery.winfo_children():
-                child.destroy()
-            self.login_cards.clear()
-            rows = [u for u in users if normalized(query.get()) in normalized(u['name']+' '+u['username'])]
-            shown = rows[page[0]*9:page[0]*9+9]
-            for i, user in enumerate(shown):
-                photo = self.profiles.image(user, 80)
-                button = ttk.Button(gallery, text=user['name'], image=photo, compound='top', width=20,
-                                    style='Active.Nav.TButton' if user['id'] == chosen.get() else 'TButton', command=lambda u=user: select(u))
-                button.grid(row=i//3, column=i%3, padx=6, pady=6, sticky='nsew')
-                self.login_cards[user['id']] = button
-            self.theme._walk(outer)
-        if len(users) > 9:
-            controls = ttk.Frame(outer)
-            controls.pack(fill='x')
-            def turn(delta):
-                page[0] = max(0, min((len(users)-1)//9, page[0]+delta))
-                render()
-            ttk.Button(controls, text='Anterior', command=lambda: turn(-1), style='Link.TButton').pack(side='left')
-            ttk.Button(controls, text='Siguiente', command=lambda: turn(1), style='Link.TButton').pack(side='right')
-        ttk.Label(outer, textvariable=selected_name, font=('Segoe UI Semibold', 12)).pack(pady=(16,6))
-        ttk.Label(outer, text='Contraseña', style='Subtitle.TLabel').pack(anchor='w')
-        entry = ttk.Entry(outer, textvariable=password, show='•', width=40)
-        entry.pack(fill='x', pady=6)
-        visible = tk.BooleanVar()
-        ttk.Checkbutton(outer, text='Mostrar contraseña', variable=visible, command=lambda: entry.configure(show='' if visible.get() else '•')).pack(anchor='w')
-        def login():
-            self.auth.login(chosen.get(), password.get())
-            password.set('')
-            self.shell()
-        entry.bind('<Return>', lambda e: self.guard(login))
-        ttk.Button(outer, text='Entrar', style='Primary.TButton', command=lambda: self.guard(login)).pack(fill='x', pady=16)
-        ttk.Button(outer, text=self.identity.values['website_text']+' ↗', style='Link.TButton', command=lambda: self.guard(self.identity.open_website)).pack()
-        query.trace_add('write', lambda *a: (page.__setitem__(0,0), render()))
-        render()
+        from app.login_ui import LoginPage
+        self.login_page = LoginPage(self, self, users)
+        self.login_page.pack(fill='both', expand=True)
+        self.theme._walk(self.login_page)
 
     def shell(self):
         self.session_generation += 1

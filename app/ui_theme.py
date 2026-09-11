@@ -31,6 +31,21 @@ class ThemeManager:
         s.configure('Section.TLabel', font=('Segoe UI Semibold', 15), foreground=t['text'])
         s.configure('TSeparator', background=t['separator'])
         s.configure('Subtitle.TLabel', foreground=t['muted'])
+        s.configure('Login.Brand.TLabel', font=('Segoe UI Semibold', 22))
+        s.configure('Login.Eyebrow.TLabel', font=('Segoe UI Semibold', 10), foreground=t['muted'])
+        s.configure('Login.Panel.TFrame', background=t['surface'], bordercolor=t['border'], relief='solid', borderwidth=1)
+        s.configure('Login.CardTitle.TLabel', background=t['surface'], foreground=readable(t['text'], t['surface']), font=('Segoe UI Semibold', 17))
+        s.configure('Login.CardMuted.TLabel', background=t['surface'], foreground=readable(t['muted'], t['surface']))
+        s.configure('Login.CardEyebrow.TLabel', background=t['surface'], foreground=readable(t['primary'], t['surface']), font=('Segoe UI Semibold', 10))
+        for style, selected in [('Login.Profile.TButton', False), ('Selected.Login.Profile.TButton', True)]:
+            s.configure(style, background=t['selection'] if selected else t['surface'],
+                        foreground=t['on_selection'] if selected else readable(t['text'], t['surface']),
+                        bordercolor=t['focus'] if selected else t['border'], borderwidth=2, relief='solid',
+                        padding=(16, 18), font=('Segoe UI Semibold', 11), anchor='w',
+                        focuscolor=t['focus'], focusthickness=2)
+            s.map(style, background=[('disabled', t['secondary_disabled']), ('pressed', t['selection_pressed']), ('active', t['selection_hover'])],
+                  foreground=[('disabled', t['on_secondary_disabled']), ('pressed', t['on_selection_pressed']), ('active', t['on_selection_hover'])],
+                  bordercolor=[('focus', t['focus']), ('active', t['focus'])])
         s.configure('Metric.TLabel', font=('Segoe UI Semibold', 22), background=t['surface'], foreground=t['text'])
         s.configure('TLabelframe', background=t['background'], bordercolor=t['border'], padding=12)
         s.configure('TLabelframe.Label', foreground=t['text'], background=t['background'])
@@ -70,6 +85,8 @@ class ThemeManager:
                         indicatorforeground=t['text'], focuscolor=t['focus'])
             s.map(style, background=[('active', t['background'])], foreground=[('disabled', readable(t['muted'], t['background']))],
                   indicatorbackground=[('selected', t['selection'])])
+        s.configure('Login.TCheckbutton', background=t['surface'], foreground=readable(t['text'], t['surface']))
+        s.map('Login.TCheckbutton', background=[('active', t['surface'])])
         for kind in ('error', 'warning', 'success'):
             s.configure(kind+'.TLabel', background=t[kind+'_bg'], foreground=t[kind+'_fg'], padding=10)
         self.root.option_add('*TCombobox*Listbox.background', t['surface'])

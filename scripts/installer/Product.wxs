@@ -46,6 +46,9 @@
           <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="$(var.ProductName)" Target="[INSTALLFOLDER]TresVizo-Med.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon">
             <ShortcutProperty Key="System.AppUserModel.ID" Value="TresVizo.Med.Desktop" />
           </Shortcut>
+          <Shortcut Id="UninstallShortcut" Name="Desinstalar $(var.ProductName)"
+                    Target="[SystemFolder]msiexec.exe" Arguments="/x [ProductCode]"
+                    Description="Desinstalar la aplicación conservando los datos de la clínica" Icon="AppIcon" />
           <RemoveFolder Id="RemoveMenu" On="uninstall" />
           <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="Shortcuts" Type="integer" Value="1" KeyPath="yes" />
         </Component>

@@ -108,9 +108,11 @@ class LoginPage(ScrollFrame):
     def layout(self, event):
         if event.widget is not self.body:
             return
+        if event.width == getattr(self, '_layout_width', None):
+            return
+        self._layout_width = event.width
         width = min(event.width, int(1280*self.scale))
-        self.outer.configure(width=width)
-        self.outer.grid(sticky='nsew' if event.width <= width else 'n', padx=max(0, (event.width-width)//2))
+        self.outer.grid(sticky='ew', padx=max(0, (event.width-width)//2))
         available = max(240, width-64)
         wide = available >= int(1000*self.scale)
         self.content.columnconfigure(1, weight=0, minsize=int(340*self.scale) if wide else 0)
@@ -141,6 +143,9 @@ class LoginPage(ScrollFrame):
 
     def layout_cards(self, event=None):
         width = self.gallery.winfo_width()
+        if event is not None and width == getattr(self, '_gallery_width', None):
+            return
+        self._gallery_width = width
         columns = 2 if width >= int(620*self.scale) else 1
         for column in range(2):
             self.gallery.columnconfigure(column, weight=1 if column < columns else 0, uniform='profiles' if column < columns else '')

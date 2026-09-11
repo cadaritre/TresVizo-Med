@@ -134,7 +134,12 @@ def main():
         assert sequence['InstallExecute'] < sequence['RemoveExistingProducts'] < sequence['InstallFinalize']
         properties = dict(table(packages['1.0.0'], 'SELECT `Property`, `Value` FROM `Property`'))
         assert properties.get('ALLUSERS', '') == ''
+        assert not properties.get('ARPNOREMOVE')
         assert properties['MSIRESTARTMANAGERCONTROL'] == 'DisableShutdown'
+        uninstall = table(packages['1.0.0'], "SELECT `Target`, `Arguments` FROM `Shortcut` WHERE `Shortcut` = 'UninstallShortcut'")
+        assert uninstall == [['[SystemFolder]msiexec.exe', '/x [ProductCode]']]
+        shortcuts = Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs'/properties['ProductName']
+        uninstall_link = shortcuts/('Desinstalar '+properties['ProductName']+'.lnk')
         record('MSI por usuario; bloqueo antes de modificar; actualización dentro de transacción')
         invoke('/i', packages['0.9.0'], '01-install', 'INSTALLFOLDER='+str(install_dir))
         current_product = '{'+guid(family, args.arch+'/product/0.9.0')+'}'
@@ -182,6 +187,13 @@ def main():
         invoke('/i', packages['1.0.1'], '04-upgrade-on')
         current_product = '{'+guid(family, args.arch+'/product/1.0.1')+'}'
         assert startup.enabled() and registry.read(registry_key, 'Version') == '1.0.1'
+        assert uninstall_link.exists()
+        import winreg
+        uninstall_key = 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\'+current_product
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, uninstall_key, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
+            assert winreg.QueryValueEx(key, 'DisplayName')[0] == properties['ProductName']
+            assert current_product.lower() in winreg.QueryValueEx(key, 'UninstallString')[0].lower()
+        record('Desinstalador registrado en Aplicaciones de Windows y acceso explícito en Inicio')
         invoke('/i', packages['1.0.0'], '05-downgrade', expected=(1603,))
         assert registry.read(registry_key, 'Version') == '1.0.1'
         assert startup.enabled() and hashes(data_dir) == before
@@ -200,7 +212,9 @@ def main():
         assert completed.returncode == 0 and json.loads(result_path.read_text(encoding='utf-8'))['ok']
         record('Ejecutable instalado: ventana, icono, arrastrar archivos y PDF verificados')
         invoke('/x', current_product, '06-uninstall')
+        assert api.MsiQueryProductStateW(current_product) == -1
         current_product = None
+        assert not uninstall_link.exists()
         assert not (install_dir/'TresVizo-Med.exe').exists()
         assert registry.read(registry.run_key, RUN_NAME) is None
         assert hashes(data_dir) == before
