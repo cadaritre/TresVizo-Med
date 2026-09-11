@@ -1,5 +1,15 @@
 # Cambios por versión
 
+## 1.0.3 — 2026-09-11
+
+- Cruz médica azul y turquesa en la aplicación, ventanas, ejecutable, accesos e instalador, con ICO de nueve resoluciones.
+- Configuración inicial en dos pasos: nombre de clínica, logo propio PNG/JPG/ICO o cruz médica, administrador y contraseña maestra. La identidad de los documentos existentes se conserva al actualizar.
+- Recuperación de contraseñas desde el acceso mediante clave maestra de la clínica, protegida con scrypt, espera persistente ante intentos fallidos y registro de auditoría. Todas las contraseñas admiten un mínimo de ocho caracteres; no hay una contraseña universal en el instalador.
+- Corrección del calendario de pacientes: elegir un día no intenta cambiar el estado de la ventana como si fuera un campo. Al reabrir conserva el mes elegido; Escape cierra el calendario.
+- Selector de sexo con Masculino y Femenino. No se reclasifican los valores de expedientes anteriores.
+- Exportación de consultas CSV con periodo, médico y borradores propios opcionales; nota, diagnóstico, tratamientos, mediciones e historial estructurado. Protección frente a fórmulas de hojas de cálculo y escritura mediante archivo temporal.
+- Guardar el recorte de una foto de médico la aplica de inmediato en el perfil y cabecera; el selector de acceso carga la misma imagen. Las vistas mantienen referencias a sus imágenes y ya no pierden otros avatares al renovar la caché.
+
 ## 1.0.2 — 2026-09-11
 
 - Consulta simplificada: motivo, diagnóstico e indicaciones visibles sin desplegar secciones, con lenguaje directo y cabecera de paciente compacta.

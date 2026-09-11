@@ -4,7 +4,6 @@ import webbrowser
 from PIL import Image, ImageTk
 from app.themes import DEFAULT_IDENTITY, validate_url, color
 from app.storage import DataError
-import shutil
 import uuid
 
 ASSETS = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent)) / 'assets'

@@ -81,6 +81,7 @@ class Transfer:
                     latest = max(row.get('vitals', []), key=lambda v: v.get('at', ''), default={})
                     data = {key: row.get(key, '') for key in base}
                     data.update(patient_file_number=patient.get('file_number', ''), patient_name=patient.get('name', ''),
+                                consultation_type=row.get('type', row.get('consultation_type', '')),
                                 doctor_name=doctors.get(row['doctor_id'], {}).get('name', ''),
                                 prescription_summary='\n'.join(medication_text(m) for m in row.get('prescriptions', [])),
                                 vitals_at=latest.get('at', ''))
