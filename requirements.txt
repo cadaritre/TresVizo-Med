@@ -1,0 +1,6 @@
+Pillow==12.2.0
+reportlab>=4.4,<5
+pypdfium2>=4.30,<6
+pytest>=8.4,<10
+pypdf>=6.0,<7
+pyinstaller>=6.16,<7
