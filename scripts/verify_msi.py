@@ -190,9 +190,18 @@ def main():
         assert uninstall_link.exists()
         import winreg
         uninstall_key = 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\'+current_product
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, uninstall_key, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
-            assert winreg.QueryValueEx(key, 'DisplayName')[0] == properties['ProductName']
-            assert current_product.lower() in winreg.QueryValueEx(key, 'UninstallString')[0].lower()
+        uninstall_registered = False
+        view = winreg.KEY_WOW64_64KEY if args.arch == 'x64' else winreg.KEY_WOW64_32KEY
+        # Windows Installer puede publicar ARP en HKLM aun con asignación por usuario.
+        for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            try:
+                with winreg.OpenKey(hive, uninstall_key, 0, winreg.KEY_READ | view) as key:
+                    assert winreg.QueryValueEx(key, 'DisplayName')[0] == properties['ProductName']
+                    assert current_product.lower() in winreg.QueryValueEx(key, 'UninstallString')[0].lower()
+                    uninstall_registered = True
+            except FileNotFoundError:
+                continue
+        assert uninstall_registered
         record('Desinstalador registrado en Aplicaciones de Windows y acceso explícito en Inicio')
         invoke('/i', packages['1.0.0'], '05-downgrade', expected=(1603,))
         assert registry.read(registry_key, 'Version') == '1.0.1'

@@ -1,5 +1,5 @@
 """Versión pública: incrementar antes de publicar un instalador diferente."""
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 
 def version_tuple(value=VERSION):

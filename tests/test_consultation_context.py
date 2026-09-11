@@ -107,6 +107,7 @@ def test_complete_contextual_visit_final_view_and_pdf_match(tmp_path):
         editor.texts['subjective'].insert('1.0', 'Evolución sintética sin hallazgos supuestos.')
         editor.texts['plan'].insert('1.0', 'Indicaciones individualizadas de demostración.')
         app.update()
+        editor.goto_issue('subjective')
         text = editor.texts['subjective']
         text.focus_force()
         text.mark_set('insert', '1.7')

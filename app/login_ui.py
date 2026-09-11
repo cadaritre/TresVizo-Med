@@ -34,7 +34,7 @@ class LoginPage(ScrollFrame):
         app.brand(header, size=56).pack(side='left', padx=(0, 16))
         identity = ttk.Frame(header)
         identity.pack(side='left', fill='x', expand=True)
-        ttk.Label(identity, text='TresVizo Med', style='Login.Brand.TLabel').pack(anchor='w')
+        ttk.Label(identity, text=app.identity.values['app_name'], style='Login.Brand.TLabel').pack(anchor='w')
         self.clinic_label = ttk.Label(identity, text=app.identity.values['clinic_name'], style='Subtitle.TLabel')
         self.clinic_label.pack(anchor='w', pady=(2, 0))
         ttk.Separator(self.outer).grid(row=1, column=0, sticky='ew', pady=(22, 26))
@@ -87,6 +87,10 @@ class LoginPage(ScrollFrame):
         self.error_label = ttk.Label(self.access, textvariable=self.error, style='error.TLabel')
         self.submit = ttk.Button(self.access, text='Entrar al consultorio', style='Primary.TButton', command=self.login)
         self.submit.pack(fill='x', pady=(12, 0))
+        from app.recovery_ui import recovery_dialog
+        self.recover = ttk.Button(self.access, text='Olvidé mi contraseña', style='Link.TButton',
+                                  command=lambda: recovery_dialog(app, self.selected) if self.selected else None)
+        self.recover.pack(anchor='w', pady=(10, 0))
         ttk.Label(self.access, text='Usa la contraseña de tu perfil.', style='Login.CardMuted.TLabel').pack(anchor='w', pady=(14, 0))
         self.access.bind('<Configure>', self.wrap_access)
         footer = ttk.Frame(self.outer)
@@ -172,6 +176,7 @@ class LoginPage(ScrollFrame):
             button = ttk.Button(self.gallery, image=photo, compound='left', width=1,
                                 style='Login.Profile.TButton', command=lambda u=user: self.select(u))
             button.photo, button.user = photo, user
+            self.app.profiles.bind(button, user, int(56*self.scale))
             self.cards[user['id']] = button
         if not total:
             self.empty.grid(row=0, column=0, columnspan=2, sticky='ew')
@@ -199,10 +204,13 @@ class LoginPage(ScrollFrame):
         self.error_label.pack_forget()
         self.entry.state(['!invalid', '!disabled'] if user else ['disabled'])
         self.submit.state(['!disabled'] if user else ['disabled'])
+        self.recover.state(['!disabled'] if user else ['disabled'])
         self.name.set(user['name'] if user else 'Selecciona un perfil')
         self.detail.set(self.profile_details(user)+'\n@'+user['username'] if user else 'Elige al médico que iniciará sesión.')
         self.avatar.photo = self.app.profiles.image(user, int(64*self.scale)) if user else None
         self.avatar.configure(image=self.avatar.photo or '')
+        if user:
+            self.app.profiles.bind(self.avatar, user, int(64*self.scale))
         self.mark_selected()
         self.layout_cards()
         if focus and user:
@@ -252,6 +260,7 @@ class LoginPage(ScrollFrame):
                 raise DataError('Escribe la contraseña de este perfil.')
             self.app.auth.login(self.selected['id'], self.password.get())
         except DataError as exc:
+            self.error_label.configure(style='error.TLabel')
             self.error.set('⚠ '+str(exc))
             self.error_label.pack(fill='x', before=self.submit, pady=(6, 0))
             self.entry.state(['invalid'])

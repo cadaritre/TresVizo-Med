@@ -54,7 +54,7 @@ def run_check(report):
             assert app.login_page.selected['id'] == uid
             assert uid in app.login_page.cards
             result['checks'].append('seleccion_medicos')
-            with Image.open(ASSETS/'tresvizo_medico.ico') as logo:
+            with Image.open(ASSETS/'clinica.ico') as logo:
                 assert {(16, 16), (32, 32), (48, 48), (256, 256)} <= logo.ico.sizes()
             pdf = Path(folder)/'prueba.pdf'
             document = canvas.Canvas(str(pdf))

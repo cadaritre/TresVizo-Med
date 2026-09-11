@@ -85,7 +85,7 @@ def installer_images(work, version):
     draw = ImageDraw.Draw(panel)
     draw.rectangle((0, 0, 163, 311), fill='#EDF4F8')
     draw.rectangle((0, 0, 163, 7), fill='#095388')
-    with Image.open(ROOT/'assets/tresvizo_medico_compacto.png') as source:
+    with Image.open(ROOT/'assets/clinica_icono.png') as source:
         logo = source.convert('RGBA')
     logo.thumbnail((114, 114), Image.Resampling.LANCZOS)
     panel.paste(logo, ((164-logo.width)//2, 48), logo)
@@ -124,7 +124,7 @@ def build_msi(payload, output, arch, version=VERSION, test_family=None):
         'Version': version, 'Architecture': arch, 'UpgradeCode': str(family), 'ProductCode': guid(family, arch+'/product/'+version),
         'RegistryKey': registry_key, 'RunKey': run_key, 'RunName': RUN_NAME,
         'SettingsGuid': guid(family, 'settings'),
-        'ShortcutsGuid': guid(family, 'shortcuts'), 'IconPath': str(ROOT/'assets/tresvizo_medico.ico'),
+        'ShortcutsGuid': guid(family, 'shortcuts'), 'IconPath': str(ROOT/'assets/clinica.ico'),
         'LicenseRtf': str(work/'License.rtf'), 'DialogBmp': str(work/'Dialog.bmp'), 'BannerBmp': str(work/'Banner.bmp')}
     if test_family:
         definitions['TestFamily'] = test_family

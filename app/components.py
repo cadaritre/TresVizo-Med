@@ -88,15 +88,41 @@ class DatePicker(ttk.Frame):
         super().__init__(parent)
         self.theme = theme
         self.var = tk.StringVar(value=value)
-        ttk.Entry(self, textvariable=self.var).pack(side='left', fill='x', expand=True)
-        ttk.Button(self, text='Calendario', command=self.open).pack(side='left')
+        self.entry = ttk.Entry(self, textvariable=self.var)
+        self.entry.pack(side='left', fill='x', expand=True)
+        self.button = ttk.Button(self, text='Calendario', command=self.open)
+        self.button.pack(side='left')
+        self.popup = None
+
+    def set_enabled(self, enabled):
+        # Un calendario abierto es un Toplevel; su state() controla la ventana.
+        for control in (self.entry, self.button):
+            control.state(['!disabled'] if enabled else ['disabled'])
+        if not enabled and self.popup is not None and self.popup.winfo_exists():
+            self.popup.destroy()
+
+    def selected_date(self):
+        from app.clinical_models import local_date
+        return date.fromisoformat(local_date(self.var.get()))
+
+    def set_date(self, value):
+        self.var.set(value.isoformat())
 
     def open(self):
+        if self.entry.instate(['disabled']):
+            return
+        if self.popup is not None and self.popup.winfo_exists():
+            self.popup.lift()
+            return self.popup
         window = tk.Toplevel(self)
+        self.popup = window
         window.title('Elegir fecha')
         window.transient(self.winfo_toplevel())
+        from app.branding import set_window_icon
+        set_window_icon(window)
+        window.bind('<Escape>', lambda event: (window.destroy(), 'break')[1])
         try:
-            selected = date.fromisoformat(self.var.get())
+            selected = self.selected_date()
         except ValueError:
             selected = date.today()
         month = [selected.year, selected.month]
@@ -117,8 +143,9 @@ class DatePicker(ttk.Frame):
         grid = ttk.Frame(window, padding=12)
         grid.pack()
         def select(day):
-            self.var.set(date(*month, day).isoformat())
+            self.set_date(date(*month, day))
             window.destroy()
+            self.entry.focus_set()
         def render(delta=0):
             y, m = month
             index = y*12+m-1+delta
@@ -149,6 +176,7 @@ class DatePicker(ttk.Frame):
         ttk.Button(direct, text='Ir', command=jump).pack(side='left')
         render()
         self.theme._walk(window)
+        return window
 
 
 class Tooltip:

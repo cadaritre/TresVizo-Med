@@ -59,6 +59,7 @@ def test_close_choices_fit_small_window_and_receive_focus(tmp_path):
 @pytest.mark.parametrize('control', ['x', 'cancel', 'escape'])
 def test_all_consultation_captures_close_and_allow_reopening(tmp_path, control):
     with workspace(tmp_path) as (app, editor, uid):
+        editor.goto_issue('subjective')
         note = editor.texts['subjective']
         note.insert('1.0', 'Nota que debe conservarse')
         note.focus_force()

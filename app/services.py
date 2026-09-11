@@ -21,8 +21,8 @@ def normalized(value):
 
 
 def password_hash(password):
-    if len(password) < 10:
-        raise DataError('La contraseña debe contener al menos 10 caracteres.')
+    if len(password) < 8:
+        raise DataError('La contraseña debe contener al menos 8 caracteres.')
     salt = secrets.token_bytes(16)
     return {'algorithm': 'scrypt', 'n': 16384, 'r': 8, 'p': 1,
             'salt': salt.hex(), 'hash': hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1).hex()}
@@ -109,6 +109,48 @@ class Auth:
                 u['password'] = password_hash(password)
             self.store.write(f'data/users/{identifier}.json', u)
             self.audit('actualizar_usuario', identifier)
+
+    def recovery_configured(self):
+        return bool(self.store.read('config/recovery.json', {}).get('password'))
+
+    def set_recovery_password(self, password, current_password):
+        actor = self.require('admin')
+        # Exigir la contraseña del administrador también con una sesión abierta.
+        self.login(actor['id'], current_password)
+        saved = password_hash(password)
+        with self.store.lock:
+            self.store.write('config/recovery.json', {
+                'schema_version': 1, 'password': saved, 'updated_at': now()})
+            self.audit('configurar_recuperacion', 'clinica')
+
+    def reset_password(self, identifier, master_password, new_password):
+        identifier = str(uuid.UUID(identifier))
+        # Una espera compartida y persistente evita reiniciar la app para eludirla.
+        with self.store.lock:
+            recovery = self.store.read('config/recovery.json', {})
+            if not recovery.get('password'):
+                raise DataError('El administrador todavía no configuró una contraseña maestra.')
+            until = recovery.get('blocked_until', 0)
+            if time.time() < until:
+                raise DataError(f'Espera {int(until-time.time())+1} segundos antes de volver a intentar.')
+            if not password_matches(master_password, recovery['password']):
+                failed = recovery.get('failures', 0)+1
+                recovery.update(failures=failed, blocked_until=time.time()+min(120, 2**min(failed, 7)))
+                self.store.write('config/recovery.json', recovery)
+                self.audit('recuperacion_rechazada', identifier)
+                raise DataError('Contraseña maestra incorrecta. Se ha aplicado una espera de seguridad.')
+            user_path = f'data/users/{identifier}.json'
+            user = self.store.read(user_path)
+            if not user or not user['active']:
+                raise DataError('El perfil no está activo.')
+            user['password'] = password_hash(new_password)
+            user['password_changed_at'] = now()
+            recovery.update(failures=0, blocked_until=0)
+            audit_id = str(uuid.uuid4())
+            self.store.transaction({user_path: user, 'config/recovery.json': recovery,
+                f'data/audit/{audit_id}.json': {'schema_version': 1, 'id': audit_id,
+                    'actor': None, 'action': 'restablecer_contrasena_maestra', 'target': identifier, 'at': now()}})
+            self.failures.pop(identifier, None)
 
 
 class Clinic:

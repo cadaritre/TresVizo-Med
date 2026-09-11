@@ -42,7 +42,7 @@ def create_pdf(path, identity, title, sections, doctor='', patient=''):
         story.extend([paragraph(label, subheading), paragraph(content or 'No registrado')])
     if identity.get('document_app_brand'):
         story.append(Spacer(1, 12))
-        story.append(Image(str(ASSETS/'tresvizo_medico.png'), width=34, height=39, hAlign='LEFT'))
+        story.append(Image(str(ASSETS/'clinica_cruz.png'), width=34, height=34, hAlign='LEFT'))
         story.append(paragraph('TresVizo · '+identity['app_name']))
     if identity.get('document_website'):
         story.append(paragraph(identity['website_text']+' · '+identity['website']))

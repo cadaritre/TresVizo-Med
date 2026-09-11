@@ -64,8 +64,9 @@ def test_minimum_registration_continues_without_optional_panels(tmp_path):
         assert visit.patient['name'] == 'Alta mínima de prueba'
         assert visit.patient['allergy_status'] == 'No interrogado'
         assert len(app.clinic.list('patients')) == 2
-        assert visit.soap['S'].opened
-        assert not any(visit.soap[k].opened for k in 'OAP')
+        assert all(visit.soap[k].winfo_ismapped() for k in 'SAP')
+        assert not visit.soap['O'].opened
+        assert not visit.symptoms_section.opened and not visit.assessment_section.opened
 
 
 @pytest.mark.desktop
@@ -74,10 +75,10 @@ def test_soap_error_target_draft_recovery_and_failed_save_keep_capture(tmp_path)
         editor.texts['reason'].insert('1.0', 'Motivo de prueba')
         editor.texts['subjective'].insert('1.0', 'Relato sin hallazgos inventados')
         app.update()
-        assert not editor.soap['P'].opened
+        assert editor.soap['P'].winfo_ismapped()
         editor.goto_issue('plan')
         app.update()
-        assert editor.soap['P'].opened and app.focus_get() is editor.texts['plan']
+        assert editor.soap['P'].winfo_ismapped() and app.focus_get() is editor.texts['plan']
         editor.texts['plan'].insert('1.0', 'Indicaciones de prueba')
         editor.reveal_section('A')
         editor.diagnosis_var.set('Impresión sintética')
@@ -101,9 +102,9 @@ def test_soap_error_target_draft_recovery_and_failed_save_keep_capture(tmp_path)
         editor.destroy()
         recovered = app.open_encounter(identifier)
         settle(app)
-        assert recovered.soap['P'].opened and recovered.soap['A'].opened
+        assert recovered.soap['P'].winfo_ismapped() and recovered.soap['A'].winfo_ismapped()
         assert not recovered.soap['O'].opened
-        assert 'Cambio local' in recovered.soap['P'].summary.cget('text')
+        assert 'Cambio local' in recovered.texts['plan'].get('1.0', 'end-1c')
         assert recovered.model.data['subjective'] == 'Relato sin hallazgos inventados'
         recovered.save(final=True)
         final = app.store.read(f'data/encounters/{identifier}.json')

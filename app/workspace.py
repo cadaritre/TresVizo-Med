@@ -22,7 +22,12 @@ class Workspace:
     def login_screen(self):
         users = [u for u in self.auth.users() if u['active']]
         if not users:
-            return self._legacy_login_screen()
+            self.clear()
+            self.theme.apply(self.appearance.tokens())
+            from app.setup_ui import SetupPage
+            self.setup_page = SetupPage(self, self)
+            self.setup_page.pack(fill='both', expand=True)
+            return
         self.clear()
         self.theme.apply(self.appearance.tokens())
         from app.login_ui import LoginPage
@@ -42,6 +47,7 @@ class Workspace:
         header.pack(fill='x')
         ttk.Label(header, text=self.identity.values['clinic_name'], style='Header.TLabel', font=('Segoe UI Semibold', 13)).pack(side='left')
         self.profile_button = ttk.Menubutton(header, text=self.auth.current['name'], image=self.profiles.image(self.auth.current,32), compound='left')
+        self.profiles.bind(self.profile_button, self.auth.current, 32)
         self.profile_button.pack(side='right')
         menu = tk.Menu(self.profile_button, tearoff=False)
         menu.add_command(label='Mi perfil', command=lambda: self.show('Mi perfil'))

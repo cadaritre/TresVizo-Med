@@ -48,6 +48,8 @@ class DateField(DatePicker):
             self.var.set(display_date(value))
     def get(self):
         return local_date(self.var.get())
+    def set_date(self, value):
+        self.var.set(value.strftime('%d/%m/%Y'))
 
 class Form(ttk.Frame):
     def __init__(self, parent, specs, data=None, changed=lambda: None, theme=None, date_type=None):

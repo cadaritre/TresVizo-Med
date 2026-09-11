@@ -31,6 +31,8 @@ class ThemeManager:
         s.configure('Section.TLabel', font=('Segoe UI Semibold', 15), foreground=t['text'])
         s.configure('TSeparator', background=t['separator'])
         s.configure('Subtitle.TLabel', foreground=t['muted'])
+        s.configure('Consultation.Field.TLabel', font=('Segoe UI Semibold', 12), foreground=t['text'])
+        s.configure('Consultation.Alert.TLabel', background=t['warning_bg'], foreground=t['warning_fg'], padding=(10, 5))
         s.configure('Login.Brand.TLabel', font=('Segoe UI Semibold', 22))
         s.configure('Login.Eyebrow.TLabel', font=('Segoe UI Semibold', 10), foreground=t['muted'])
         s.configure('Login.Panel.TFrame', background=t['surface'], bordercolor=t['border'], relief='solid', borderwidth=1)

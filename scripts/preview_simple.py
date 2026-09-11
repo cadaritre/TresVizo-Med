@@ -10,6 +10,11 @@ from app.main_window import Application
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--view', choices=['patients', 'registration', 'soap', 'options', 'legacy', 'complete'], default='soap')
+parser.add_argument('--width', type=int, default=1366)
+parser.add_argument('--height', type=int, default=768)
+parser.add_argument('--scale', type=float, default=1)
+parser.add_argument('--theme', default='Clínico')
+parser.add_argument('--seconds', type=int, default=0)
 args = parser.parse_args()
 
 with tempfile.TemporaryDirectory(prefix='tresvizo-simple-') as directory:
@@ -36,8 +41,10 @@ with tempfile.TemporaryDirectory(prefix='tresvizo-simple-') as directory:
         'reason': 'Atención anterior de demostración', 'subjective': 'Nota antigua íntegra, conservada sin redistribuir su contenido.',
         'assessment': 'Valoración narrativa anterior', 'plan': 'Indicaciones originales de ejemplo',
         'medications': 'Texto de tratamiento heredado, sin interpretar dosis.'})
+    app.ui_scale = args.scale
+    app.tk.call('tk', 'scaling', args.scale*96/72)
     app.shell()
-    app.geometry('1366x768')
+    app.geometry(f'{args.width}x{args.height}')
     registration = [None]
     def show(view):
         if view == 'patients': app.show('Pacientes')
@@ -54,4 +61,7 @@ with tempfile.TemporaryDirectory(prefix='tresvizo-simple-') as directory:
     for key, view in enumerate(['patients', 'registration', 'soap', 'options', 'legacy', 'complete'], 1):
         app.bind('<F'+str(key)+'>', lambda e, view=view: show(view))
     show(args.view)
+    app.theme.apply(app.appearance.list()[args.theme]['tokens'])
+    if args.seconds:
+        app.after(args.seconds*1000, app.close)
     app.mainloop()

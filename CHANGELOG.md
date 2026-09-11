@@ -1,5 +1,14 @@
 # Cambios por versión
 
+## 1.0.2 — 2026-09-11
+
+- Consulta simplificada: motivo, diagnóstico e indicaciones visibles sin desplegar secciones, con lenguaje directo y cabecera de paciente compacta.
+- Accesos directos a signos vitales, medicamentos y documentos con cantidades; fecha, historial y receta en Más opciones.
+- Resúmenes clínicos laterales en ventanas amplias, apilados debajo en ventanas pequeñas; acciones de cada elemento se acomodan sin estrechar su texto.
+- Síntomas, notas de valoración, exploración y herramientas complementarias se despliegan según necesidad. Los borradores conservan textos, estado de secciones y capturas pendientes.
+- Finalizar incorpora el diagnóstico que se está escribiendo a la revisión; el cierre sigue requiriendo confirmar la consulta.
+- Se conservan iconos, desinstalador, identidad de actualización y los datos externos de Documentos.
+
 ## 1.0.1 — 2026-09-11
 
 - Selección de médicos renovada: tarjetas de perfil, especialidad y usuario, panel de acceso separado, búsqueda por resultados y distribución adaptable. Errores junto a la contraseña y limpieza al cambiar de perfil.

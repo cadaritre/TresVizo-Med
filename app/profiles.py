@@ -17,6 +17,7 @@ class Profiles:
         self.store, self.auth = store, auth
         self.master = master
         self.cache = {}
+        self.bindings = []
     def get(self, uid):
         return self.store.read(f'config/profiles/{uuid.UUID(uid)}.json', {'avatar': AVATARS[uuid.UUID(uid).int % len(AVATARS)], 'reduce_motion': False})
     def save(self, uid, values, photo=None):
@@ -33,8 +34,20 @@ class Profiles:
         if data['avatar'] not in (*AVATARS, 'photo', 'initials'):
             raise DataError('Avatar desconocido.')
         self.store.write(f'config/profiles/{uid}.json', data)
-        self.cache.clear()
+        self.cache = {key: image for key, image in self.cache.items() if key[0] != uid}
+        self.bindings = [(widget, user, size) for widget, user, size in self.bindings if widget.winfo_exists()]
+        for widget, user, size in self.bindings:
+            if user['id'] == uid:
+                widget.profile_photo = self.image(user, size)
+                widget.configure(image=widget.profile_photo)
         self.auth.audit('actualizar_perfil', uid)
+
+    def bind(self, widget, user, size=64):
+        self.bindings = [(w, u, s) for w, u, s in self.bindings if w.winfo_exists() and w is not widget]
+        self.bindings.append((widget, dict(user), size))
+        # Tk conserva el nombre de la imagen, pero no la referencia Python.
+        widget.profile_photo = self.image(user, size)
+        widget.configure(image=widget.profile_photo)
     def image(self, user, size=64):
         pref = self.get(user['id'])
         key = (user['id'], size, pref.get('avatar'), pref.get('photo'))
@@ -70,6 +83,7 @@ class ProfileEditor(ScrollFrame):
         self.photo = None
         ttk.Label(self.body, text=('Mi perfil · ' if self.user['id'] == app.auth.current['id'] else 'Perfil del doctor · ')+self.user['name'], style='Section.TLabel').pack(anchor='w', pady=10)
         self.preview = ttk.Label(self.body, image=app.profiles.image(self.user, 96))
+        app.profiles.bind(self.preview, self.user, 96)
         self.preview.pack(anchor='w', pady=8)
         self.photos = []
         self.avatar_buttons = {}
@@ -91,6 +105,8 @@ class ProfileEditor(ScrollFrame):
         actions.pack(fill='x', pady=10)
         ttk.Button(actions, text='Elegir foto…', command=self.choose).pack(side='left')
         ttk.Button(actions, text='Usar iniciales', command=lambda: self.select('initials', None)).pack(side='left', padx=8)
+        self.notice = ttk.Label(self.body, style='Subtitle.TLabel', wraplength=620)
+        self.notice.pack(fill='x', pady=8)
         self.reduce = tk.BooleanVar(value=self.pref.get('reduce_motion', False))
         ttk.Checkbutton(self.body, text='Reducir movimiento', variable=self.reduce).pack(anchor='w', pady=8)
         self.professional = Form(self.body, [('specialty', 'Especialidad', None), ('license', 'Registro profesional', None),
@@ -104,10 +120,13 @@ class ProfileEditor(ScrollFrame):
     def reset(self):
         self.pref = self.app.profiles.get(self.user['id'])
         self.selected, self.photo = self.pref.get('avatar', 'initials'), None
-        self.preview.configure(image=self.app.profiles.image(self.user, 96), text='')
+        self.app.profiles.bind(self.preview, self.user, 96)
+        self.preview.configure(text='')
+        self.notice.configure(text='')
         self.reduce.set(self.pref.get('reduce_motion', False))
         self.professional.load(self.pref)
         self.mark_selected()
+
 
     def mark_selected(self):
         for name, button in self.avatar_buttons.items():
@@ -117,6 +136,7 @@ class ProfileEditor(ScrollFrame):
         self.selected, self.photo = name, None
         self.preview.configure(image=image or '', text='Iniciales' if name == 'initials' else '')
         self.mark_selected()
+        self.notice.configure(text='Vista previa · pulsa Guardar perfil para aplicar este avatar.')
 
     def choose(self):
         path = filedialog.askopenfilename(parent=self, filetypes=[('Foto PNG o JPEG', '*.png *.jpg *.jpeg')])
@@ -134,16 +154,26 @@ class ProfileEditor(ScrollFrame):
         self.app.guard(action)
 
     def use_photo(self, image):
-        self.photo, self.selected = image, 'photo'
-        self.preview_photo = ImageTk.PhotoImage(image.resize((96,96), Image.Resampling.LANCZOS),master=self)
-        self.preview.configure(image=self.preview_photo, text='')
+        try:
+            self.app.profiles.save(self.user['id'], {'avatar': 'photo'}, image)
+        except (ValueError, OSError) as exc:
+            self.notice.configure(text=str(exc), style='error.TLabel')
+            return False
+        self.photo, self.selected = None, 'photo'
+        self.pref = self.app.profiles.get(self.user['id'])
+        self.app.profiles.bind(self.preview, self.user, 96)
+        self.preview.configure(text='')
+        self.notice.configure(text='Foto guardada y aplicada a tu perfil.', style='Subtitle.TLabel')
+        self.app.status.set('Foto de perfil actualizada.')
         self.mark_selected()
+        return True
 
     def save(self):
         self.app.profiles.save(self.user['id'], {'avatar': self.selected, 'reduce_motion': self.reduce.get(), **self.professional.values()}, self.photo)
-        if hasattr(self.app, 'profile_button'):
-            self.app.profile_button.configure(image=self.app.profiles.image(self.app.auth.current, 32))
         self.app.status.set('Perfil guardado.')
+        self.app.profiles.bind(self.preview, self.user, 96)
+        self.preview.configure(text='')
+        self.notice.configure(text='Perfil guardado.', style='Subtitle.TLabel')
         self.pref = self.app.profiles.get(self.user['id'])
         self.photo = None
 
@@ -154,6 +184,9 @@ class PhotoCrop(tk.Toplevel):
         self.original, self.callback = original, callback
         self.geometry('430x490')
         self.transient(app)
+        from app.branding import set_window_icon
+        set_window_icon(self)
+        self.bind('<Escape>', lambda event: (self.destroy(), 'break')[1])
         self.offset, self.drag = [0,0], None
         self.zoom = tk.DoubleVar(value=1)
         ttk.Label(self, text='Arrastra para encuadrar · ajusta el zoom', padding=12).pack()
@@ -164,7 +197,7 @@ class PhotoCrop(tk.Toplevel):
         ttk.Scale(self, from_=1, to=3, variable=self.zoom, command=lambda v: self.render()).pack(fill='x', padx=30, pady=12)
         actions = ttk.Frame(self)
         actions.pack()
-        ttk.Button(actions, text='Usar recorte', command=self.accept).pack(side='left')
+        ttk.Button(actions, text='Guardar foto de perfil', command=self.accept).pack(side='left')
         ttk.Button(actions, text='Restablecer', command=self.reset).pack(side='left', padx=5)
         ttk.Button(actions, text='Cancelar', command=self.destroy).pack(side='left')
         app.theme._walk(self)
@@ -193,5 +226,5 @@ class PhotoCrop(tk.Toplevel):
         self.canvas.delete('all')
         self.canvas.create_image(0,0, image=self.image, anchor='nw')
     def accept(self):
-        self.callback(self.crop())
-        self.destroy()
+        if self.callback(self.crop()) is not False:
+            self.destroy()

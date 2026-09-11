@@ -16,6 +16,7 @@ from app.editing_state import merge_draft, VersionConflict
 @pytest.mark.desktop
 def test_resume_current_allergies_and_search_focus_without_changing_note(tmp_path):
     with workspace(tmp_path) as (app, editor, uid):
+        editor.goto_issue('subjective')
         note = editor.texts['subjective']
         note.insert('1.0', 'Nota local sin reemplazar')
         app.update()

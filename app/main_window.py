@@ -119,10 +119,28 @@ class Application(Workspace, TkinterDnD.Tk):
         label = ttk.Label(parent, style=style)
         def refresh(tokens):
             background = tokens['sidebar'] if style == 'Nav.TLabel' else tokens['background']
-            label.logo = logo_photo(int(size*self.ui_scale), dark=luminance(background) < .25, master=self)
+            from app.branding import photo_from_path
+            clinic_logo = self.identity.values.get('clinic_logo')
+            try:
+                label.logo = photo_from_path(clinic_logo, int(size*self.ui_scale), self) if clinic_logo else logo_photo(int(size*self.ui_scale), dark=luminance(background) < .25, master=self)
+            except (OSError, ValueError):
+                label.logo = logo_photo(int(size*self.ui_scale), dark=luminance(background) < .25, master=self)
             label.configure(image=label.logo)
         self.theme.subscribe(label, refresh)
+        label.refresh_brand = refresh
         return label
+
+    def refresh_identity(self):
+        self.title(self.identity.values['app_name'])
+        set_window_icon(self, default=True)
+        def visit(widget):
+            if isinstance(widget, tk.Toplevel):
+                set_window_icon(widget)
+            if hasattr(widget, 'refresh_brand'):
+                widget.refresh_brand(self.theme.tokens)
+            for child in widget.winfo_children():
+                visit(child)
+        visit(self)
 
     def _legacy_login_screen(self):
         self.clear()
@@ -141,7 +159,7 @@ class Application(Workspace, TkinterDnD.Tk):
             clinic, _ = field(outer, 'Nombre de la clínica')
             name, _ = field(outer, 'Nombre del primer administrador')
             username, _ = field(outer, 'Usuario')
-            password, entry = field(outer, 'Contraseña · al menos 10 caracteres', secret=True)
+            password, entry = field(outer, 'Contraseña · al menos 8 caracteres', secret=True)
             def setup():
                 if not clinic.get().strip():
                     raise DataError('Escribe el nombre de la clínica.')
@@ -239,6 +257,7 @@ class Application(Workspace, TkinterDnD.Tk):
         win.title(title)
         win.geometry(size)
         win.transient(self)
+        set_window_icon(win)
         self.theme._walk(win)
         return win
 
@@ -350,15 +369,26 @@ class Application(Workspace, TkinterDnD.Tk):
         ttk.Label(identity.body, text='La identidad de la aplicación está separada de la clínica.\nEstos ajustes globales requieren permisos de administrador.', style='Subtitle.TLabel').pack(anchor='w', pady=12)
         def save_identity():
             self.identity.save({key: value.get() for key, value in values.items()})
-            self.title(self.identity.values['app_name'])
+            self.refresh_identity()
             self.status.set('Identidad guardada.')
         ttk.Button(identity.body, text='Guardar identidad', command=lambda: self.guard(save_identity)).pack(anchor='w', pady=12)
         def clinic_logo():
-            path = filedialog.askopenfilename(parent=self, filetypes=[('Logo PNG o JPEG', '*.png *.jpg *.jpeg')])
+            path = filedialog.askopenfilename(parent=self, filetypes=[('Logo o icono de clínica', '*.png *.jpg *.jpeg *.ico')])
             if path:
-                self.guard(lambda: self.identity.set_clinic_logo(path))
-                self.status.set('Logo de la clínica guardado para documentos.')
+                def save_logo():
+                    self.identity.set_clinic_logo(path)
+                    self.refresh_identity()
+                    self.status.set('Logo de la clínica actualizado.')
+                self.guard(save_logo)
         ttk.Button(identity.body, text='Elegir logo de la clínica', command=clinic_logo).pack(anchor='w', pady=8)
+        values['use_clinic_icon'] = tk.BooleanVar(value=self.identity.values.get('use_clinic_icon', False))
+        ttk.Checkbutton(identity.body, text='Usar el logo de la clínica como icono de las ventanas', variable=values['use_clinic_icon']).pack(anchor='w', pady=8)
+        def default_logo():
+            from app.branding import APP_MARK
+            self.identity.set_clinic_logo(APP_MARK)
+            self.refresh_identity()
+            self.status.set('Cruz azul y turquesa seleccionada para la clínica.')
+        ttk.Button(identity.body, text='Elegir cruz azul y turquesa', command=lambda: self.guard(default_logo)).pack(anchor='w', pady=8)
         if self.auth.current['role'] == 'admin':
             from app.attachments import CATEGORIES
             categories,_ = field(identity.body,'Categorías de documentos · separadas por coma',', '.join(self.store.read('config/attachment_categories.json',CATEGORIES)))
@@ -382,6 +412,10 @@ class Application(Workspace, TkinterDnD.Tk):
             self.status.set('Política de bloqueo guardada.')
         ttk.Button(security, text='Guardar política', command=lambda: self.guard(save_security)).pack(anchor='w', pady=12)
         ttk.Button(security, text='Cambiar mi contraseña', command=self.change_password).pack(anchor='w')
+        if self.auth.current['role'] == 'admin':
+            from app.recovery_ui import recovery_dialog
+            ttk.Label(security, text='Recuperación de acceso mediante la contraseña maestra de la clínica.', wraplength=700).pack(anchor='w', pady=(20, 8))
+            ttk.Button(security, text='Configurar o cambiar contraseña maestra…', command=lambda: recovery_dialog(self)).pack(anchor='w')
         from app.profiles import ProfileEditor
         profile = ProfileEditor(tabs, self)
         tabs.add(profile, text='Mi perfil')
@@ -396,7 +430,7 @@ class Application(Workspace, TkinterDnD.Tk):
             return
         def action():
             self.auth.login(self.auth.current['id'], old)
-            new = simpledialog.askstring('Nueva contraseña', 'Al menos 10 caracteres:', show='•', parent=self)
+            new = simpledialog.askstring('Nueva contraseña', 'Al menos 8 caracteres:', show='•', parent=self)
             if new is not None:
                 self.auth.update_user(self.auth.current['id'], password=new)
                 self.status.set('Contraseña actualizada.')
@@ -414,7 +448,7 @@ class Application(Workspace, TkinterDnD.Tk):
             form.pack(fill='both', expand=True)
             name, _ = field(form, 'Nombre completo')
             username, _ = field(form, 'Usuario')
-            password, _ = field(form, 'Contraseña inicial · al menos 10 caracteres', secret=True)
+            password, _ = field(form, 'Contraseña inicial · al menos 8 caracteres', secret=True)
             role = tk.StringVar(value='doctor')
             ttk.Combobox(form, textvariable=role, values=['doctor', 'admin'], state='readonly').pack(fill='x', pady=16)
             def save():
@@ -444,7 +478,7 @@ class Application(Workspace, TkinterDnD.Tk):
         import struct
         self.heading(parent, 'Acerca de', self.identity.values['app_name'])
         self.brand(parent).pack(anchor='w', pady=12)
-        ttk.Label(parent, text='TresVizo', font=('Segoe UI Semibold', 27)).pack(anchor='w')
+        ttk.Label(parent, text=self.identity.values['clinic_name'], font=('Segoe UI Semibold', 27)).pack(anchor='w')
         ttk.Label(parent, text=f'Versión {VERSION} · {struct.calcsize("P")*8} bits').pack(anchor='w', pady=8)
         ttk.Label(parent, text='Registro de pacientes y consultas · Almacenamiento local', style='Subtitle.TLabel').pack(anchor='w', pady=12)
         ttk.Button(parent, text=self.identity.values['website_text']+' ↗', style='Link.TButton', command=lambda: self.guard(self.identity.open_website)).pack(anchor='w')
@@ -456,6 +490,8 @@ class Application(Workspace, TkinterDnD.Tk):
             from app.export_ui import export_patients
             export_patients(self)
         ttk.Button(parent, text='Exportar pacientes · CSV / JSON', command=patients, style='Primary.TButton').pack(anchor='w', pady=10)
+        from app.export_ui import export_consultations
+        ttk.Button(parent, text='Exportar consultas · CSV', command=lambda: export_consultations(self), style='Primary.TButton').pack(anchor='w', pady=10)
         if self.auth.current['role'] == 'admin':
             from app.import_ui import ImportWindow
             ttk.Button(parent, text='Importar pacientes CSV · mapear y revisar…', command=lambda: ImportWindow(self)).pack(anchor='w', pady=10)

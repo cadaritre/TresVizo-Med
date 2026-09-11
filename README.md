@@ -37,7 +37,7 @@ Configuración → Clínica e identidad permite cambiar nombre, contacto, logo c
 
 ## Recorrido cotidiano
 
-La versión de código fuente 1.0.1 simplifica la atención con SOAP progresivo. Consulta el [recorrido, verificaciones y límites](docs/recorrido-simple.md). El MSI 1.0.0 anterior permanece intacto y no incluye estos cambios.
+El instalador **TresVizo-Med-1.0.2-x64.msi** está en `dist/installer`. Incluye el acceso renovado por médico, la consulta simplificada con motivo, diagnóstico e indicaciones visibles y desinstalación desde Inicio o Aplicaciones de Windows. Consulta el [recorrido](docs/recorrido-simple.md) y las [instrucciones para instalar, actualizar y desinstalar](docs/distribucion.md). Los MSI anteriores permanecen intactos.
 
 ## Funciones clínicas disponibles
 

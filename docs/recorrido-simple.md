@@ -1,6 +1,8 @@
 # Recorrido simplificado · 1.0.1
 
-El código fuente del 11 de septiembre de 2026 conserva las herramientas existentes y reorganiza su entrada. El instalador MSI 1.0.0 anterior permanece intacto; esta revisión todavía no se ha compilado como MSI.
+**Actualización 1.0.2:** la consulta ahora muestra motivo, diagnóstico e indicaciones directamente, con resúmenes laterales y accesos a signos vitales, medicamentos y documentos. La sección Consulta de [la guía de uso](uso.md) describe la interfaz actual; el resto de este documento conserva la verificación de la etapa 1.0.1.
+
+La versión 1.0.1 del 11 de septiembre de 2026 conserva las herramientas existentes y reorganiza su entrada. Está compilada en `dist/installer/TresVizo-Med-1.0.1-x64.msi`; el instalador 1.0.0 anterior permanece intacto.
 
 ## Entrada y funciones secundarias
 
@@ -44,4 +46,6 @@ La demostración usa una carpeta temporal y datos ficticios:
 
 F1 muestra Pacientes, F2 Alta, F3 SOAP vacío, F4 Más opciones, F5 una nota antigua y F6 una consulta con mediciones, tratamiento y documento de prueba. Las capturas de ventanas reales se guardan en `artifacts/ui-simple/`: `pacientes.jpg`, `alta.jpg`, `soap.jpg`, `opciones.jpg`, `historial.jpg` y `consulta-con-datos.jpg`. Se revisaron sobre la paleta clara; las regresiones de temas siguen verificando cambios sin reconstruir controles. Los informes de pruebas están en `artifacts/pytest-simple-*.txt`; ambos directorios están excluidos de Git.
 
-No se modificó la base clínica real ni se sustituyó la instalación abierta. No se compiló un instalador 1.0.1, no se publicó un nuevo commit y no se ha validado una PC de 32 bits en esta revisión.
+La compilación 1.0.1 incorpora también la selección de médicos con tarjetas, especialidad y usuario, búsqueda y panel de acceso adaptable. La suite completa de distribución aprobó 120 pruebas. Se verificaron los iconos de ventana y la identidad de barra de tareas en el ejecutable compilado; el recurso EXE contiene las nueve imágenes del ICO original. No se modificó la base clínica real ni se sustituyó la instalación del usuario. Este paquete es x64 para Windows 10/11; no se ha validado una PC de 32 bits.
+
+La entrega MSI 1.0.1 aprobó también el ciclo de instalación, actualización, reparación, reversión de fallo y desinstalación con 11 archivos sintéticos conservados. Se verificaron el registro de desinstalación de Windows y el acceso en Inicio. Informe: `dist/installer/TresVizo-Med-1.0.1-x64.verification.json`.

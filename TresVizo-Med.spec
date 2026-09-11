@@ -42,7 +42,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets/tresvizo_medico.ico'],
+    icon=['assets/clinica.ico'],
     version='build/windows-version.txt',
 )
 coll = COLLECT(

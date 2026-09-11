@@ -41,6 +41,61 @@ class Transfer:
                     writer.writerow([safe_csv(row.get(f, '')) for f in fields])
         self.auth.audit('exportar_pacientes', str(len(rows)))
 
+    def consultation_rows(self, *, start='', end='', doctor_id='', include_drafts=False, identifiers=None):
+        self.auth.require()
+        for value in (start, end):
+            if value:
+                try:
+                    date.fromisoformat(value)
+                except ValueError as exc:
+                    raise DataError('Revisa las fechas del periodo.') from exc
+        if start and end and start > end:
+            raise DataError('La fecha inicial debe ser anterior o igual a la final.')
+        rows = self.clinic.list('encounters')
+        rows = [r for r in rows if (include_drafts or r['status'] != 'Borrador')
+                and (not doctor_id or r['doctor_id'] == doctor_id)
+                and (not start or r.get('attended_at', '')[:10] >= start)
+                and (not end or r.get('attended_at', '')[:10] <= end)
+                and (identifiers is None or r['id'] in identifiers)]
+        return sorted(rows, key=lambda r: (r.get('attended_at', ''), r['id']))
+
+    def export_consultations(self, destination, **filters):
+        from app.clinical_models import VITALS, medication_text
+        rows = self.consultation_rows(**filters)
+        patients = {r['id']: r for r in self.clinic.list('patients', True)}
+        doctors = {u['id']: u for u in self.auth.users()}
+        base = ('id', 'patient_id', 'patient_file_number', 'patient_name', 'doctor_id', 'doctor_name',
+                'attended_at', 'status', 'consultation_type', 'reason', 'subjective', 'objective',
+                'assessment', 'assessment_notes', 'plan', 'medications', 'prescription_summary', 'studies', 'vitals_at')
+        structured = ('diagnoses', 'prescriptions', 'vitals', 'study_orders', 'addenda', 'followup')
+        fields = (*base, *(part for key in VITALS for part in (key, key+'_unit')),
+                  *(key+'_json' for key in structured))
+        target = Path(destination)
+        temporary = target.with_name('.'+target.name+'.'+uuid.uuid4().hex+'.tmp')
+        try:
+            with temporary.open('x', newline='', encoding='utf-8-sig') as stream:
+                writer = csv.DictWriter(stream, fieldnames=fields)
+                writer.writeheader()
+                for row in rows:
+                    patient = patients.get(row['patient_id'], {})
+                    latest = max(row.get('vitals', []), key=lambda v: v.get('at', ''), default={})
+                    data = {key: row.get(key, '') for key in base}
+                    data.update(patient_file_number=patient.get('file_number', ''), patient_name=patient.get('name', ''),
+                                doctor_name=doctors.get(row['doctor_id'], {}).get('name', ''),
+                                prescription_summary='\n'.join(medication_text(m) for m in row.get('prescriptions', [])),
+                                vitals_at=latest.get('at', ''))
+                    for key in VITALS:
+                        item = latest.get('values', {}).get(key, {})
+                        data[key], data[key+'_unit'] = item.get('value', ''), item.get('unit', '')
+                    for key in structured:
+                        data[key+'_json'] = json.dumps(row.get(key, {} if key == 'followup' else []), ensure_ascii=False)
+                    writer.writerow({key: safe_csv(value) for key, value in data.items()})
+            temporary.replace(target)
+        finally:
+            temporary.unlink(missing_ok=True)
+        self.auth.audit('exportar_consultas', str(len(rows)))
+        return len(rows)
+
     def backup(self, destination):
         self.auth.require('admin')
         destination = Path(destination).resolve()
@@ -120,10 +175,11 @@ class Transfer:
             identity_path = staging/'config'/'identity.json'
             if identity_path.exists():
                 identity = read_json(identity_path)
-                logo = identity.get('clinic_logo','')
-                if logo and (staging/'config'/Path(logo).name).is_file():
-                    identity['clinic_logo'] = str(destination/'config'/Path(logo).name)
-                    atomic_json(identity_path,identity)
+                for key in ('clinic_logo', 'clinic_icon'):
+                    logo = identity.get(key, '')
+                    if logo and (staging/'config'/Path(logo).name).is_file():
+                        identity[key] = str(destination/'config'/Path(logo).name)
+                atomic_json(identity_path,identity)
             staging.rename(destination)
         except BaseException:
             shutil.rmtree(staging,ignore_errors=True)

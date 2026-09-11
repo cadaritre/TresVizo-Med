@@ -34,6 +34,7 @@ BUILTINS = {
 SEMANTIC = {'error_bg': '#FDEBEC', 'error_fg': '#9E182C', 'warning_bg': '#FFF2CE',
             'warning_fg': '#714B00', 'success_bg': '#E1F4E8', 'success_fg': '#185631'}
 DEFAULT_IDENTITY = {'app_name': 'Registro Clínico', 'clinic_name': 'Mi clínica', 'clinic_logo': '',
+                    'clinic_icon': '', 'use_clinic_icon': False,
                     'contact': '', 'website': 'https://www.tresvizo.com/', 'website_text': 'tresvizo.com',
                     'document_website': False, 'document_app_brand': False,
                     'document_primary': '#07356F', 'document_text': '#263746'}

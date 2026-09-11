@@ -49,8 +49,8 @@ class PatientEditor(ttk.Frame):
         self.review_section = Collapsible(body, 'Revisar todos los datos antes de guardar')
         pages = [body, self.complementary.body, self.document_section.body, self.review_section.body]
         self.personal = Form(pages[0], [('name', 'Nombre completo *', None), ('preferred_name', 'Nombre preferido', None),
-                                      ('birth_date', 'Fecha de nacimiento', 'date'), ('sex', 'Sexo registrado', ['No especificado', 'Femenino', 'Masculino', 'Intersexual', 'Otro registrado'])],
-                             {**data, 'sex': data.get('sex', 'No especificado')}, self.changed, app.theme)
+                                      ('birth_date', 'Fecha de nacimiento', 'date'), ('sex', 'Sexo', ['Masculino', 'Femenino'])],
+                             {**data, 'sex': data.get('sex', '')}, self.changed, app.theme)
         self.personal.pack(fill='x')
         self.search_input = self.personal.inputs['name']
         self.personal.inputs['sex'].configure(state='readonly')
@@ -171,9 +171,7 @@ class PatientEditor(ttk.Frame):
         self.document_section.set_summary(f'{incorporated} documentos incorporados al borrador'+(f' · ⚠ {pending} pendientes' if pending else ''))
 
     def update_age_mode(self):
-        for widget in self.personal.inputs['birth_date'].winfo_children():
-            if hasattr(widget, 'state'):
-                widget.state(['disabled'] if self.unknown.get() else ['!disabled'])
+        self.personal.inputs['birth_date'].set_enabled(not self.unknown.get())
         if self.unknown.get():
             self.approx.pack(fill='x', after=self.age)
         else:

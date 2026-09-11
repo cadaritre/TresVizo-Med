@@ -171,20 +171,24 @@ class SummaryRows(ttk.Frame):
         self.signature = signature
         for child in self.winfo_children():
             child.destroy()
-        if not rows:
+        if not rows and empty:
             ttk.Label(self, text=empty, style='Subtitle.TLabel').pack(anchor='w', pady=4)
         for row, (_, text) in zip(rows, signature):
             line = ttk.Frame(self, padding=(10, 6), style='Card.TFrame')
             line.pack(fill='x', pady=3)
             actions = ttk.Frame(line, style='Card.TFrame')
-            actions.pack(side='right', padx=(8, 0))
+            actions.pack(side='bottom', anchor='e', pady=(5, 0))
             if self.edit:
                 action(actions, self.app, self.edit_label, lambda key=row['id']: self.edit(key), 'folder-open' if self.edit_label == 'Ver' else 'pencil').pack(side='left')
             if self.remove:
                 action(actions, self.app, 'Quitar', lambda key=row['id']: self.remove(key)).pack(side='left', padx=(5, 0))
-            label = ttk.Label(line, text=text, style='Card.TLabel', wraplength=720, justify='left')
-            label.pack(side='left', fill='x', expand=True)
-            line.bind('<Configure>', lambda e, w=label, a=actions: w.configure(wraplength=max(160, e.width-a.winfo_reqwidth()-40)))
+            label = ttk.Label(line, text=text, style='Card.TLabel', wraplength=160, justify='left')
+            label.pack(fill='x')
+            def layout(event, label=label):
+                width = max(140, event.width-24)
+                if int(label.cget('wraplength')) != width:
+                    label.configure(wraplength=width)
+            line.bind('<Configure>', layout)
         self.app.theme._walk(self)
 
 
@@ -199,29 +203,31 @@ class ConsultationEditor(ttk.Frame):
         self.last_text = None
         top = ttk.Frame(self)
         top.pack(fill='x')
-        action(top, app, '‹ Expediente', lambda: app.patient_record(patient['id'])).pack(side='right')
+        tools = ttk.Menubutton(top, text='Más opciones', style='TMenubutton')
+        tools.pack(side='right')
+        menu = tk.Menu(tools, tearoff=False)
+        menu.add_command(label='Abrir expediente', command=lambda: app.patient_record(patient['id']))
+        menu.add_command(label='Fecha, hora y tipo de consulta', command=lambda: self.open_tool('header'))
+        menu.add_command(label='Ver evolución de signos vitales', command=self.open_history)
+        menu.add_command(label='Revisar tratamientos previos', command=lambda: self.open_tool('reuse'))
+        menu.add_command(label='Vista previa de receta', command=self.preview_prescription)
+        tools.configure(menu=menu)
         title = self.patient_title = ttk.Label(top, text=patient['name'], style='Section.TLabel', wraplength=850)
         title.pack(side='left', fill='x', expand=True)
-        top.bind('<Configure>', lambda e, label=title: label.configure(wraplength=max(260, e.width-170)))
-        self.identity_label = ttk.Label(self, text=patient['file_number']+' · '+age_label(patient)+' · Responsable: '+app.auth.current['name'], style='Subtitle.TLabel', wraplength=1000)
-        self.identity_label.pack(anchor='w', pady=(3, 0))
-        context = ttk.Frame(self)
-        context.pack(fill='x')
-        self.context_label = ttk.Label(context, style='Subtitle.TLabel')
-        self.context_label.pack(side='left', fill='x', expand=True)
-        context.bind('<Configure>', lambda e: self.context_label.configure(wraplength=max(200, e.width-190)))
-        action(context, app, 'Editar detalles', lambda: self.open_tool('header'), 'pencil').pack(side='left', padx=10, pady=3)
-        allergy = ', '.join(r.get('substance', '') for r in patient.get('allergy_records', [])) or patient.get('allergies') or patient.get('allergy_status') or 'No interrogadas'
-        self.allergy_label = ttk.Label(self, text='⚠ Alergias: '+allergy, style='warning.TLabel', wraplength=1000)
-        self.allergy_label.pack(fill='x', pady=(2, 7))
+        top.bind('<Configure>', lambda e, label=title: label.configure(wraplength=max(220, e.width-tools.winfo_reqwidth()-16)))
+        self.identity_label = ttk.Label(self, style='Subtitle.TLabel', wraplength=1000)
+        self.identity_label.pack(anchor='w', pady=(3, 4))
+        self.allergy_label = ttk.Label(self, style='Consultation.Alert.TLabel', wraplength=1000)
+        self.allergy_label.pack(fill='x', pady=(0, 6))
         self.bind('<Configure>', lambda e: (self.allergy_label.configure(wraplength=max(220, e.width-24)),
                                            self.identity_label.configure(wraplength=max(220, e.width-24))), add='+')
         self.quick = ttk.Frame(self)
-        self.quick.pack(fill='x', pady=(0, 6))
+        self.quick.pack(fill='x', pady=(0, 4))
         self.quick_buttons = {}
-        self.quick_labels = {'S': 'S · Subjetivo', 'O': 'O · Objetivo', 'A': 'A · Análisis', 'P': 'P · Plan'}
+        self.quick_labels = {'vitals': 'Signos vitales', 'medication': 'Medicamentos', 'documents': 'Documentos'}
         for key, label in self.quick_labels.items():
-            self.quick_buttons[key] = action(self.quick, app, label, lambda k=key: self.reveal_section(k))
+            self.quick_buttons[key] = action(self.quick, app, label, lambda k=key: self.open_tool(k),
+                                             {'vitals': 'activity', 'medication': 'pill', 'documents': 'file-up'}[key])
         self.quick.bind('<Configure>', self.layout_quick)
         footer = self.footer = ttk.Frame(self, padding=(0, 8))
         footer.pack(side='bottom', fill='x')
@@ -242,24 +248,30 @@ class ConsultationEditor(ttk.Frame):
         self.pending_box = ttk.Frame(body)
         self.pending_box.pack(fill='x')
         self.pending_signature = None
+        self.entry_area = ttk.Frame(body)
+        self.entry_area.pack(fill='x')
+        self.note_column = ttk.Frame(self.entry_area)
+        self.clinical_column = ttk.Frame(self.entry_area)
+        self.entry_area.bind('<Configure>', self.layout_notes)
         self.texts, self.soap = {}, {}
-        descriptions = [('S', 'SUBJETIVO', 'Lo que refiere el paciente'),
-                        ('O', 'OBJETIVO', 'Hallazgos y mediciones'),
-                        ('A', 'ANÁLISIS', 'Valoración y diagnóstico'),
-                        ('P', 'PLAN', 'Tratamiento e indicaciones')]
-        self.soap_descriptions = {key: description for key, _, description in descriptions}
-        for key, title, description in descriptions:
-            panel = Collapsible(body, key+' — '+title,
-                                opened=self.model.section_state.get(key, key == 'S'), changed=self.sections_changed)
-            panel.pack(fill='x', pady=(0, 3))
+        for key in 'SAP':
+            panel = ttk.Frame(self.note_column)
+            panel.pack(fill='x', pady=(0, 8))
             self.soap[key] = panel
-        subjective, objective, analysis, plan = (self.soap[k].body for k in 'SOAP')
+        subjective, analysis, plan = (self.soap[k] for k in 'SAP')
+        self.soap['O'] = Collapsible(self.clinical_column, 'Exploración y mediciones',
+                                     opened=self.model.section_state.get('O', False), changed=self.sections_changed)
+        self.soap['O'].pack(fill='x', pady=(0, 6))
+        objective = self.soap['O'].body
         self.note(subjective, 'reason', 'Motivo de consulta *', 1, 3)
         self.search_input = self.texts['reason']
-        self.note(subjective, 'subjective', 'Síntomas y evolución', 2, 12)
+        self.symptoms_section = Collapsible(subjective, 'Síntomas y evolución',
+            opened=self.model.section_state.get('subjective', bool(record.get('subjective', '').strip())), changed=self.sections_changed)
+        self.symptoms_section.pack(fill='x')
+        self.note(self.symptoms_section.body, 'subjective', '', 2, 12)
         measurement_header = ttk.Frame(objective)
         measurement_header.pack(fill='x', pady=6)
-        action(measurement_header, app, 'Añadir signos vitales', lambda: self.open_tool('vitals', str(uuid.uuid4())), 'activity').pack(side='left')
+        action(measurement_header, app, 'Nueva toma', lambda: self.open_tool('vitals', str(uuid.uuid4())), 'activity').pack(side='left')
         action(measurement_header, app, 'Ver evolución', self.open_history).pack(side='left', padx=8)
         self.take_box = ttk.Frame(objective)
         self.take_box.pack(fill='x')
@@ -267,12 +279,13 @@ class ConsultationEditor(ttk.Frame):
         self.take_selector = ttk.Combobox(self.take_box, textvariable=self.take_choice, state='readonly')
         self.take_selector.bind('<<ComboboxSelected>>', self.select_take)
         self.take_summary = ttk.Label(self.take_box, wraplength=920, justify='left', style='Subtitle.TLabel')
-        self.take_summary.pack(side='left', fill='x', expand=True, pady=6)
+        self.take_summary.pack(fill='x', pady=6)
         self.take_edit = action(self.take_box, app, 'Editar toma', self.edit_take, 'pencil')
-        self.take_box.bind('<Configure>', lambda e: self.take_summary.configure(wraplength=max(260, e.width-180)))
+        self.take_box.bind('<Configure>', lambda e: self.take_summary.configure(wraplength=max(140, e.width-24)))
         self.exploration = Collapsible(objective, 'Registrar exploración', opened=bool(record.get('objective', '').strip()))
         self.exploration.pack(fill='x')
         self.note(self.exploration.body, 'objective', '', 2, 8)
+        ttk.Label(analysis, text='Diagnóstico o impresión *', style='Consultation.Field.TLabel').pack(anchor='w', pady=(8, 6))
         diagnosis_row = ttk.Frame(analysis)
         diagnosis_row.pack(fill='x', pady=6)
         self.diagnosis_var = tk.StringVar()
@@ -280,7 +293,7 @@ class ConsultationEditor(ttk.Frame):
         self.diagnosis_input.pack(side='left', fill='x', expand=True)
         self.diagnosis_input.bind('<Return>', lambda e: (self.add_diagnosis(), 'break')[1])
         self.diagnosis_input.bind('<FocusIn>', self.diagnosis_suggestions)
-        action(diagnosis_row, app, 'Añadir diagnóstico o impresión', self.add_diagnosis, 'plus').pack(side='left', padx=8)
+        action(diagnosis_row, app, 'Agregar', self.add_diagnosis, 'plus').pack(side='left', padx=8)
         self.inline_id = str(uuid.uuid4())
         pending_diagnosis = next((p for p in self.model.pending.values() if p['kind'] == 'diagnosis' and p['id'] not in {r['id'] for r in self.model.data['diagnoses']}), None)
         if pending_diagnosis:
@@ -292,35 +305,39 @@ class ConsultationEditor(ttk.Frame):
         self.diagnoses.pack(fill='x')
         if self.model.legacy_assessment:
             ttk.Label(analysis, text='Valoración heredada · conservada sin interpretar\n'+self.model.legacy_assessment, style='warning.TLabel', wraplength=920).pack(fill='x', pady=6)
-        self.note(analysis, 'assessment_notes', 'Valoración clínica · notas complementarias', 2, 6)
-        self.note(plan, 'plan', 'Escribir indicaciones *', 2, 10)
-        med_header = self.section(plan, 'Medicamentos')
-        action(med_header, app, 'Añadir medicamento', lambda: self.open_tool('medication'), 'pill').pack(side='right')
-        self.medications = SummaryRows(plan, app, lambda i: self.open_tool('medication', i), lambda i: self.remove('medication', i))
+        self.assessment_section = Collapsible(analysis, 'Notas de valoración',
+            opened=self.model.section_state.get('assessment_notes', bool(record.get('assessment_notes', '').strip())), changed=self.sections_changed)
+        self.assessment_section.pack(fill='x')
+        self.note(self.assessment_section.body, 'assessment_notes', '', 2, 6)
+        self.note(plan, 'plan', 'Indicaciones para el paciente *', 2, 10)
+        self.medication_section = Collapsible(self.clinical_column, 'Medicamentos de esta consulta', opened=True)
+        self.medication_section.pack(fill='x', pady=(0, 6))
+        self.medications = SummaryRows(self.medication_section.body, app, lambda i: self.open_tool('medication', i), lambda i: self.remove('medication', i))
         self.medications.pack(fill='x')
-        self.treatment_options = Collapsible(plan, 'Opciones de tratamiento y estudios')
+        self.treatment_options = Collapsible(self.clinical_column, 'Estudios y otras opciones')
         self.treatment_options.pack(fill='x')
         med_tools = ttk.Frame(self.treatment_options.body)
         med_tools.pack(fill='x', pady=5)
-        action(med_tools, app, 'Revisar medicación habitual o previa', lambda: self.open_tool('reuse')).pack(anchor='w')
-        action(med_tools, app, 'Vista previa de receta', self.preview_prescription).pack(anchor='w', pady=5)
+        action(med_tools, app, 'Tratamientos previos', lambda: self.open_tool('reuse')).pack(anchor='w')
+        action(med_tools, app, 'Ver receta', self.preview_prescription).pack(anchor='w', pady=5)
         if record.get('medications'):
-            ttk.Label(self.treatment_options.body, text='Medicamentos heredados · revisar\n'+record['medications'], style='warning.TLabel', wraplength=900).pack(fill='x', pady=5)
-        study_header = self.section(self.treatment_options.body, 'Estudios solicitados y resultados')
-        action(study_header, app, 'Añadir estudio', lambda: self.open_tool('study'), 'plus').pack(side='right')
+            ttk.Label(self.treatment_options.body, text='Medicamentos heredados · revisar\n'+record['medications'], style='warning.TLabel', wraplength=250).pack(fill='x', pady=5)
+        study_header = self.section(self.treatment_options.body, 'Estudios')
+        action(study_header, app, 'Agregar', lambda: self.open_tool('study'), 'plus').pack(side='right')
         self.studies = SummaryRows(self.treatment_options.body, app, lambda i: self.open_tool('study', i), lambda i: self.remove('study', i))
         self.studies.pack(fill='x')
         if record.get('studies'):
-            ttk.Label(self.treatment_options.body, text='Estudios heredados · conservados sin interpretar\n'+record['studies'], style='warning.TLabel', wraplength=900).pack(fill='x', pady=6)
-        self.followup_summary = ttk.Label(self.treatment_options.body, style='Subtitle.TLabel', wraplength=900)
+            ttk.Label(self.treatment_options.body, text='Estudios heredados · conservados sin interpretar\n'+record['studies'], style='warning.TLabel', wraplength=250).pack(fill='x', pady=6)
+        self.followup_summary = ttk.Label(self.treatment_options.body, style='Subtitle.TLabel', wraplength=250)
         if self.model.data.get('followup'):
             self.followup_summary.pack(fill='x', pady=8)
-        self.docs_section = Collapsible(body, 'Documentos de esta consulta', summary='Ver documentos o incorporar archivos a esta atención.')
+        self.docs_section = Collapsible(self.clinical_column, 'Documentos de esta consulta')
         self.docs_section.pack(fill='x', pady=5)
-        action(self.docs_section.body, app, 'Añadir / gestionar documentos', lambda: self.open_tool('documents'), 'file-up').pack(anchor='w', pady=6)
+        action(self.docs_section.body, app, 'Gestionar archivos', lambda: self.open_tool('documents'), 'file-up').pack(anchor='w', pady=6)
         self.documents = SummaryRows(self.docs_section.body, app, self.open_document, edit_label='Ver')
         self.documents.pack(fill='x')
-        self.documents_status = ttk.Label(self.docs_section.body, text='JPEG, PNG, PDF y DOCX · arrastra archivos aquí. Destino: esta consulta.', style='Subtitle.TLabel', wraplength=900, padding=(0, 8))
+        self.documents_status = ttk.Label(self.docs_section.body, text='JPEG, PNG, PDF y DOCX · arrastra archivos aquí.', style='Subtitle.TLabel', wraplength=300, padding=(0, 8))
+        self.docs_section.bind('<Configure>', lambda e: self.documents_status.configure(wraplength=max(160, e.width-24)), add='+')
         self.documents_status.pack(fill='x')
         if hasattr(self.documents_status, 'drop_target_register'):
             self.documents_status.drop_target_register('DND_Files')
@@ -337,10 +354,7 @@ class ConsultationEditor(ttk.Frame):
         if patient:
             self.patient = patient
             self.patient_title.configure(text=patient['name'])
-            doctor = next((u['name'] for u in self.app.auth.users() if u['id'] == self.record['doctor_id']), 'Doctor')
-            self.identity_label.configure(text=patient['file_number']+' · '+age_label(patient)+' · Responsable: '+doctor)
-            allergy = ', '.join(r.get('substance', '') for r in patient.get('allergy_records', [])) or patient.get('allergies') or patient.get('allergy_status') or 'No interrogadas'
-            self.allergy_label.configure(text='⚠ Alergias: '+allergy)
+            self.refresh_context()
         self.refresh_documents()
 
     def section(self, parent, label):
@@ -349,27 +363,54 @@ class ConsultationEditor(ttk.Frame):
         ttk.Label(frame, text=label, style='Section.TLabel').pack(side='left')
         return frame
 
+    def refresh_context(self):
+        data, patient = self.model.data, self.patient
+        self.identity_label.configure(text=patient['file_number']+' · '+age_label(patient)+' · '+
+            display_date(data['attended_at'])+' · '+data.get('type', 'General')+' · Borrador')
+        allergy = ', '.join(r.get('substance', '') for r in patient.get('allergy_records', [])) or patient.get('allergies') or patient.get('allergy_status') or 'No interrogadas'
+        self.allergy_label.configure(text='⚠ Alergias: '+allergy)
+
+    def layout_notes(self, event=None):
+        if event is not None and event.widget is not self.entry_area:
+            return
+        wide = self.entry_area.winfo_width() >= int(920*self.app.ui_scale)
+        if wide == getattr(self, '_wide_notes', None):
+            return
+        self._wide_notes = wide
+        self.entry_area.columnconfigure(0, weight=3)
+        self.entry_area.columnconfigure(1, weight=0, minsize=int(340*self.app.ui_scale) if wide else 0)
+        self.note_column.grid(row=0, column=0, sticky='new', padx=(0, 24 if wide else 0))
+        self.clinical_column.grid(row=0 if wide else 1, column=1 if wide else 0, sticky='new', pady=(0 if wide else 12, 0))
+
     def note(self, parent, key, label, minimum, maximum):
         heading = ttk.Frame(parent)
         heading.pack(fill='x', pady=(8, 3))
         if label:
-            ttk.Label(heading, text=label, style='Subtitle.TLabel').pack(side='left')
+            ttk.Label(heading, text=label, style='Consultation.Field.TLabel').pack(side='left')
         text = text_editor(parent, self.model.data.get(key, ''), minimum, lambda: self.note_changed(key))
         text.pack(fill='x')
         text.minimum, text.maximum, text.expanded = minimum, maximum, False
         self.texts[key] = text
         def expand():
             text.expanded = not text.expanded
-            button.configure(text='Reducir' if text.expanded else 'Ampliar')
             self.grow(text)
-        button = action(heading, self.app, 'Ampliar', expand)
-        button.pack(side='right')
+        # El campo crece al escribir; ampliar queda disponible en el menú contextual.
+        context_menu = next((w for w in text.winfo_children() if isinstance(w, tk.Menu)), None)
+        if context_menu is not None:
+            context_menu.add_separator()
+            context_menu.add_command(label='Ampliar / reducir campo', command=expand)
         text.bind('<FocusIn>', lambda e: setattr(self, 'last_text', text), add='+')
+        def reflow(event):
+            if event.width != getattr(text, '_note_width', None):
+                text._note_width = event.width
+                self.grow(text)
+        text.bind('<Configure>', reflow, add='+')
         self.grow(text)
 
     @staticmethod
     def grow(widget):
-        lines = sum(max(1, (len(line)+99)//100) for line in widget.get('1.0', 'end-1c').splitlines())
+        display = widget.count('1.0', 'end-1c', 'displaylines')
+        lines = (display[0] if display else 0)+1
         widget.configure(height=max(widget.minimum, min(22 if widget.expanded else widget.maximum, lines)))
 
     def note_changed(self, key):
@@ -388,8 +429,8 @@ class ConsultationEditor(ttk.Frame):
         width = self.quick.winfo_width()
         buttons = list(self.quick_buttons.values())
         required = max(b.winfo_reqwidth()+8 for b in buttons)
-        columns = next((n for n in (4, 2) if n*required <= width), 1)
-        for i in range(4):
+        columns = next((n for n in (3, 2) if n*required <= width), 1)
+        for i in range(3):
             self.quick.columnconfigure(i, weight=1 if i < columns else 0)
         for i, button in enumerate(buttons):
             button.grid(row=i//columns, column=i%columns, sticky='ew', padx=(0, 7), pady=2)
@@ -508,8 +549,8 @@ class ConsultationEditor(ttk.Frame):
         if self.diagnosis_var.get() and self.model.key('diagnosis', self.inline_id) not in self.model.pending:
             self.diagnosis_var.set('')
             self.inline_id = str(uuid.uuid4())
-        self.context_label.configure(text=display_date(data['attended_at'])+' · '+data.get('type', 'General')+' · Borrador')
-        self.diagnoses.render(data['diagnoses'], lambda r: r['name'])
+        self.refresh_context()
+        self.diagnoses.render(data['diagnoses'], lambda r: r['name'], '')
         self.medications.render(data['prescriptions'], lambda r: ('⚠ Pauta pendiente de revisión · ' if r.get('needs_review') else '')+medication_text(r)+('\n'+r['instructions'] if r.get('instructions') else ''), 'Sin tratamientos registrados.')
         self.studies.render(data['study_orders'], lambda r: r['name']+' · '+r.get('status', 'Sin estado')+('\n'+r['notes'] if r.get('notes') else ''), 'Sin estudios registrados.')
         followup = data.get('followup', {})
@@ -522,9 +563,9 @@ class ConsultationEditor(ttk.Frame):
         if selected:
             self.model.selected_take = selected['id']
             self.take_summary.configure(text=measurement_summary(selected))
-            self.take_edit.pack(side='right')
+            self.take_edit.pack(anchor='w')
         else:
-            self.take_summary.configure(text='Sin mediciones registradas. Usa Signos vitales para una nueva toma.')
+            self.take_summary.configure(text='Todavía no hay mediciones.')
         if len(rows) > 1:
             self.take_choices = {f'Toma {i+1} · '+display_date(r['at']): r['id'] for i, r in enumerate(rows)}
             self.take_selector.configure(values=list(self.take_choices))
@@ -541,7 +582,8 @@ class ConsultationEditor(ttk.Frame):
             return self.open_tool('vitals', self.model.selected_take)
 
     def refresh_pending(self):
-        signature = [(k, p['kind']) for k, p in self.model.pending.items()]
+        signature = [(k, p['kind']) for k, p in self.model.pending.items()
+                     if not (p['kind'] == 'diagnosis' and p['id'] == self.inline_id)]
         if signature == self.pending_signature:
             return
         self.pending_signature = signature
@@ -641,20 +683,23 @@ class ConsultationEditor(ttk.Frame):
             self.indicator.set(str(exc))
 
     def sections_changed(self):
-        self.model.section_state = {key: panel.opened for key, panel in self.soap.items()}
+        self.model.section_state.update(O=self.soap['O'].opened,
+            subjective=self.symptoms_section.opened, assessment_notes=self.assessment_section.opened)
         self.touch()
+        self.refresh_soap_summaries()
 
     def refresh_soap_summaries(self):
         data = self.model.data
         compact = lambda value: ' '.join(str(value or '').split())[:160]
-        summaries = {
-            'S': compact(data.get('reason') or data.get('subjective')) or 'Motivo, síntomas y evolución · listo para escribir.',
-            'O': ' · '.join(filter(None, [f"{len(data['vitals'])} toma(s)" if data['vitals'] else '', compact(data.get('objective'))])) or 'Sin mediciones ni exploración registradas.',
-            'A': compact('; '.join(r['name'] for r in data['diagnoses']) or self.model.legacy_assessment or data.get('assessment_notes')) or 'Diagnóstico o impresión pendiente.',
-            'P': ' · '.join(filter(None, [compact(data.get('plan')), f"{len(data['prescriptions'])} medicamento(s)" if data['prescriptions'] else '', f"{len(data['study_orders'])} estudio(s)" if data['study_orders'] else ''])) or 'Indicaciones y tratamiento pendientes.'}
-        for key, text in summaries.items():
-            if key in self.soap:
-                self.soap[key].set_summary(self.soap_descriptions[key]+' · '+text)
+        takes = data['vitals']
+        selected = next((r for r in takes if r['id'] == self.model.selected_take), takes[-1] if takes else None)
+        self.soap['O'].set_summary(measurement_summary(selected) if selected else compact(data.get('objective')) or 'Sin mediciones registradas.')
+        for panel, key in ((self.symptoms_section, 'subjective'), (self.assessment_section, 'assessment_notes')):
+            panel.set_summary('' if panel.opened else compact(data.get(key)))
+        self.medication_section.set_summary(f"{len(data['prescriptions'])} medicamento(s)" if data['prescriptions'] else '')
+        for key, count in [('vitals', len(takes)), ('medication', len(data['prescriptions'])), ('documents', len(self.document_rows))]:
+            button = self.quick_buttons[key]
+            button.configure(text=self.quick_labels[key]+(f' · {count}' if count else ''))
         if hasattr(self, 'treatment_options'):
             count = len(data['study_orders'])
             self.treatment_options.set_summary((f'{count} estudio(s) · revisar tratamientos previos o receta' if count else 'Medicación previa, receta y solicitudes de estudios.')+(' · contiene datos heredados' if any(data.get(k) for k in ('medications', 'studies', 'followup')) else ''))
@@ -663,7 +708,8 @@ class ConsultationEditor(ttk.Frame):
             self.docs_section.set_summary(f'{len(self.document_rows)} incorporado(s) a esta consulta'+(f' · ⚠ {waiting} archivo(s) pendiente(s)' if waiting else ' · ver o añadir documentos'))
 
     def reveal_section(self, key, focus=True):
-        self.soap[key].reveal()
+        if isinstance(self.soap[key], Collapsible):
+            self.soap[key].reveal()
         target = self.diagnosis_input if key == 'A' else self.texts[{'S': 'reason', 'O': 'objective', 'P': 'plan'}[key]]
         if key == 'O':
             self.exploration.reveal()
@@ -680,6 +726,10 @@ class ConsultationEditor(ttk.Frame):
         if key in self.texts:
             section = {'reason': 'S', 'subjective': 'S', 'objective': 'O', 'assessment_notes': 'A', 'plan': 'P'}[key]
             self.reveal_section(section, focus=False)
+            if key == 'subjective':
+                self.symptoms_section.reveal()
+            elif key == 'assessment_notes':
+                self.assessment_section.reveal()
             widget = self.texts[key]
             self.scroll_to(widget)
             widget.focus_set()
@@ -692,6 +742,9 @@ class ConsultationEditor(ttk.Frame):
             self.open_tool(key)
 
     def finish(self):
+        # Finalizar incluye el diagnóstico escrito en la revisión, sin exigir otro clic.
+        if self.diagnosis_var.get().strip():
+            self.add_diagnosis()
         return self.open_tool('review')
 
     def cleanup(self, event):
