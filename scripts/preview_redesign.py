@@ -41,8 +41,8 @@ with tempfile.TemporaryDirectory(prefix='tresvizo-redesign-qa-') as directory:
         elif name == 'record': app.patient_record(patient['id'])
         elif name in ('vitals','medications','consultation'):
             editor = app.encounter_editor(patient,draft)
-            editor.tabs.select(1 if name == 'vitals' else 2 if name == 'medications' else 0)
-            if name == 'medications': editor.medications.new()
+            if name == 'vitals': editor.open_tool('vitals')
+            if name == 'medications': editor.open_tool('medication')
         elif name == 'settings': app.show('Configuración')
         elif name == 'login': app.logout()
         elif name == 'stats': app.show('Mis estadísticas')

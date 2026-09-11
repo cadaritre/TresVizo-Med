@@ -19,7 +19,9 @@ class PatientEditor(ttk.Frame):
         self.state = {'dirty': False}
         self.draft = draft or app.care.save_draft(self.original, patient_id=(record or {}).get('id'), revision=(record or {}).get('revision'))
         data = self.draft['payload'] or self.original
+        self.photo_id = data.get('photo_attachment_id')
         self.draft_id = self.draft['id']
+        self.on_created = None
         top = ttk.Frame(self)
         top.pack(fill='x')
         ttk.Button(top, text='‹ Pacientes', style='Link.TButton', command=lambda: app.show('Pacientes')).pack(side='left')
@@ -27,11 +29,14 @@ class PatientEditor(ttk.Frame):
         ttk.Label(self, text='Registro a cargo de '+app.auth.current['name']+' · solo el nombre es obligatorio', style='Subtitle.TLabel').pack(anchor='w', pady=8)
         footer = ttk.Frame(self)
         footer.pack(side='bottom', fill='x', pady=8)
+        self.conflict_action = ttk.Button(self, text='Revisar diferencias con el expediente guardado', command=self.resolve_conflict)
         self.indicator = tk.StringVar(value='Borrador privado guardado')
-        ttk.Button(footer, text='Guardar paciente', style='Primary.TButton', command=lambda: self.register(False)).pack(side='left')
-        ttk.Button(footer, text='Guardar y atender', command=lambda: self.register(True)).pack(side='left', padx=8)
-        ttk.Button(footer, text='Cancelar', command=self.cancel).pack(side='left')
-        ttk.Label(footer, textvariable=self.indicator, style='Subtitle.TLabel').pack(side='right')
+        footer_actions = ttk.Frame(footer)
+        footer_actions.pack(fill='x')
+        ttk.Button(footer_actions, text='Guardar paciente', style='Primary.TButton', command=lambda: self.register(False)).pack(side='left')
+        ttk.Button(footer_actions, text='Guardar y atender', command=lambda: self.register(True)).pack(side='left', padx=8)
+        ttk.Button(footer_actions, text='Salir del registro', command=self.cancel).pack(side='left')
+        ttk.Label(footer, textvariable=self.indicator, style='Subtitle.TLabel', wraplength=760).pack(fill='x', pady=(6, 0))
         self.tabs = ttk.Notebook(self)
         self.tabs.pack(fill='both', expand=True)
         pages = []
@@ -43,14 +48,20 @@ class PatientEditor(ttk.Frame):
                                       ('birth_date', 'Fecha de nacimiento', 'date'), ('sex', 'Sexo registrado', ['No especificado', 'Femenino', 'Masculino', 'Intersexual', 'Otro registrado'])],
                              {**data, 'sex': data.get('sex', 'No especificado')}, self.changed, app.theme)
         self.personal.pack(fill='x')
-        self.unknown = tk.BooleanVar(value=data.get('birth_unknown', not bool(data.get('birth_date'))))
-        ttk.Checkbutton(pages[0], text='Fecha de nacimiento desconocida', variable=self.unknown, command=self.changed).pack(anchor='w', pady=5)
-        self.age = ttk.Label(pages[0], text=age_label(data), style='Section.TLabel')
+        self.unknown = tk.BooleanVar(value=data.get('birth_unknown', bool(data.get('approx_age', {}).get('value'))))
+        ttk.Checkbutton(pages[0], text='Fecha de nacimiento desconocida', variable=self.unknown).pack(anchor='w', pady=5)
+        try:
+            initial_age = age_label(data)
+        except ValueError:
+            initial_age = 'Fecha pendiente de completar'
+        self.age = ttk.Label(pages[0], text=initial_age, style='Section.TLabel')
         self.age.pack(anchor='w', pady=8)
         self.approx = Form(pages[0], [('value', 'Edad aproximada (opcional)', None), ('unit', 'Unidad de edad', ['años', 'meses', 'días']), ('at', 'Fecha de referencia', 'date')],
                            data.get('approx_age', {'unit': 'años', 'at': date.today().isoformat()}), self.changed, app.theme)
         self.approx.pack(fill='x')
-        contact = Collapsible(pages[0], 'Contacto', bool(data.get('phone') or data.get('phones')))
+        self.unknown.trace_add('write', lambda *a: self.update_age_mode())
+        self.personal.vars['birth_date'].trace_add('write', lambda *a: self.unknown.set(False) if self.personal.vars['birth_date'].get().strip() else None)
+        contact = self.contact_section = Collapsible(pages[0], 'Contacto', bool(data.get('phone') or data.get('phones')))
         contact.pack(fill='x')
         phones = data.get('phones', [{'type': 'Principal', 'number': data['phone']}] if data.get('phone') else [])
         self.phones = Collection(contact.body, app, 'Teléfonos', [('number', 'Número, prefijo o extensión', None), ('type', 'Tipo', ['Principal', 'Móvil', 'Casa', 'Trabajo', 'Otro'])], phones, changed=self.changed)
@@ -87,6 +98,7 @@ class PatientEditor(ttk.Frame):
         self.medications = Collection(pages[1], app, 'Medicamentos habituales', medication_specs(app), data.get('medication_records'), medication_text, self.changed,
                                       {'status': 'Activo', 'frequency_kind': 'Cada N horas', 'duration_unit': 'días'})
         self.medications.pack(fill='x')
+        self.medications.show_preview(medication_text)
         self.notes = Form(pages[1], [('administrative', 'Notas administrativas · visibles para doctores autorizados', 'text'), ('clinical_notes', 'Notas clínicas', 'text')], data, self.changed, app.theme)
         self.notes.pack(fill='x')
         inherited = '\n\n'.join(f'{k}: {v}' for k, v in data.get('legacy', {}).items() if v)
@@ -94,7 +106,10 @@ class PatientEditor(ttk.Frame):
             box = Collapsible(pages[1], 'Información heredada · pendiente de revisión')
             box.pack(fill='x')
             ttk.Label(box.body, text=inherited, wraplength=740, justify='left').pack(fill='x')
-        self.attachments = AttachmentPanel(pages[2], app, draft_id=self.draft_id)
+        def photo(identifier):
+            self.photo_id = identifier
+            self.changed()
+        self.attachments = AttachmentPanel(pages[2], app, draft_id=self.draft_id, on_photo=photo, changed=self.changed)
         self.attachments.pack(fill='both', expand=True)
         if record:
             ttk.Button(pages[2], text='Ver documentos ya incorporados al expediente', command=lambda: app.patient_record(record['id'])).pack(anchor='w', pady=8)
@@ -103,12 +118,24 @@ class PatientEditor(ttk.Frame):
         self.error = ttk.Label(pages[3], style='error.TLabel', wraplength=700)
         self.tabs.bind('<<NotebookTabChanged>>', self.show_review)
         editor_state = data.get('editor_state', {})
+        self.attachments.restore_queue(editor_state.get('attachment_queue',[]))
         for name in ('phones', 'allergies', 'problems', 'medications'):
             getattr(self, name).restore(editor_state.get(name))
+        self.update_age_mode()
         self.loading = False
         app.editors.append((self, self.save, self.state))
         self.bind('<Destroy>', self.cleanup, add='+')
         self.show_review()
+
+    def update_age_mode(self):
+        for widget in self.personal.inputs['birth_date'].winfo_children():
+            if hasattr(widget, 'state'):
+                widget.state(['disabled'] if self.unknown.get() else ['!disabled'])
+        if self.unknown.get():
+            self.approx.pack(fill='x', after=self.age)
+        else:
+            self.approx.pack_forget()
+        self.changed()
 
     def check_email(self, event=None):
         value = self.contact.vars['email'].get()
@@ -127,6 +154,8 @@ class PatientEditor(ttk.Frame):
                 'emergency_contact': self.emergency.values(raw), 'allergy_status': self.allergy_status.get(), 'allergy_records': deepcopy(self.allergies.rows),
                 'problem_records': deepcopy(self.problems.rows), 'histories': {k: v.values(raw) for k, v in self.histories.items()},
                 'medication_records': deepcopy(self.medications.rows), 'editor_state': {k: getattr(self, k).state() for k in ('phones', 'allergies', 'problems', 'medications')}}
+        data['photo_attachment_id'] = self.photo_id
+        data['editor_state']['attachment_queue'] = deepcopy(self.attachments.queue) if hasattr(self,'attachments') else []
         data['phone'] = next((p['number'] for p in data['phones']), '')
         if not raw:
             if data['birth_unknown']:
@@ -141,11 +170,15 @@ class PatientEditor(ttk.Frame):
                 raise DataError('El nombre del paciente es obligatorio.')
             if not self.check_email():
                 self.tabs.select(0)
+                if not self.contact_section.opened:
+                    self.contact_section.toggle()
                 self.contact.inputs['email'].focus_set()
                 raise DataError('Revisa el correo electrónico.')
             if data['allergy_records'] and data['allergy_status'] == 'Sin alergias conocidas':
                 self.tabs.select(1)
                 raise DataError('Hay alergias registradas. Revisa el estado antes de declarar ausencia de alergias.')
+            if data['allergy_records']:
+                data['allergy_status'] = 'Alergias registradas'
             for key in ('phones', 'allergies', 'problems', 'medications'):
                 if getattr(self, key).pending:
                     raise DataError('Confirma o cancela el elemento que estás editando antes de registrar al paciente.')
@@ -208,14 +241,47 @@ class PatientEditor(ttk.Frame):
             self.state['dirty'] = False
             self.app.pages.pop('alta:'+self.draft_id, None)
             self.destroy()
-            if attend:
+            if getattr(self, 'on_created', None):
+                self.on_created(patient)
+            elif attend:
                 self.app.confirm_encounter(patient)
             else:
                 self.app.patient_record(patient['id'])
         except (ValueError, OSError) as exc:
+            from app.editing_state import VersionConflict
+            if isinstance(exc, VersionConflict):
+                self.conflict_action.pack(side='bottom', fill='x', pady=6)
             self.indicator.set(str(exc))
             self.error.configure(text=str(exc))
             self.error.pack(fill='x', pady=8)
+
+    def resolve_conflict(self):
+        from app.conflict_ui import review_conflict
+        remote = self.app.store.read(f"data/patients/{self.original['id']}.json")
+        local = self.payload(raw=True)
+        def apply(merged, current):
+            self.loading = True
+            try:
+                for name in ('personal', 'contact', 'notes'):
+                    getattr(self, name).load(merged)
+                self.emergency.load(merged.get('emergency_contact', {}))
+                self.approx.load(merged.get('approx_age', {}))
+                self.unknown.set(merged.get('birth_unknown', False))
+                self.allergy_status.set(merged.get('allergy_status', 'No interrogado'))
+                for name, field in [('phones', 'phones'), ('allergies', 'allergy_records'), ('problems', 'problem_records'), ('medications', 'medication_records')]:
+                    collection = getattr(self, name)
+                    collection.rows = deepcopy(merged.get(field, []))
+                    collection.refresh()
+                    collection.restore(merged.get('editor_state', {}).get(name))
+                for key, form in self.histories.items():
+                    form.load(merged.get('histories', {}).get(key, {}))
+                self.original = deepcopy(current)
+            finally:
+                self.loading = False
+            self.save()
+            self.conflict_action.pack_forget()
+            self.indicator.set('Diferencias combinadas en el borrador. Revisa y pulsa Guardar paciente para publicarlo.')
+        return review_conflict(self.app, self.original, local, remote, apply)
 
     def cancel(self):
         answer = messagebox.askyesnocancel('Salir del registro', '¿Conservar el borrador privado para continuarlo después?\nSí: conservar. No: descartar este borrador.', parent=self)

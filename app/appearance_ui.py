@@ -100,6 +100,7 @@ class AppearanceEditor(ttk.Frame):
         self.loading = False
         self.refresh_choices()
         self.draw_preview()
+        preview_scroll.after(120, lambda: preview_scroll.canvas.yview_moveto(0) if preview_scroll.winfo_exists() else None)
 
     def guard(self, fn):
         return self.app.guard(fn)

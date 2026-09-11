@@ -2,7 +2,7 @@
 from copy import deepcopy
 from datetime import datetime
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from app.components import DatePicker
 from app.clinical_models import display_date, local_date
 
@@ -34,7 +34,7 @@ class DateField(DatePicker):
         return local_date(self.var.get())
 
 class Form(ttk.Frame):
-    def __init__(self, parent, specs, data=None, changed=lambda: None, theme=None):
+    def __init__(self, parent, specs, data=None, changed=lambda: None, theme=None, date_type=None):
         super().__init__(parent)
         self.vars, self.inputs, self.cells = {}, {}, []
         self.specs, self.changed = specs, changed
@@ -48,10 +48,18 @@ class Form(ttk.Frame):
             if options == 'text':
                 widget = text_editor(cell, value or '', 3, self.notify)
             elif options == 'date':
-                widget = DateField(cell, theme, value or '')
+                widget = (date_type or DateField)(cell, theme, value or '')
                 self.vars[key] = widget.var
+            elif options == 'number':
+                widget = ttk.Spinbox(cell, textvariable=var, from_=0, to=1000000, increment=1, width=20)
             elif options:
                 widget = ttk.Combobox(cell, textvariable=var, values=options, width=20)
+                candidates = tuple(options)
+                def filter_options(event, box=widget, values=candidates, variable=var):
+                    if event.keysym not in ('Up', 'Down', 'Return', 'Escape', 'Tab'):
+                        query = variable.get().casefold()
+                        box.configure(values=[v for v in values if query in str(v).casefold()])
+                widget.bind('<KeyRelease>', filter_options)
             else:
                 widget = ttk.Entry(cell, textvariable=var, width=24)
             widget.pack(fill='x')
@@ -110,6 +118,7 @@ class Collection(ttk.Frame):
         self.summary = summary or (lambda r: ' · '.join(str(v) for k, v in r.items() if k not in ('id',) and v))
         self.defaults = defaults or {}
         self.edit_index = None
+        self.edit_id = None
         self.pending = False
         header = ttk.Frame(self)
         header.pack(fill='x', pady=(10, 8))
@@ -141,9 +150,13 @@ class Collection(ttk.Frame):
         self.changed()
 
     def refresh(self):
+        import uuid
+        selected = self.tree.selection()
         self.tree.delete(*self.tree.get_children())
-        for index, row in enumerate(self.rows):
-            self.tree.insert('', 'end', iid=str(index), values=(self.summary(row),))
+        for row in self.rows:
+            row.setdefault('id', str(uuid.uuid4()))
+            self.tree.insert('', 'end', iid=row['id'], values=(('⚠ Revisar pauta · ' if row.get('needs_review') else '')+self.summary(row),))
+        self.tree.selection_set([key for key in selected if self.tree.exists(key)])
         self.tree.configure(height=max(1, min(5, len(self.rows))))
         self.empty.pack_forget()
         if not self.rows:
@@ -155,7 +168,11 @@ class Collection(ttk.Frame):
             self.list_actions.pack(fill='x', pady=4, after=self.tree)
 
     def new(self):
+        if self.editor.winfo_manager():
+            next(iter(self.form.inputs.values())).focus_set()
+            return
         self.edit_index = None
+        self.edit_id = None
         self.form.load(self.defaults)
         self.editor.pack(fill='x', pady=8)
         self.app.theme._walk(self.editor)
@@ -165,7 +182,10 @@ class Collection(ttk.Frame):
     def edit(self):
         if not self.tree.selection():
             return
-        self.edit_index = int(self.tree.selection()[0])
+        if self.pending and not messagebox.askyesno('Elemento sin confirmar', '¿Descartar los cambios del elemento que estás editando?', parent=self):
+            return
+        self.edit_id = self.tree.selection()[0]
+        self.edit_index = next(i for i, row in enumerate(self.rows) if row['id'] == self.edit_id)
         self.form.load(self.rows[self.edit_index])
         self.editor.pack(fill='x', pady=8)
         self.app.theme._walk(self.editor)
@@ -175,11 +195,17 @@ class Collection(ttk.Frame):
         try:
             row = self.form.values()
             if not next(iter(row.values()), '').strip():
-                raise ValueError('Completa el primer campo del elemento.')
-            if self.edit_index is None:
+                next(iter(self.form.inputs.values())).focus_set()
+                raise ValueError('Completa '+self.form.specs[0][1]+'.')
+            if self.edit_id is None:
+                import uuid
+                row['id'] = str(uuid.uuid4())
                 self.rows.append(row)
             else:
-                self.rows[self.edit_index] = {**self.rows[self.edit_index], **row, 'needs_review': False}
+                index = next((i for i, item in enumerate(self.rows) if item['id'] == self.edit_id), None)
+                if index is None:
+                    raise ValueError('El elemento ya no está en esta colección. Conserva la captura y revisa la lista.')
+                self.rows[index] = {**self.rows[index], **row, 'needs_review': False}
             self.cancel()
             self.refresh()
             self.changed()
@@ -187,25 +213,51 @@ class Collection(ttk.Frame):
             self.error.configure(text=str(exc))
             self.error.pack(fill='x')
 
+    def show_preview(self, render):
+        self.preview = ttk.Label(self.editor, text='', style='Card.TLabel', padding=12, wraplength=750)
+        self.preview.pack(fill='x', before=self.form, pady=(0,8))
+        def update(*args):
+            self.preview.configure(text=render(self.form.values(raw=True)))
+        for variable in self.form.vars.values(): variable.trace_add('write', update)
+        update()
+
     def cancel(self):
+        changed = self.pending
         self.pending = False
+        self.edit_id = self.edit_index = None
         self.editor.pack_forget()
         self.error.pack_forget()
-        self.changed()
+        if changed:
+            self.changed()
 
     def remove(self):
         if self.tree.selection():
-            del self.rows[int(self.tree.selection()[0])]
+            identifier = self.tree.selection()[0]
+            if self.editor.winfo_manager() and identifier == self.edit_id:
+                self.error.configure(text='Confirma o cancela el elemento en edición antes de quitar una fila.')
+                self.error.pack(fill='x')
+                return
+            self.rows = [r for r in self.rows if r['id'] != identifier]
             self.refresh()
             self.changed()
 
     def state(self):
-        return {'rows': deepcopy(self.rows), 'pending': self.form.values(raw=True) if self.editor.winfo_manager() else None, 'index': self.edit_index}
+        import uuid
+        for row in self.rows:
+            row.setdefault('id', str(uuid.uuid4()))
+        return {'rows': deepcopy(self.rows), 'pending': self.form.values(raw=True) if self.pending else None,
+                'edit_id': self.edit_id, 'index': next((i for i, r in enumerate(self.rows) if r['id'] == self.edit_id), None)}
 
     def restore(self, state):
+        if state and 'rows' in state:
+            self.rows = deepcopy(state['rows'])
+            self.refresh()
         if state and state.get('pending') is not None:
             self.form.load(state['pending'])
             self.edit_index = state.get('index')
+            self.edit_id = state.get('edit_id')
+            if self.edit_id is None and isinstance(self.edit_index, int) and 0 <= self.edit_index < len(self.rows):
+                self.edit_id = self.rows[self.edit_index]['id']
             self.editor.pack(fill='x', pady=8)
             self.pending = True
 
@@ -213,6 +265,7 @@ class Collapsible(ttk.Frame):
     def __init__(self, parent, title, opened=False):
         super().__init__(parent)
         self.opened = opened
+        self.animation = None
         self.title = title
         self.button = ttk.Button(self, text=('− ' if opened else '+ ')+title, command=self.toggle, style='Link.TButton')
         self.button.pack(fill='x', pady=6)
@@ -220,6 +273,30 @@ class Collapsible(ttk.Frame):
         if opened:
             self.body.pack(fill='x')
     def toggle(self):
+        if self.animation:
+            self.after_cancel(self.animation)
+            self.animation = None
         self.opened = not self.opened
         self.button.configure(text=('− ' if self.opened else '+ ')+self.title)
-        self.body.pack(fill='x') if self.opened else self.body.pack_forget()
+        app = self.winfo_toplevel()
+        reduced = not hasattr(app, 'profiles') or not app.auth.current or app.profiles.get(app.auth.current['id']).get('reduce_motion', False)
+        if reduced:
+            self.body.pack_propagate(True)
+            self.body.pack(fill='x') if self.opened else self.body.pack_forget()
+            return
+        self.body.pack_propagate(True)
+        self.body.update_idletasks()
+        height = max(1, self.body.winfo_reqheight())
+        self.body.pack_propagate(False)
+        self.body.pack(fill='x')
+        def step(index=0):
+            portion = index/10
+            self.body.configure(height=max(1, int(height*(portion if self.opened else 1-portion))))
+            if index < 10:
+                self.animation = self.after(15, lambda: step(index+1))
+            else:
+                self.animation = None
+                self.body.pack_propagate(True)
+                if not self.opened:
+                    self.body.pack_forget()
+        step()

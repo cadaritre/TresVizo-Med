@@ -8,6 +8,10 @@ from pathlib import Path
 import zipfile
 import shutil
 import tempfile
+import uuid
+import re
+from datetime import date
+from app.services import normalized, now
 from app.storage import DataError, read_json, atomic_json
 
 
@@ -22,7 +26,7 @@ class Transfer:
 
     def export_patients(self, destination, identifiers=None):
         self.auth.require()
-        rows = self.clinic.list('patients')
+        rows = self.clinic.list('patients', include_archived=identifiers is not None)
         if identifiers is not None:
             rows = [r for r in rows if r['id'] in identifiers]
         path = Path(destination)
@@ -56,6 +60,7 @@ class Transfer:
             self.verify_backup(temp)
             temp.replace(destination)
         self.auth.audit('respaldo', 'copia_local')
+        self.store.write('config/last_backup.json', {'path': str(destination), 'created_at': manifest['created_at'], 'files': len(manifest['files']), 'verified': True})
         return manifest
 
     def verify_backup(self, path):
@@ -95,11 +100,22 @@ class Transfer:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     with archive.open(name) as src, target.open('wb') as dst:
                         shutil.copyfileobj(src,dst,1024*1024)
+                    with target.open('rb') as stream:
+                        if hashlib.file_digest(stream, 'sha256').hexdigest() != manifest['files'][name]:
+                            raise DataError('La copia restaurada no coincide con el respaldo.')
                     if target.suffix == '.json':
                         read_json(target)
             schema = staging/'config'/'schema.json'
             if schema.exists() and read_json(schema).get('version',1) > 2:
                 raise DataError('El respaldo requiere una versión posterior.')
+            for metadata in (staging/'data'/'attachments').glob('*.json'):
+                row = read_json(metadata)
+                original = (staging/row.get('path', '')).resolve()
+                if not original.is_relative_to(staging.resolve()) or not original.is_file():
+                    raise DataError('Falta un original declarado por los documentos del respaldo.')
+                with original.open('rb') as stream:
+                    if hashlib.file_digest(stream, 'sha256').hexdigest() != row.get('sha256'):
+                        raise DataError('Un documento restaurado no coincide con sus metadatos.')
             # Logos históricos usaban rutas absolutas; remapear únicamente copias incluidas.
             identity_path = staging/'config'/'identity.json'
             if identity_path.exists():
@@ -158,3 +174,97 @@ class Transfer:
                 raise DataError(f'Fila {number}: falta name.')
             result.append({key: row.get(key, '') for key in ('name', 'birth_date', 'phone', 'email')})
         return result
+
+    def read_csv(self, path, delimiter=','):
+        self.auth.require('admin')
+        path = Path(path)
+        if path.suffix.lower() != '.csv' or path.stat().st_size > 10_000_000:
+            raise DataError('Selecciona un CSV UTF-8 de hasta 10 MB. Los paquetes ZIP y JSON no se importan como pacientes.')
+        if delimiter not in (',', ';', '\t'):
+            raise DataError('Separador CSV no admitido.')
+        try:
+            reader = csv.DictReader(io.StringIO(path.read_text(encoding='utf-8-sig')), delimiter=delimiter, strict=True)
+            columns = reader.fieldnames
+            if not columns or len(columns) != len(set(columns)) or any(not c.strip() for c in columns):
+                raise DataError('Las columnas deben tener encabezados distintos y no vacíos.')
+            rows = list(reader)
+            if len(rows) > 10000:
+                raise DataError('Cada lote admite hasta 10 000 pacientes.')
+            return {'columns': columns, 'rows': rows}
+        except (UnicodeError, csv.Error) as exc:
+            raise DataError('No se pudo leer el CSV. Revisa UTF-8, comillas y separador.') from exc
+
+    @staticmethod
+    def validate_import_patient(row):
+        errors = {}
+        if not row.get('name', '').strip():
+            errors['name'] = 'Nombre obligatorio'
+        if row.get('birth_date'):
+            try:
+                if date.fromisoformat(row['birth_date']) > date.today():
+                    raise ValueError()
+            except ValueError:
+                errors['birth_date'] = 'Usa AAAA-MM-DD y una fecha no futura'
+        if row.get('email') and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', row['email']):
+            errors['email'] = 'Correo inválido'
+        return errors
+
+    def inspect_import(self, source, mapping):
+        self.auth.require('admin')
+        if not mapping.get('name') or any(column and column not in source['columns'] for column in mapping.values()):
+            raise DataError('Mapea Nombre y revisa las columnas seleccionadas.')
+        patients = self.clinic.list('patients', True)
+        names, phones = {}, {}
+        for patient in patients:
+            names.setdefault(normalized(patient['name']), []).append(patient['file_number'])
+            if patient.get('phone'):
+                phones.setdefault(normalized(patient['phone']), []).append(patient['file_number'])
+        result = []
+        for number, source_row in enumerate(source['rows'], 2):
+            row = {key: source_row.get(mapping.get(key), '') or '' for key in ('name', 'birth_date', 'phone', 'email')}
+            errors = self.validate_import_patient(row)
+            if None in source_row:
+                errors['fila'] = 'Hay más valores que encabezados'
+            duplicates = []
+            for field, index, label in [('name', names, 'Nombre coincidente'), ('phone', phones, 'Teléfono coincidente')]:
+                if row[field] and normalized(row[field]) in index:
+                    duplicates.append(label+': '+', '.join(index[normalized(row[field])][:5]))
+            result.append({'number': number, 'patient': row, 'errors': errors, 'duplicates': duplicates})
+            if not errors:
+                names.setdefault(normalized(row['name']), []).append('fila '+str(number))
+                if row['phone']:
+                    phones.setdefault(normalized(row['phone']), []).append('fila '+str(number))
+        return {'id': str(uuid.uuid4()), 'rows': result, 'versions': {p['id']: p['revision'] for p in patients}}
+
+    def import_patients(self, preview, selected, accepted_duplicates=()):
+        actor = self.auth.require('admin')
+        batch_id = str(uuid.UUID(preview['id']))
+        with self.store.lock:
+            receipt_path = f'data/import_batches/{batch_id}.json'
+            previous = self.store.read(receipt_path)
+            if previous:
+                return previous
+            patients = self.clinic.list('patients', True)
+            if {p['id']: p['revision'] for p in patients} != preview['versions']:
+                raise DataError('Los pacientes cambiaron desde la vista previa. Vuelve a validar el lote; no se importó ninguna fila.')
+            rows = [r for r in preview['rows'] if r['number'] in selected]
+            if not rows:
+                raise DataError('Selecciona al menos una fila válida.')
+            changes, identifiers = {}, []
+            for offset, item in enumerate(rows, 1):
+                row = dict(item['patient'])
+                if item['errors'] or self.validate_import_patient(row):
+                    raise DataError(f"Fila {item['number']}: corrige los campos indicados antes de importar.")
+                if item['duplicates'] and item['number'] not in accepted_duplicates:
+                    raise DataError(f"Fila {item['number']}: confirma que corresponde a una persona distinta.")
+                identifier = str(uuid.uuid5(uuid.UUID(batch_id), str(item['number'])))
+                row.update(id=identifier, schema_version=2, revision=1, file_number=f'RC-{len(patients)+offset:06d}',
+                    created_at=now(), updated_at=now(), created_by=actor['id'], updated_by=actor['id'],
+                    allergy_status='No interrogado', provenance={'import_batch': batch_id, 'row': item['number']})
+                changes[f'data/patients/{identifier}.json'] = row
+                identifiers.append(identifier)
+            receipt = {'schema_version': 1, 'id': batch_id, 'actor': actor['id'], 'at': now(), 'patients': identifiers, 'count': len(rows)}
+            changes[receipt_path] = receipt
+            changes[f'data/audit/{batch_id}.json'] = {'id': batch_id, 'actor': actor['id'], 'at': now(), 'action': 'importar_pacientes', 'target': batch_id}
+            self.store.transaction(changes)
+            return receipt

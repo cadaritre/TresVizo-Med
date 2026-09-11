@@ -112,9 +112,7 @@ class Care:
     def evolution(self, patient_id, key):
         self.auth.require()
         points = []
-        for row in self.clinic.list('encounters'):
-            if row['patient_id'] != patient_id or row['status'] != 'Finalizada':
-                continue
+        for row in self.store.select_records('encounters', lambda r: r['patient_id'] == patient_id and r['status'] == 'Finalizada' and not r.get('archived')):
             for group in row.get('vitals', []):
                 item = group.get('values', {}).get(key)
                 if key == 'bmi' and group.get('bmi') is not None:

@@ -36,14 +36,16 @@ class ThemeManager:
         s.configure('TLabelframe.Label', foreground=t['text'], background=t['background'])
         for style, key in [('TButton', 'secondary'), ('Primary.TButton', 'button'), ('Nav.TButton', 'sidebar')]:
             s.configure(style, background=t[key], foreground=t['on_'+key], padding=(12, 8), borderwidth=0,
-                        focuscolor=t['focus'], focusthickness=2, anchor='w' if key == 'sidebar' else 'center')
+                        focuscolor=t['focus'], focusthickness=2, anchor='center')
             s.map(style, background=[('disabled', t[key+'_disabled']), ('pressed', t[key+'_pressed']), ('active', t[key+'_hover'])],
                   foreground=[('disabled', t['on_'+key+'_disabled']), ('pressed', t['on_'+key+'_pressed']), ('active', t['on_'+key+'_hover'])],
                   bordercolor=[('focus', t['focus'])])
-        s.configure('Active.Nav.TButton', background=t['selection'], foreground=t['on_selection'], font=('Segoe UI Semibold', 11), anchor='w', padding=(12, 9), borderwidth=0)
-        s.map('Active.Nav.TButton', background=[('active', t['selection_hover'])], foreground=[('active', t['on_selection_hover'])])
-        s.configure('Link.TButton', background=t['background'], foreground=t['primary'], borderwidth=0, padding=(4, 6))
-        s.map('Link.TButton', background=[('active', t['selection'])], foreground=[('active', t['on_selection'])])
+        s.configure('Active.Nav.TButton', background=t['selection'], foreground=t['on_selection'], font=('Segoe UI Semibold', 11), anchor='center', padding=(12, 8), borderwidth=0)
+        s.map('Active.Nav.TButton', background=[('disabled', t['selection_disabled']), ('pressed', t['selection_pressed']), ('active', t['selection_hover'])],
+              foreground=[('disabled', t['on_selection_disabled']), ('pressed', t['on_selection_pressed']), ('active', t['on_selection_hover'])])
+        s.configure('Link.TButton', background=t['background'], foreground=readable(t['primary'], t['background']), borderwidth=0, padding=(4, 6))
+        s.map('Link.TButton', background=[('disabled', t['background']), ('pressed', t['selection_pressed']), ('active', t['selection_hover'])],
+              foreground=[('disabled', readable(t['muted'], t['background'])), ('pressed', t['on_selection_pressed']), ('active', t['on_selection_hover'])])
         for style in ('TEntry', 'TCombobox', 'TSpinbox'):
             s.configure(style, fieldbackground=t['surface'], foreground=t['text'], insertcolor=t['text'], padding=7,
                         selectbackground=t['selection'], selectforeground=t['on_selection'], bordercolor=t['border'], arrowsize=16)
@@ -54,7 +56,7 @@ class ThemeManager:
         s.map('TCombobox', selectbackground=[('!focus', t['surface']), ('focus', t['selection'])],
               selectforeground=[('!focus', t['text']), ('focus', t['on_selection'])])
         s.configure('Treeview', background=t['surface'], fieldbackground=t['surface'], foreground=t['text'],
-                    rowheight=38, bordercolor=t['separator'], borderwidth=0)
+                    rowheight=int(38*getattr(self.root, 'ui_scale', 1)), bordercolor=t['separator'], borderwidth=0)
         s.map('Treeview', background=[('selected', t['selection'])], foreground=[('selected', t['on_selection'])])
         s.configure('Treeview.Heading', background=t['surface'], foreground=t['muted'], padding=8, borderwidth=0, font=('Segoe UI Semibold', 10))
         s.map('Treeview.Heading', background=[('active', t['secondary_hover'])], foreground=[('active', t['on_secondary_hover'])])
@@ -80,14 +82,22 @@ class ThemeManager:
 
     def _walk(self, widget):
         t = self.tokens
+        if isinstance(widget, ttk.Button) and hasattr(self.root, 'icons') and not hasattr(widget, 'icon'):
+            from app.icons import ACTION_ICONS
+            name = ACTION_ICONS.get(str(widget.cget('text')))
+            if name:
+                self.root.icons.bind(widget, name, token='on_button' if widget.cget('style') == 'Primary.TButton' else 'text', show_text=True)
         if isinstance(widget, (tk.Tk, tk.Toplevel)):
             widget.configure(background=t['background'])
+            if not getattr(widget, 'brand_icon_set', False):
+                from app.branding import set_window_icon
+                set_window_icon(widget)
         elif isinstance(widget, tk.Text):
             widget.configure(background=t['surface'], foreground=t['text'], insertbackground=t['text'],
                              selectbackground=t['selection'], selectforeground=t['on_selection'],
                              highlightbackground=t['border'], highlightcolor=t['focus'])
         elif isinstance(widget, tk.Canvas) and not getattr(widget, 'own_palette', False):
-            widget.configure(background=t['surface'], highlightbackground=t['border'])
+            widget.configure(background=t['background' if getattr(widget, 'scroll_surface', False) else 'surface'], highlightbackground=t['border'])
         elif isinstance(widget, tk.Menu):
             widget.configure(background=t['surface'], foreground=t['text'], activebackground=t['selection'],
                              activeforeground=t['on_selection'], disabledforeground=readable(t['muted'], t['surface']))

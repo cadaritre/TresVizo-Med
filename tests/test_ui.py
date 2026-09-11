@@ -7,6 +7,94 @@ from app.themes import BUILTINS
 from app.components import Chart, DatePicker
 from app.main_window import Application
 
+pytestmark = pytest.mark.desktop
+
+
+def test_windows_taskbar_identity_and_inherited_window_icons(tmp_path):
+    import os
+    if os.name != 'nt':
+        pytest.skip('La identidad de la barra de tareas pertenece a Windows.')
+    import ctypes
+    from app.branding import APP_USER_MODEL_ID, ASSETS
+    from PIL import Image
+    app = Application(tmp_path)
+    try:
+        assert app.windows_identity_registered
+        identifier = ctypes.c_void_p()
+        get_id = ctypes.WinDLL('shell32').GetCurrentProcessExplicitAppUserModelID
+        get_id.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+        get_id.restype = ctypes.c_long
+        assert get_id(ctypes.byref(identifier)) == 0
+        try:
+            assert ctypes.wstring_at(identifier) == APP_USER_MODEL_ID
+        finally:
+            free = ctypes.WinDLL('ole32').CoTaskMemFree
+            free.argtypes = [ctypes.c_void_p]
+            free(identifier)
+        with Image.open(ASSETS / 'tresvizo_medico.ico') as ico:
+            assert {(16,16), (32,32), (48,48), (256,256)} <= ico.ico.sizes()
+        dialog = tk.Toplevel(app)
+        app.theme._walk(dialog)
+        app.update()
+        send = ctypes.WinDLL('user32').SendMessageW
+        send.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
+        send.restype = ctypes.c_ssize_t
+        user32 = ctypes.WinDLL('user32')
+        class_icon = getattr(user32, 'GetClassLongPtrW', user32.GetClassLongW)
+        class_icon.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        class_icon.restype = ctypes.c_size_t
+        for window in (app, dialog):
+            hwnd = int(window.frame(), 16)
+            # Windows recurre al icono de la clase para los diálogos que lo heredan.
+            assert send(hwnd, 0x007F, 0, 0) or class_icon(hwnd, -34), 'La ventana necesita un icono pequeño.'
+            assert send(hwnd, 0x007F, 1, 0) or class_icon(hwnd, -14), 'La ventana necesita un icono grande.'
+        dialog.destroy()
+    finally:
+        app.close()
+
+
+def test_icon_only_actions_keep_tooltips_keyboard_and_theme_state(tmp_path):
+    from app.profiles import ProfileEditor
+    app = Application(tmp_path)
+    try:
+        uid = app.auth.create_user('Doctora de prueba', 'prueba', 'Sintetica-12345')
+        app.auth.login(uid, 'Sintetica-12345')
+        app.shell()
+        for label, button in app.nav_buttons.items():
+            assert str(button.cget('compound')) == 'left'
+            assert button.tooltip.text == label == button.action_label
+        patients = app.nav_buttons['Pacientes']
+        patients.focus_force()
+        app.update()
+        patients.event_generate('<KeyPress-space>')
+        app.after(550, app.quit)
+        app.mainloop()
+        assert app.current_page == 'Pacientes'
+        assert str(patients.cget('style')) == 'Active.Nav.TButton'
+        for name, palette in BUILTINS.items():
+            app.theme.apply(palette)
+            assert patients.icon == app.icons.photo('users', int(18*app.ui_scale), app.theme.tokens['on_selection'])
+            images = tuple(map(str, patients.cget('image')))
+            assert 'disabled' in images and 'pressed' in images and 'active' in images
+        focus = app.focus_get()
+        patients.tooltip.show()
+        app.update_idletasks()
+        assert patients.tooltip.window.winfo_viewable()
+        assert app.focus_get() == focus
+        patients.tooltip.hide()
+        app.show('Mi perfil')
+        profile = next(w for w in app.pages['Mi perfil'].winfo_children() if isinstance(w, ProfileEditor))
+        for button in profile.avatar_buttons.values():
+            assert str(button.cget('compound')) == 'none'
+            assert button.tooltip.text
+        profile.avatar_buttons['gato'].invoke()
+        assert str(profile.avatar_buttons['gato'].cget('style')) == 'Active.Nav.TButton'
+        assert sum(str(b.cget('style')) == 'Active.Nav.TButton' for b in profile.avatar_buttons.values()) == 1
+        for future in list(app.pending):
+            future.result(timeout=10)
+    finally:
+        app.close()
+
 
 def test_live_theme_preserves_widgets_text_cursor_selection_focus():
     root = tk.Tk()
@@ -89,7 +177,9 @@ def test_editor_actions_remain_in_window_at_tk_scaling(tmp_path, scale):
             for child in widget.winfo_children():
                 yield child
                 yield from widgets(child)
-        buttons = [w for w in widgets(app) if isinstance(w, ttk.Button) and w.cget('text') in
+        from app.appearance_ui import AppearanceEditor
+        appearance = next(w for w in widgets(app) if isinstance(w, AppearanceEditor))
+        buttons = [w for w in widgets(appearance) if isinstance(w, ttk.Button) and w.cget('text') in
                    ('Aplicar cambios', 'Cancelar cambios')]
         assert len(buttons) == 2
         for button in buttons:

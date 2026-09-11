@@ -54,4 +54,4 @@ Este repositorio **no implementa todavía la totalidad de los 26 apartados del e
 
 ## Distribución
 
-`scripts/distribuir.ps1` ejecuta las pruebas y prepara la carpeta portable con PyInstaller. `scripts/instalador.iss` permite construir un instalador con Inno Setup. El desinstalador no borra los expedientes de Documentos. Revisar las licencias de las dependencias y conservar los avisos incluidos en la distribución.
+`scripts/distribuir.ps1` ejecuta las pruebas, compila con PyInstaller y genera el MSI versionado con WiX 4. Los expedientes y preferencias de Documentos se conservan al actualizar y al desinstalar. El inicio automático se cambia en Configuración → General. Consulta [instalación, versiones y compilación](docs/distribucion.md) y [cambios por versión](CHANGELOG.md).

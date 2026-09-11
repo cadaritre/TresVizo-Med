@@ -17,6 +17,8 @@ class Attachments:
     def authorize(self, patient_id=None, encounter_id=None, draft_id=None):
         actor = self.auth.require()
         if draft_id:
+            if patient_id or encounter_id:
+                raise DataError('Un documento pendiente de alta no puede vincularse simultáneamente a otro destino.')
             draft = self.store.read(f'data/registration_drafts/{uuid.UUID(draft_id)}.json')
             if not draft or draft['doctor_id'] != actor['id'] or draft['status'] != 'Borrador':
                 raise DataError('Este borrador es privado o ya fue cerrado.')
@@ -74,6 +76,8 @@ class Attachments:
             with Image.open(path) as image:
                 if image.format not in ('PNG', 'JPEG') or image.width*image.height > 40_000_000:
                     raise DataError('Imagen incompatible o mayor de 40 megapíxeles.')
+                if (suffix == '.png') != (image.format == 'PNG'):
+                    raise DataError('El contenido de la imagen no coincide con su extensión.')
                 image.verify()
             return 'image/png' if suffix == '.png' else 'image/jpeg'
         if suffix == '.pdf':
@@ -94,13 +98,68 @@ class Attachments:
             return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         raise DataError('Formatos admitidos: JPEG, PNG, PDF y DOCX.')
 
-    def add(self, source, patient_id=None, encounter_id=None, draft_id=None, category='Otro documento', notes='', reason='', allow_duplicate=False, replaces=None, progress=lambda n: None):
+    @staticmethod
+    def operation_identifier(actor_id, target, operation_id):
+        return str(uuid.uuid5(uuid.UUID(actor_id), '|'.join(str(target.get(k) or '') for k in ('patient_id', 'encounter_id', 'draft_id'))+'|'+operation_id))
+
+    def queue_path(self, **target):
+        actor = self.authorize(**target)
+        return 'data/attachment_queues/'+self.operation_identifier(actor['id'], target, 'queue')+'.json'
+
+    def load_queue(self, **target):
+        saved = self.store.read(self.queue_path(**target))
+        return None if saved is None else self.recover_queue(saved['rows'], **target)
+
+    def load_metadata_edits(self, **target):
+        path = self.queue_path(**target).replace('attachment_queues', 'document_edits')
+        saved = self.store.read(path)
+        return None if saved is None else saved['pending']
+
+    def save_metadata_edits(self, pending, **target):
+        path = self.queue_path(**target).replace('attachment_queues', 'document_edits')
+        pending = {key: deepcopy(value) for key, value in pending.items() if value['kind'] == 'document_metadata'}
+        previous = self.store.read(path)
+        if (not previous and not pending) or previous and previous['pending'] == pending:
+            return
+        self.store.write(path, {'schema_version': 1, 'doctor_id': self.auth.require()['id'], 'target': target, 'pending': pending, 'updated_at': now()})
+
+    def save_queue(self, rows, **target):
+        path = self.queue_path(**target)
+        previous = self.store.read(path)
+        if not previous and not rows:
+            return
+        if previous and previous['rows'] == rows:
+            return
+        self.store.write(path, {'schema_version': 1, 'doctor_id': self.auth.require()['id'], 'target': target, 'rows': deepcopy(rows), 'updated_at': now()})
+
+    def recover_queue(self, queue, **target):
+        actor = self.authorize(**target)
+        queue = deepcopy(queue)
+        for row in queue:
+            row.setdefault('id', str(uuid.uuid4()))
+            identifier = row.get('attachment_id') or self.operation_identifier(actor['id'], target, row['id'])
+            saved = self.store.read(f'data/attachments/{identifier}.json')
+            if saved and all(saved.get(k) == v for k, v in target.items()) and saved['doctor_id'] == actor['id']:
+                row.update(attachment_id=identifier, status='Guardado')
+            elif Path(row['path']).is_file():
+                row['status'] = 'Pendiente de copia / reintento'
+            else:
+                row['status'] = 'Original no disponible · vuelve a elegir el archivo'
+        return queue
+
+    def add(self, source, patient_id=None, encounter_id=None, draft_id=None, category='Otro documento', notes='', reason='', allow_duplicate=False, replaces=None, progress=lambda n: None, operation_id=None, actor_id=None):
         actor = self.authorize(patient_id, encounter_id, draft_id)
+        if actor_id and actor['id'] != actor_id:
+            raise DataError('La operación pertenece al doctor que seleccionó el archivo. Retoma su sesión para reintentar.')
+        target = dict(patient_id=patient_id, encounter_id=encounter_id, draft_id=draft_id)
+        identifier = self.operation_identifier(actor['id'], target, operation_id) if operation_id else str(uuid.uuid4())
+        committed = self.store.read(f'data/attachments/{identifier}.json')
+        if committed:
+            return self.get(identifier)
         source = Path(source)
         mime = self.validate(source)
-        identifier = str(uuid.uuid4())
         relative = f'attachments/originals/{identifier}{source.suffix.lower()}'
-        staged = self.store.root/'attachments'/'staging'/(identifier+source.suffix.lower())
+        staged = self.store.root/'attachments'/'staging'/(str(uuid.uuid4())+source.suffix.lower())
         staged.parent.mkdir(parents=True, exist_ok=True)
         sha = hashlib.sha256()
         total = source.stat().st_size
@@ -122,6 +181,13 @@ class Attachments:
                     raise DataError('No se pudo verificar la copia del archivo.')
             with self.store.lock:
                 self.authorize(patient_id, encounter_id, draft_id)
+                committed = self.store.read(f'data/attachments/{identifier}.json')
+                if committed:
+                    return self.get(identifier)
+                if replaces:
+                    previous = self.get(replaces)
+                    if any(previous.get(k) != v for k,v in [('patient_id',patient_id),('encounter_id',encounter_id),('draft_id',draft_id)]):
+                        raise DataError('La nueva versión debe pertenecer al mismo destino que la anterior.')
                 if not allow_duplicate and any(r['sha256'] == sha.hexdigest() for r in self.list(patient_id, None, draft_id, archived=True)):
                     raise DataError('Ya existe un archivo idéntico en este expediente. Revisa la coincidencia o permite incorporarlo otra vez.')
                 row = {'schema_version': 2, 'id': identifier, 'patient_id': patient_id, 'encounter_id': encounter_id,
@@ -148,12 +214,23 @@ class Attachments:
 
     def update(self, identifier, values, revision, reason=''):
         actor = self.auth.require()
+        allowed = ('title', 'category', 'notes', 'document_date', 'archived')
+        values = {key: deepcopy(value) for key, value in values.items() if key in allowed}
+        if 'title' in values and not values['title'].strip():
+            raise DataError('El título del documento es obligatorio.')
+        if values.get('document_date'):
+            from datetime import date
+            try:
+                date.fromisoformat(values['document_date'])
+            except ValueError as exc:
+                raise DataError('Revisa la fecha del documento.') from exc
         with self.store.lock:
             row = self.get(identifier)
             if row['doctor_id'] != actor['id']:
                 self.auth.require('admin')
             if row['revision'] != revision:
-                raise DataError('El documento cambió. Actualiza la lista.')
+                from app.editing_state import VersionConflict
+                raise VersionConflict(row)
             changes = {}
             eid = row.get('encounter_id')
             if eid:
@@ -164,11 +241,35 @@ class Attachments:
                     encounter['addenda'].append({'id': str(uuid.uuid4()), 'actor': actor['id'], 'at': now(), 'reason': reason, 'content': 'Metadatos/estado del documento actualizados: '+row['title'], 'attachment_id': identifier})
                     encounter['revision'] += 1
                     changes[f'data/encounters/{eid}.json'] = encounter
-            row.setdefault('history', []).append({'at': now(), 'actor': actor['id'], 'reason': reason, 'previous': {k: row.get(k) for k in values}})
-            allowed = ('title', 'category', 'notes', 'document_date', 'archived')
+            row.setdefault('history', []).append({'at': now(), 'actor': actor['id'], 'reason': reason, 'previous': {k: deepcopy(row.get(k)) for k in values}})
             row.update({k: v for k, v in values.items() if k in allowed})
             row.update(revision=revision+1, updated_at=now())
             changes[f'data/attachments/{identifier}.json'] = row
+            audit_id = str(uuid.uuid4())
+            changes[f'data/audit/{audit_id}.json'] = {'id': audit_id, 'actor': actor['id'], 'at': now(), 'action': 'actualizar_adjunto', 'target': identifier}
             self.store.transaction(changes)
-            self.auth.audit('actualizar_adjunto', identifier)
             return row
+
+    def thumbnail(self,identifier,size=160):
+        row = self.get(identifier)
+        path = self.store.path(f'attachments/thumbnails/{identifier}-{size}.png')
+        if not path.exists():
+            source = self.path(identifier)
+            if not row['mime'].startswith('image/'):
+                return None
+            from PIL import ImageOps
+            with Image.open(source) as image:
+                image = ImageOps.exif_transpose(image)
+                image.thumbnail((size,size))
+                path.parent.mkdir(parents=True,exist_ok=True)
+                image.save(path)
+        return path
+
+    def integrity_report(self):
+        self.auth.require('admin')
+        rows = self.store.records('attachments')
+        references = {r['path'] for r in rows}
+        missing = [r['id'] for r in rows if not self.store.path(r['path']).is_file()]
+        orphan = [p.name for p in (self.store.root/'attachments'/'originals').glob('*') if p.is_file() and p.relative_to(self.store.root).as_posix() not in references]
+        pending = [p.name for p in (self.store.root/'attachments'/'staging').glob('*') if p.is_file()]
+        return {'documents':len(rows),'missing':missing,'unreferenced':orphan,'pending':pending}

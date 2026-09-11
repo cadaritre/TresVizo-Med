@@ -1,0 +1,90 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="$(var.ProductName)" Manufacturer="TresVizo" Version="$(var.Version)"
+           UpgradeCode="$(var.UpgradeCode)" ProductCode="$(var.ProductCode)"
+           Language="3082" Codepage="1252" Scope="perUser" InstallerVersion="500">
+    <SummaryInformation Description="Instalador de $(var.ProductName)" />
+    <MajorUpgrade DowngradeErrorMessage="Ya hay una versión más reciente de TresVizo Med. Usa un instalador de una versión superior."
+                  Schedule="afterInstallExecute" />
+    <Upgrade Id="$(var.UpgradeCode)">
+      <UpgradeVersion Minimum="$(var.Version)" Maximum="$(var.Version)" IncludeMinimum="yes" IncludeMaximum="yes"
+                      OnlyDetect="yes" Property="SAMEVERSIONFOUND" />
+    </Upgrade>
+    <Launch Condition="Installed OR NOT SAMEVERSIONFOUND" Message="Esta versión ya está instalada. Usa el MSI de la misma arquitectura para reparar o una versión superior para actualizar." />
+    <Property Id="WINDOWSBUILD">
+      <RegistrySearch Id="WindowsBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuildNumber" Type="raw" Bitness="always32" />
+    </Property>
+    <Launch Condition="Installed OR (VersionNT &gt;= 603 AND WINDOWSBUILD &gt;= 10240)" Message="Este paquete requiere Windows 10 o posterior. No está validado para Windows 7, 8 ni 8.1." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://www.tresvizo.com/" />
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="DisableShutdown" />
+    <Property Id="REBOOT" Value="ReallySuppress" />
+    <Property Id="AUTOSTART" Value="1" Secure="yes">
+      <RegistrySearch Id="SavedAutoStart" Root="HKCU" Key="$(var.RegistryKey)" Name="AutoStart" Type="raw" Bitness="always32" />
+    </Property>
+    <Property Id="INSTALLFOLDER" Secure="yes">
+      <RegistrySearch Id="SavedInstallFolder" Root="HKCU" Key="$(var.RegistryKey)" Name="InstallFolder" Type="raw" Bitness="always32" />
+    </Property>
+    <Property Id="INSTALLEDARCH">
+      <RegistrySearch Id="InstalledArchitecture" Root="HKCU" Key="$(var.RegistryKey)" Name="Architecture" Type="raw" Bitness="always32" />
+    </Property>
+    <Launch Condition="Installed OR NOT INSTALLEDARCH OR INSTALLEDARCH = &quot;$(var.Architecture)&quot;" Message="Usa el instalador de la misma arquitectura que la versión instalada. Para cambiar de arquitectura, desinstala primero la aplicación; tus datos en Documentos se conservan." />
+    <Icon Id="AppIcon" SourceFile="$(var.IconPath)" />
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="$(var.InstallName)" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppMenuFolder" Name="$(var.ProductName)">
+        <Component Id="Shortcuts" Guid="$(var.ShortcutsGuid)" Bitness="always32">
+          <Shortcut Id="MenuShortcut" Name="$(var.ProductName)" Target="[INSTALLFOLDER]TresVizo-Med.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon">
+            <ShortcutProperty Key="System.AppUserModel.ID" Value="TresVizo.Med.Desktop" />
+          </Shortcut>
+          <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="$(var.ProductName)" Target="[INSTALLFOLDER]TresVizo-Med.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon">
+            <ShortcutProperty Key="System.AppUserModel.ID" Value="TresVizo.Med.Desktop" />
+          </Shortcut>
+          <RemoveFolder Id="RemoveMenu" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="Shortcuts" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="InstallationSettings" Guid="$(var.SettingsGuid)" Bitness="always32">
+        <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="Version" Type="string" Value="[ProductVersion]" />
+        <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="Architecture" Type="string" Value="$(var.Architecture)" />
+        <RegistryValue Root="HKCU" Key="$(var.RegistryKey)" Name="AutoStart" Type="string" Value="[AUTOSTART]" />
+        <RegistryValue Root="HKCU" Key="$(var.RunKey)" Name="$(var.RunName)" Type="string" Value="[AUTOSTARTCOMMAND]" />
+        <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+    <SetProperty Id="AUTOSTARTCOMMAND" Value="&quot;[INSTALLFOLDER]TresVizo-Med.exe&quot; --startup" Before="WriteRegistryValues" Sequence="execute" Condition="AUTOSTART = &quot;1&quot;" />
+    <util:CloseApplication Id="DetectRunningApp" Target="TresVizo-Med.exe" Property="APP_RUNNING"
+                           CloseMessage="no" EndSessionMessage="no" ElevatedCloseMessage="no"
+                           ElevatedEndSessionMessage="no" RebootPrompt="no" Timeout="1" />
+    <CustomAction Id="RequireClosedApp" Error="Guarda tu trabajo y cierra TresVizo Med antes de instalar, actualizar o desinstalar. La aplicación continúa abierta y no se ha modificado." />
+    <?ifdef var.TestFamily?>
+      <util:FailWhenDeferred />
+      <InstallExecuteSequence>
+        <Custom Action="Wix4FailWhenDeferred_$(sys.BUILDARCHSHORT)" Before="RegisterProduct" Condition="TRESVIZO_TEST_FAILURE = &quot;1&quot;" />
+      </InstallExecuteSequence>
+    <?endif?>
+    <InstallExecuteSequence>
+      <Custom Action="Wix4CloseApplications_$(sys.BUILDARCHSHORT)" Before="InstallValidate" Condition="VersionNT &gt; 400" />
+      <Custom Action="RequireClosedApp" After="Wix4CloseApplications_$(sys.BUILDARCHSHORT)" Condition="APP_RUNNING" />
+    </InstallExecuteSequence>
+    <Feature Id="MainFeature" Title="TresVizo Med" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="Shortcuts" />
+      <ComponentRef Id="InstallationSettings" />
+    </Feature>
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />
+    <ui:WixUI Id="WixUI_Minimal" />
+  </Package>
+</Wix>

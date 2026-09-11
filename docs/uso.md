@@ -1,19 +1,71 @@
-# Uso y recuperación
+# Uso del espacio clínico
 
-Crear el primer administrador en el asistente inicial. Los administradores agregan doctores en Configuración → Doctores. Elegir doctor y contraseña al iniciar sesión. Cada usuario conserva su propia preferencia de apariencia.
+El primer arranque permite crear al administrador. Después, el acceso muestra tarjetas de doctores y una contraseña para el perfil seleccionado. El enlace tresvizo.com se abre únicamente al pulsarlo.
 
-En Pacientes se puede buscar por nombre, expediente o teléfono sin distinguir acentos o mayúsculas. Nuevo paciente requiere nombre; los demás campos pueden completarse después. Abrir el expediente mediante doble clic o Enter. Los antecedentes vacíos se muestran como no registrados.
+## Pacientes y borradores
 
-Confirmar al paciente antes de iniciar atención. La consulta permite texto libre organizado como SOAP. Ctrl+S guarda; Ctrl+Enter solicita revisión antes de finalizar. La pantalla muestra si el borrador se guardó realmente. Las consultas finalizadas permiten adendas. Al abrir un borrador desde Consultas se recupera su contenido persistido.
+Inicio ofrece buscar/atender paciente, consultas propias sin finalizar, registros de pacientes incompletos, citas y seguimientos de hoy. Pacientes combina palabras del nombre, folio o teléfono, tolerando mayúsculas, acentos y espacios; muestra 100 filas por página y conserva la selección por identificador al actualizar. Folio y edad ayudan a distinguir personas con el mismo nombre. Ctrl+K abre y enfoca el buscador; flecha abajo entra a los resultados y Enter abre el expediente seleccionado. Limpiar quita la búsqueda y el filtro. Ningún paciente se selecciona silenciosamente al abrir una cita nueva.
 
-Bloquear/cambiar doctor oculta ventanas clínicas. Si falla el guardado de un borrador, se exige al mismo doctor autenticarse para recuperarlo antes de permitir cambio de sesión. Esa recuperación conserva contenido en memoria; no protege frente al apagado del equipo si el disco no permite guardar.
+Nuevo paciente abre el espacio principal. Solo el nombre es obligatorio. La fecha admite escritura día/mes/año y calendario con mes y año directos. Si se desconoce el nacimiento, activar esa opción para registrar edad aproximada, unidad y fecha de referencia. No se deduce el sexo. Contacto y responsables se despliegan cuando se necesitan. Teléfonos, alergias, problemas y medicamentos se agregan como elementos que deben confirmarse.
 
-Los PDF se muestran en vista previa antes de elegir destino. Usan exclusivamente identidad y colores de documentos; el tema personal no los altera. La aplicación no afirma que una receta cumpla requisitos de una jurisdicción ni que un nombre constituya firma digital.
+El alta se autoguarda como borrador privado tras 900 ms sin cambios o cada cinco segundos durante escritura continua. También conserva campos incompletos, elementos sin confirmar y la cola de archivos. Guardar paciente publica el registro y sus documentos juntos; los documentos pendientes o fallidos deben incorporarse o retirarse explícitamente. Guardar y atender continúa con la consulta. Cancelar permite conservar o descartar el borrador sin crear un paciente.
 
-## Respaldos
+## Consulta
 
-Exportar y respaldar → Crear respaldo completo verificado produce un ZIP con datos, configuración, adjuntos y avatares existentes, y un manifiesto SHA-256. Elegir un medio adicional bajo control de la clínica. Las exportaciones de pacientes no incluyen cuentas ni hashes.
+La consulta se trabaja en una sola vista, sin pestañas clínicas. El encabezado conserva paciente, folio, edad, doctor, fecha, estado y alergias. Editar detalles abre fecha, hora y tipo. Los accesos Signos vitales, Medicamentos, Estudios, Documentos y Seguimiento abren una captura específica y regresan a la misma nota. En este módulo las acciones importantes conservan icono y texto. Ctrl+S guarda; Ctrl+Enter abre la revisión de finalización.
 
-Esta versión no tiene restauración guiada. Para recuperación técnica: cerrar todas las instancias, conservar una copia íntegra de la carpeta actual, verificar el manifiesto con `Transfer.verify_backup`, inspeccionar el contenido y reconstruir en una carpeta separada mediante personal técnico. Abrirla con `--data-dir` para validar antes de sustituir la instalación. Las rutas de logos clínicos guardadas como absolutas deben reconfigurarse si cambia la ubicación. No extraer archivos de respaldos no confiables directamente sobre expedientes.
+Motivo, evolución, valoración y plan se escriben directamente en la página. Exploración física se puede desplegar cuando está vacía. Ampliar aumenta la altura del mismo editor sin perder cursor, selección, deshacer o rehacer. Los tratamientos y estudios aparecen como filas legibles. Solo hay una captura activa; la navegación a otro paciente espera a que se resuelva.
 
-No borrar archivos corruptos para forzar un arranque vacío. Conservarlos y solicitar recuperación técnica desde un respaldo verificado. La aplicación muestra el fallo de lectura sin reemplazarlo automáticamente.
+Signos vitales abre Registrar signos vitales con dos columnas y unidades explícitas. Más mediciones incluye glucosa, contexto y dolor. Aplicar incorpora una toma al borrador; Editar toma conserva su identificador y Nueva toma crea otra. El resumen muestra una sola toma identificada, sin mezclar valores de fechas distintas. El IMC requiere peso y estatura de esa toma. Ver evolución carga a demanda las gráficas y la tabla histórica, en segundo plano; los círculos vacíos corresponden al borrador. Consultar el histórico desde una captura conserva esa edición como pendiente.
+
+Aplicar al borrador y guardar en disco son estados distintos. Cancelar o cerrar una captura modificada permite descartarla, continuar editando o conservarla pendiente. Guardado se muestra después de completar la escritura. Las capturas incompletas se recuperan para el mismo doctor y no se confirman automáticamente. Revisar y finalizar muestra pendientes con acceso al campo correspondiente y una sola confirmación final.
+
+La X cierra una captura sin cambios aunque quede una lista desplegable abierta. Si hay cambios, enfoca Conservar pendiente y volver; las otras opciones son Seguir editando y Descartar captura. Estas acciones se acomodan en filas cuando la ventana se estrecha. En documentos, la X cierra la ventana completa; Volver a documentos regresa a la lista cuando se están editando sus detalles. Cerrar la captura nunca aplica automáticamente una pauta ni finaliza la consulta.
+
+Cada medicamento separa producto, principio activo, presentación, concentración, dosis, unidad, vía, frecuencia, duración, fechas, cantidad e instrucciones. La pauta se previsualiza al editarla. El catálogo local y los favoritos reutilizan la identidad del producto; las dosis se completan para cada consulta. Los tratamientos habituales o previos se incorporan pendientes de revisión. Los estudios tienen estado y observaciones. Al finalizar, un seguimiento con fecha se crea en la misma operación.
+
+La receta y el resumen se revisan en un visor PDF por páginas antes de exportarse. La apariencia personal no modifica los colores ni la identidad de impresión. Las correcciones de consultas finalizadas se registran mediante adendas.
+
+Al regresar a la consulta, el aviso de alergias refleja el expediente actual sin reemplazar la nota en edición. Si otra edición ya guardó una versión diferente, Revisar conflicto conserva tu captura y muestra las diferencias. Elige qué conservar de cada campo en conflicto antes de Combinar y guardar; también puedes guardar una copia de recuperación. Los cambios independientes se combinan. Un registro finalizado exige el mecanismo de corrección autorizado y no se sobrescribe desde un borrador antiguo.
+
+## Agenda y seguimiento
+
+Agenda permite ver Hoy, un Periodo o Todos, seleccionar una fila y usar Editar / reprogramar o Atender / abrir consulta. Atender reutiliza la atención de esa cita y marca En consulta. Solo la finalización confirma Atendida. Una cita cancelada o marcada No asistió no inicia otra atención por accidente. Una cita vinculada conserva el paciente original.
+
+Los seguimientos sin hora son tareas por fecha y se muestran «sin hora». Su fecha no se transforma automáticamente en una cita a las 09:00. Reprogramar, completar o cancelar conserva el historial. Registrar paciente desde una cita devuelve el nuevo paciente a ese flujo. El día se actualiza mientras la app está abierta y al volver a la vista.
+
+## Documentos e imágenes
+
+Arrastrar archivos al área de documentos o seleccionar varios JPEG, PNG, PDF y DOCX. Se admiten hasta 50 MiB por archivo e imágenes de hasta 40 megapíxeles. Elegir categoría, incorporar y revisar el resultado individual. La copia administrada conserva el original aunque se mueva el archivo de origen. Una repetición idéntica requiere aceptación explícita.
+
+La lista permite buscar, filtrar categoría, doctor, fechas y origen, ordenar y mostrar archivados. La galería usa miniaturas de imágenes; los otros documentos conservan su título. Hay paginación, metadatos editables, nuevas versiones y exportación individual o de un paquete con documentos seleccionados. Las imágenes tienen zoom y desplazamiento; el PDF carga una página a la vez. DOCX se abre con la aplicación local solo tras una acción explícita.
+
+Una selección pendiente solo conserva la referencia al original: todavía no es un documento protegido. La cola se recupera para el mismo doctor y paciente/consulta. Si falta el original, Volver a elegir original permite localizarlo. Reintentar incorpora únicamente los elementos no guardados. Los archivos ya incorporados no se borran al retirar una selección. Antes de finalizar hay que incorporar o retirar los pendientes, incluidos los errores de copia.
+
+Los cambios incompletos del título, fecha o descripción se conservan como edición pendiente. Cerrar permite conservarlos, descartarlos o seguir editando. Al reabrir se comprueba la versión que estaba editándose; una diferencia posterior requiere revisión y no reemplaza silenciosamente los metadatos de otra edición.
+
+## Perfil, apariencia y sesión
+
+Mi perfil ofrece 16 ilustraciones, iniciales o foto con encuadre y zoom, datos profesionales y reducción de movimiento. El administrador puede editar el perfil de otros doctores en Configuración → Doctores. Las fotos de perfil se limitan a 10 MiB y 12 megapíxeles.
+
+Apariencia presenta paletas y vista previa. Personalización avanzada contiene los selectores y valores hexadecimales; Más opciones contiene guardar con nombre, duplicar, renombrar, importar, exportar, restablecer y eliminar temas propios. Aplicar cambia la interfaz actual sin reconstruir formularios. La preferencia de cada doctor puede heredar la paleta clínica. La pantalla de acceso usa la apariencia general.
+
+Bloquear oculta pantallas y visores y conserva la sesión. Los resultados visuales de trabajos en curso esperan al desbloqueo. Cambiar doctor guarda los borradores, espera las operaciones de archivos y oculta el contenido antes del nuevo acceso. Si el disco impide guardar, la aplicación conserva los cambios en la sesión anterior y exige recuperarla.
+
+## Archivar y recuperar
+
+El administrador archiva o restaura pacientes desde Pacientes. Las consultas históricas siguen contando; iniciar nuevas atenciones requiere reactivar el expediente. El responsable retira sus borradores a una papelera privada y puede restaurarlos con el mismo identificador. Anular una consulta finalizada exige motivo, conserva su contenido y la excluye de estadísticas. Restaurar una consulta anulada vuelve a incluirla; ambas acciones dejan una adenda y respetan responsable/administrador. No reprograman ni eliminan seguimientos anteriores. Los documentos archivados conservan sus originales e historial. Esta entrega no vacía papeleras ni elimina originales automáticamente.
+
+Exportar y respaldar incluye copias verificadas, restauración en una carpeta nueva y revisión de documentos ausentes. Abrir la copia restaurada es una acción separada; nunca reemplaza automáticamente los datos activos. Véase [Migración y recuperación](migracion.md).
+
+## Estadísticas y transferencia de datos
+
+Mis estadísticas muestra consultas finalizadas, pacientes únicos y diagnósticos del periodo y doctor indicados. Al modificar filtros se deshabilita exportar hasta pulsar Actualizar y recibir los datos correspondientes. CSV y PDF llevan el doctor y periodo de ese resultado; las cifras previas se identifican como pendientes de actualización.
+
+Exportar pacientes permite elegir Todos los activos, Resultado filtrado o Seleccionados, con cantidad antes de elegir destino. CSV contiene identidad/contacto; JSON conserva campos estructurados del paciente. Para un expediente con documentos usa el paquete del expediente. Los textos CSV que una hoja de cálculo podría interpretar como fórmula reciben un apóstrofo protector; JSON conserva el texto original sin esa transformación. No elimines esa protección para abrir archivos no confiables en una hoja de cálculo.
+
+Importar CSV admite UTF-8, separadores coma/punto y coma/tabulador, hasta 10 MB y 10 000 filas. Elige archivo, asigna columnas y revisa la vista previa. Solo se requiere nombre; nacimiento usa AAAA-MM-DD. Los errores se muestran por fila/campo. Las posibles coincidencias por nombre o teléfono se explican y no se importan por defecto: aceptarlas significa registrar a una persona distinta, nunca fusionar. Confirma las filas elegidas para guardarlas en una transacción. Si la base cambia después de la vista previa, vuelve a revisarla antes de confirmar. No se ofrece importación de expedientes completos desde JSON/PDF/DOCX.
+
+Configuración → Datos y respaldos muestra la ubicación activa y el último respaldo válido. Una restauración verificada informa la carpeta nueva y que la actual sigue activa. Abrir la copia inicia explícitamente esa base separada. Un error de destino conserva las opciones elegidas para poder corregirlo y reintentar.
+
+Para iniciar desde el código y ejecutar verificaciones, consulta [Revisión de confianza y uso cotidiano](hardening-ux.md#ejecución-y-límites).

@@ -8,6 +8,7 @@ class ScrollFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.canvas.scroll_surface = True
         bar = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview)
         self.body = ttk.Frame(self.canvas)
         self.window = self.canvas.create_window((0, 0), window=self.body, anchor='nw')
@@ -34,6 +35,8 @@ class ScrollFrame(ttk.Frame):
             return
         target = self.winfo_containing(event.x_root, event.y_root)
         if target and str(target).startswith(str(self)):
+            if isinstance(target, (tk.Text, ttk.Treeview, ttk.Combobox)):
+                return
             self.canvas.yview_scroll(-int(event.delta/120), 'units')
 
 
@@ -152,19 +155,41 @@ class Tooltip:
     def __init__(self, widget, text, theme):
         self.widget, self.text, self.theme = widget, text, theme
         self.window = None
-        widget.bind('<Enter>', self.show, add='+')
+        self.pending = None
+        widget.bind('<Enter>', self.schedule, add='+')
+        widget.bind('<FocusIn>', self.schedule, add='+')
         widget.bind('<Leave>', self.hide, add='+')
+        widget.bind('<FocusOut>', self.hide, add='+')
+        widget.bind('<ButtonPress>', self.hide, add='+')
+        widget.bind('<Unmap>', self.hide, add='+')
+        widget.bind('<Escape>', self.hide, add='+')
         widget.bind('<Destroy>', self.hide, add='+')
 
-    def show(self, event):
+    def schedule(self, event=None):
         self.hide()
+        self.pending = self.widget.after(450, self.show)
+
+    def show(self, event=None):
+        self.hide()
+        if not self.widget.winfo_viewable() or getattr(self.widget._root(), 'locked', False):
+            return
         self.window = tk.Toplevel(self.widget)
+        self.window.withdraw()
         self.window.overrideredirect(True)
-        self.window.geometry(f'+{event.x_root+16}+{event.y_root+20}')
-        ttk.Label(self.window, text=self.text, style='Card.TLabel', padding=10).pack()
+        ttk.Label(self.window, text=self.text, style='Card.TLabel', padding=10, wraplength=300).pack()
         self.theme._walk(self.window)
+        self.window.update_idletasks()
+        x = min(self.widget.winfo_rootx(), self.widget.winfo_screenwidth()-self.window.winfo_reqwidth()-8)
+        y = self.widget.winfo_rooty()+self.widget.winfo_height()+6
+        if y+self.window.winfo_reqheight() > self.widget.winfo_screenheight():
+            y = self.widget.winfo_rooty()-self.window.winfo_reqheight()-6
+        self.window.geometry(f'+{max(0,x)}+{max(0,y)}')
+        self.window.deiconify()
 
     def hide(self, event=None):
+        if self.pending is not None:
+            self.widget.after_cancel(self.pending)
+            self.pending = None
         if self.window:
             self.window.destroy()
             self.window = None

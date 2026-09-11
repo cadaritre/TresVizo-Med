@@ -57,6 +57,13 @@ class StatisticsPage(ScrollFrame):
         frequent = ttk.Frame(tabs)
         tabs.add(frequent,text='Pacientes con más consultas')
         self.frequent = self.table(frequent,{'name':'Paciente','file':'Expediente','count':'Consultas'})
+        self.frequent_page = 0
+        pager = ttk.Frame(frequent)
+        pager.pack(fill='x')
+        self.frequent_count = ttk.Label(pager, style='Subtitle.TLabel')
+        self.frequent_count.pack(side='left')
+        ttk.Button(pager, text='Anterior', command=lambda: self.turn(-1), style='Link.TButton').pack(side='right')
+        ttk.Button(pager, text='Siguiente', command=lambda: self.turn(1), style='Link.TButton').pack(side='right')
         self.frequent.bind('<Double-1>',lambda e:app.patient_record(self.frequent.selection()[0]) if self.frequent.selection() else None)
         ttk.Button(frequent,text='Abrir expediente',command=lambda:app.patient_record(self.frequent.selection()[0]) if self.frequent.selection() else None).pack(anchor='w',pady=6)
         distributions = ttk.Frame(tabs)
@@ -72,9 +79,20 @@ class StatisticsPage(ScrollFrame):
         actions = ttk.Frame(body)
         actions.pack(fill='x',pady=8)
         ttk.Button(actions,text='Seguimientos pendientes',command=lambda:app.show('Seguimientos')).pack(side='left')
-        ttk.Button(actions,text='Exportar CSV',command=self.csv).pack(side='left',padx=8)
-        ttk.Button(actions,text='Vista previa PDF',command=self.pdf).pack(side='left')
+        self.export_buttons = [ttk.Button(actions,text='Exportar CSV',command=self.csv), ttk.Button(actions,text='Vista previa PDF',command=self.pdf)]
+        for button in self.export_buttons:
+            button.pack(side='left', padx=8)
+        self.ready = False
+        for variable in [self.start.var, self.end.var, *self.filters.vars.values()]:
+            variable.trace_add('write', self.invalidate)
         self.period_changed()
+
+    def invalidate(self, *args):
+        self.ticket += 1
+        self.ready = False
+        for button in self.export_buttons:
+            button.state(['disabled'])
+        self.summary.set('Filtros modificados · pulsa Actualizar. Las cifras anteriores todavía no corresponden a estos filtros.')
 
     def table(self,parent,columns):
         tree = ttk.Treeview(parent,columns=list(columns),show='headings',height=6)
@@ -97,49 +115,82 @@ class StatisticsPage(ScrollFrame):
 
     def refresh(self):
         from app.storage import DataError
+        if self.period.get() != 'Personalizado':
+            today = date.today()
+            start = today if self.period.get() == 'Hoy' else today-timedelta(days=today.weekday()) if self.period.get() == 'Semana' else today.replace(day=1)
+            self.start.var.set(display_date(start.isoformat()))
+            self.end.var.set(display_date(today.isoformat()))
+        self.invalidate()
         start,end = self.start.get(),self.end.get()
         if not start or not end or start>end:
             raise DataError('Revisa las fechas del periodo.')
         fields = self.filters.values()
         doctor = self.doctors.get(fields.get('doctor'),self.app.auth.current['id'])
+        doctor_label = next((name for name, uid in self.doctors.items() if uid == doctor), 'Doctor')
         self.ticket += 1
         ticket = self.ticket
         self.summary.set('Actualizando datos…')
         def done(data):
             if not self.winfo_exists() or ticket != self.ticket:return
+            if isinstance(data, Exception):
+                self.summary.set('No se pudieron actualizar las estadísticas. Revisa los filtros y pulsa Actualizar.')
+                return
             self.latest = data
+            self.ready = True
+            self.latest['_scope'] = {'doctor': doctor_label, 'start': start, 'end': end, **fields}
+            for button in self.export_buttons:
+                button.state(['!disabled'])
             for key,label in self.numbers.items():label.configure(text=str(data[key]))
             variation = f"{data['variation']:+.1f}%" if data['variation'] is not None else 'Sin base de comparación'
-            self.summary.set(f"{display_date(start)} — {display_date(end)} · {data['recurrent']} recurrentes · {data['average']:.1f} consultas por día activo\n{data['pending']} seguimientos pendientes ({data['overdue']} vencidos) · {data['drafts']} borradores propios · Cambio: {variation}")
+            self.summary.set(f"{doctor_label} · {display_date(start)} — {display_date(end)} · {data['recurrent']} recurrentes · {data['average']:.1f} consultas por día activo\n{data['pending']} seguimientos pendientes ({data['overdue']} vencidos) · {data['drafts']} borradores propios · Cambio: {variation}")
+            self.latest['_summary'] = self.summary.get()
             self.activity.set(data['activity'])
             self.diagnoses.delete(*self.diagnoses.get_children())
             for name,count in data['diagnoses'].items():
                 self.diagnoses.insert('','end',values=(name,count,f"{count*100/data['consultations']:.1f}%"))
-            patients = {p['id']:p for p in self.app.clinic.list('patients',True)}
-            self.frequent.delete(*self.frequent.get_children())
-            for pid,count in data['frequency'].items():
-                p = patients.get(pid,{})
-                self.frequent.insert('','end',iid=pid,values=(p.get('name','Paciente'),p.get('file_number',''),count))
+            self.render_frequent()
             self.chart.set(data.get(self.views[self.view.get()],{}))
-        self.app.background(lambda:self.app.clinic.statistics(start,end,doctor,fields['type'],fields['diagnosis'],fields['group']),done)
+        def work():
+            try:
+                data = self.app.clinic.statistics(start,end,doctor,fields['type'],fields['diagnosis'],fields['group'])
+                data['_patients'] = {p['id']:p for p in self.app.clinic.list('patients',True)}
+                return data
+            except (ValueError, OSError) as exc:
+                return exc
+        self.app.background(work,done)
+
+    def turn(self, delta):
+        self.frequent_page = max(0, self.frequent_page+delta)
+        self.render_frequent()
+
+    def render_frequent(self):
+        rows = list(self.latest.get('frequency', {}).items())
+        self.frequent_page = min(self.frequent_page, max(0, (len(rows)-1)//100))
+        self.frequent.delete(*self.frequent.get_children())
+        for pid, count in rows[self.frequent_page*100:(self.frequent_page+1)*100]:
+            patient = self.latest.get('_patients', {}).get(pid, {})
+            self.frequent.insert('', 'end', iid=pid, values=(patient.get('name', 'Paciente'), patient.get('file_number', ''), count))
+        self.frequent_count.configure(text=f'{len(rows)} pacientes · página {self.frequent_page+1}')
 
     def csv(self):
-        if not self.latest:return
+        if not self.latest or not self.ready:return
         path = filedialog.asksaveasfilename(parent=self,defaultextension='.csv',filetypes=[('Estadísticas CSV','*.csv')])
         if not path:return
         data = self.latest
         with open(path,'w',newline='',encoding='utf-8-sig') as stream:
             writer = csv.writer(stream)
             writer.writerow(['Indicador','Valor'])
+            for label, value in self.latest['_scope'].items():
+                writer.writerow([label, safe_csv(value)])
             for key,label in [('consultations','Consultas'),('patients','Pacientes únicos'),('new','Nuevos'),('recurrent','Recurrentes'),('pending','Seguimientos pendientes'),('overdue','Seguimientos vencidos')]:
                 writer.writerow([label,data[key]])
             for label,values in [('Día',data['activity']),('Diagnóstico',data['diagnoses'])]:
                 for key,value in values.items():writer.writerow([safe_csv(label+' · '+key),value])
         self.app.auth.audit('exportar_estadisticas',data['doctor'])
-        self.app.status.set('Resumen CSV exportado.')
+        self.app.status.set('Resumen CSV exportado: '+path)
     def pdf(self):
-        if self.latest:
-            self.app.pdf_preview('Resumen de actividad',[('Periodo e indicadores',self.summary.get()),('Diagnósticos','\n'.join(f'{k}: {v}' for k,v in self.latest['diagnoses'].items()))],doctor=self.app.auth.current['name'])
+        if self.latest and self.ready:
+            self.app.pdf_preview('Resumen de actividad',[('Periodo e indicadores',self.latest['_summary']),('Filtros',str(self.latest['_scope'])),('Diagnósticos','\n'.join(f'{k}: {v}' for k,v in self.latest['diagnoses'].items()))],doctor=self.latest['_scope']['doctor'])
 
 class ActivityPlot(tk.Canvas):
     def __init__(self,parent,app):

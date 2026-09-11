@@ -8,6 +8,33 @@ import shutil
 import uuid
 
 ASSETS = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent)) / 'assets'
+APP_USER_MODEL_ID = 'TresVizo.Med.Desktop'
+
+
+def register_windows_identity():
+    """Separar la aplicación del anfitrión Python antes de crear ventanas."""
+    import os
+    if os.name != 'nt':
+        return False
+    import ctypes
+    try:
+        register = ctypes.WinDLL('shell32').SetCurrentProcessExplicitAppUserModelID
+        register.argtypes = [ctypes.c_wchar_p]
+        register.restype = ctypes.c_long
+        return register(APP_USER_MODEL_ID) >= 0
+    except (AttributeError, OSError):
+        return False
+
+
+def set_window_icon(window, default=False):
+    window.logo = logo_photo(96, master=window)
+    window.iconphoto(default, window.logo)
+    icon = ASSETS / 'tresvizo_medico.ico'
+    if sys.platform == 'win32' and icon.exists():
+        if default:
+            window.iconbitmap(default=str(icon))
+        window.iconbitmap(str(icon))
+    window.brand_icon_set = True
 
 
 class Identity:
@@ -47,10 +74,10 @@ class Identity:
         self.save({'clinic_logo': str(destination)})
 
 
-def logo_photo(size=80, dark=False):
+def logo_photo(size=80, dark=False, master=None):
     path = ASSETS / ('tresvizo_medico_oscuro.png' if dark else 'tresvizo_medico.png')
     if not path.exists():
         path = ASSETS / 'tresvizo_medico.png'
     image = Image.open(path).convert('RGBA')
     image.thumbnail((size, size), Image.Resampling.LANCZOS)
-    return ImageTk.PhotoImage(image)
+    return ImageTk.PhotoImage(image, master=master)

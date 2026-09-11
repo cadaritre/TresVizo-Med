@@ -7,16 +7,18 @@ from tkinter import ttk, filedialog
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 from app.branding import ASSETS
 from app.storage import DataError
-from app.components import ScrollFrame
+from app.components import ScrollFrame, Tooltip
+from app.widgets import Form
 
 AVATARS = ['zorro', 'gato', 'oso', 'buho', 'conejo', 'panda', 'koala', 'tortuga', 'montana', 'sol', 'luna', 'arbol', 'flor', 'hoja', 'cometa', 'pez']
 
 class Profiles:
-    def __init__(self, store, auth):
+    def __init__(self, store, auth, master=None):
         self.store, self.auth = store, auth
+        self.master = master
         self.cache = {}
     def get(self, uid):
-        return self.store.read(f'config/profiles/{uuid.UUID(uid)}.json', {'avatar': 'initials', 'reduce_motion': False})
+        return self.store.read(f'config/profiles/{uuid.UUID(uid)}.json', {'avatar': AVATARS[uuid.UUID(uid).int % len(AVATARS)], 'reduce_motion': False})
     def save(self, uid, values, photo=None):
         actor = self.auth.require()
         if uid != actor['id']:
@@ -55,7 +57,7 @@ class Profiles:
         mask = Image.new('L', (size,size))
         ImageDraw.Draw(mask).ellipse((0,0,size-1,size-1), fill=255)
         result.putalpha(mask)
-        self.cache[key] = ImageTk.PhotoImage(result)
+        self.cache[key] = ImageTk.PhotoImage(result, master=self.master)
         return self.cache[key]
 
 class ProfileEditor(ScrollFrame):
@@ -66,17 +68,23 @@ class ProfileEditor(ScrollFrame):
         self.pref = app.profiles.get(self.user['id'])
         self.selected = self.pref.get('avatar', 'initials')
         self.photo = None
-        ttk.Label(self.body, text='Mi perfil · '+self.user['name'], style='Section.TLabel').pack(anchor='w', pady=10)
+        ttk.Label(self.body, text=('Mi perfil · ' if self.user['id'] == app.auth.current['id'] else 'Perfil del doctor · ')+self.user['name'], style='Section.TLabel').pack(anchor='w', pady=10)
         self.preview = ttk.Label(self.body, image=app.profiles.image(self.user, 96))
         self.preview.pack(anchor='w', pady=8)
         self.photos = []
+        self.avatar_buttons = {}
         gallery = ttk.Frame(self.body)
         gallery.pack(fill='x')
         for i, name in enumerate(AVATARS):
             with Image.open(ASSETS/'avatars'/(name+'.png')) as source:
-                image = ImageTk.PhotoImage(source.resize((64,64), Image.Resampling.LANCZOS))
+                image = ImageTk.PhotoImage(source.resize((64,64), Image.Resampling.LANCZOS),master=self)
             self.photos.append(image)
-            ttk.Button(gallery, text=name.capitalize(), image=image, compound='top', command=lambda n=name, p=image: self.select(n,p)).grid(row=i//4, column=i%4, padx=6, pady=6, sticky='ew')
+            button = ttk.Button(gallery, text=name.capitalize(), image=image, compound='none', width=0,
+                                command=lambda n=name, p=image: self.select(n,p))
+            button.grid(row=i//4, column=i%4, padx=6, pady=6, sticky='ew')
+            button.tooltip = Tooltip(button, name.capitalize(), app.theme)
+            self.avatar_buttons[name] = button
+        self.mark_selected()
         for i in range(4):
             gallery.columnconfigure(i, weight=1)
         actions = ttk.Frame(self.body)
@@ -85,11 +93,30 @@ class ProfileEditor(ScrollFrame):
         ttk.Button(actions, text='Usar iniciales', command=lambda: self.select('initials', None)).pack(side='left', padx=8)
         self.reduce = tk.BooleanVar(value=self.pref.get('reduce_motion', False))
         ttk.Checkbutton(self.body, text='Reducir movimiento', variable=self.reduce).pack(anchor='w', pady=8)
-        ttk.Button(self.body, text='Guardar perfil', style='Primary.TButton', command=lambda: app.guard(self.save)).pack(anchor='w', pady=10)
+        self.professional = Form(self.body, [('specialty', 'Especialidad', None), ('license', 'Registro profesional', None),
+                                           ('professional_phone', 'Teléfono profesional', None)], self.pref, theme=app.theme)
+        self.professional.pack(fill='x', pady=8)
+        footer = ttk.Frame(self.body)
+        footer.pack(fill='x', pady=10)
+        ttk.Button(footer, text='Guardar perfil', style='Primary.TButton', command=lambda: app.guard(self.save)).pack(side='left')
+        ttk.Button(footer, text='Cancelar cambios', command=self.reset).pack(side='left', padx=8)
+
+    def reset(self):
+        self.pref = self.app.profiles.get(self.user['id'])
+        self.selected, self.photo = self.pref.get('avatar', 'initials'), None
+        self.preview.configure(image=self.app.profiles.image(self.user, 96), text='')
+        self.reduce.set(self.pref.get('reduce_motion', False))
+        self.professional.load(self.pref)
+        self.mark_selected()
+
+    def mark_selected(self):
+        for name, button in self.avatar_buttons.items():
+            button.configure(style='Active.Nav.TButton' if name == self.selected else 'TButton')
 
     def select(self, name, image):
         self.selected, self.photo = name, None
         self.preview.configure(image=image or '', text='Iniciales' if name == 'initials' else '')
+        self.mark_selected()
 
     def choose(self):
         path = filedialog.askopenfilename(parent=self, filetypes=[('Foto PNG o JPEG', '*.png *.jpg *.jpeg')])
@@ -108,14 +135,17 @@ class ProfileEditor(ScrollFrame):
 
     def use_photo(self, image):
         self.photo, self.selected = image, 'photo'
-        self.preview_photo = ImageTk.PhotoImage(image.resize((96,96), Image.Resampling.LANCZOS))
+        self.preview_photo = ImageTk.PhotoImage(image.resize((96,96), Image.Resampling.LANCZOS),master=self)
         self.preview.configure(image=self.preview_photo, text='')
+        self.mark_selected()
 
     def save(self):
-        self.app.profiles.save(self.user['id'], {'avatar': self.selected, 'reduce_motion': self.reduce.get()}, self.photo)
+        self.app.profiles.save(self.user['id'], {'avatar': self.selected, 'reduce_motion': self.reduce.get(), **self.professional.values()}, self.photo)
         if hasattr(self.app, 'profile_button'):
             self.app.profile_button.configure(image=self.app.profiles.image(self.app.auth.current, 32))
         self.app.status.set('Perfil guardado.')
+        self.pref = self.app.profiles.get(self.user['id'])
+        self.photo = None
 
 class PhotoCrop(tk.Toplevel):
     def __init__(self, app, original, callback):
@@ -159,7 +189,7 @@ class PhotoCrop(tk.Toplevel):
         mask = Image.new('L', (300,300))
         ImageDraw.Draw(mask).ellipse((0,0,299,299), fill=255)
         im.putalpha(mask)
-        self.image = ImageTk.PhotoImage(im)
+        self.image = ImageTk.PhotoImage(im,master=self)
         self.canvas.delete('all')
         self.canvas.create_image(0,0, image=self.image, anchor='nw')
     def accept(self):

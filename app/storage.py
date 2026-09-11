@@ -14,6 +14,10 @@ class DataError(ValueError):
     pass
 
 
+class AlreadyRunning(DataError):
+    pass
+
+
 def documents_dir() -> Path:
     if os.name != 'nt':
         return Path.home() / 'Documents'
@@ -65,6 +69,10 @@ class Store:
     def __init__(self, root=None):
         self.root = Path(root) if root else documents_dir() / 'RegistroClinico'
         self.lock = threading.RLock()
+        self._records_cache = {}
+        self._loading_updates = {}
+        self._cache_epoch = 0
+        self._kind_versions = {}
         self.root.mkdir(parents=True, exist_ok=True)
 
     def read(self, name, default=None):
@@ -75,10 +83,52 @@ class Store:
     def write(self, name, data):
         with self.lock:
             atomic_json(self.root / name, data)
+            self._remember(name,data)
 
     def records(self, kind):
+        return self.select_records(kind)
+
+    def select_records(self, kind, predicate=lambda row: True):
         with self.lock:
-            return [read_json(p) for p in (self.root / 'data' / kind).glob('*.json')]
+            missing = kind not in self._records_cache
+            epoch = self._cache_epoch
+        if missing:
+            # Leer miles de archivos no debe bloquear otras operaciones de la interfaz.
+            paths = list((self.root/'data'/kind).glob('*.json'))
+            if len(paths) > 256:
+                from concurrent.futures import ThreadPoolExecutor
+                loaded = {}
+                # Lecturas independientes y acotadas; la publicación sigue siendo
+                # única y aplica las escrituras concurrentes antes de exponer datos.
+                with ThreadPoolExecutor(max_workers=4, thread_name_prefix='json-read') as reader:
+                    for offset in range(0, len(paths), 128):
+                        batch = paths[offset:offset+128]
+                        loaded.update((path.stem, row) for path, row in zip(batch, reader.map(read_json, batch)))
+            else:
+                loaded = {p.stem:read_json(p) for p in paths}
+            with self.lock:
+                if epoch != self._cache_epoch:
+                    return self.select_records(kind, predicate)
+                if kind not in self._records_cache:
+                    loaded.update(self._loading_updates.pop(kind, {}))
+                    self._records_cache[kind] = loaded
+        with self.lock:
+            snapshot = [row for row in self._records_cache[kind].values() if predicate(row)]
+        # El caché sustituye registros completos; las referencias de la instantánea no se mutan.
+        return deepcopy(snapshot)
+
+    def _remember(self,name,data):
+        parts = Path(name).parts
+        if len(parts) == 3 and parts[0] == 'data':
+            self._kind_versions[parts[1]] = self._kind_versions.get(parts[1], 0)+1
+            cache = self._records_cache.get(parts[1])
+            if cache is None:
+                cache = self._loading_updates.setdefault(parts[1], {})
+            cache[Path(parts[2]).stem] = deepcopy(data)
+
+    def generation(self, kind):
+        with self.lock:
+            return self._cache_epoch, self._kind_versions.get(kind, 0)
 
     def path(self, name):
         path = (self.root / name).resolve()
@@ -112,6 +162,8 @@ class Store:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     os.replace(folder / f"{item['index']}.new", target)
                 atomic_json(folder / 'journal.json', {'entries': entries, 'committed': True})
+                for name,data in changes.items():
+                    self._remember(name,data)
             except BaseException:
                 if (folder / 'journal.json').exists():
                     self._recover_operation(folder)
@@ -121,6 +173,9 @@ class Store:
             shutil.rmtree(folder, ignore_errors=True)
 
     def _recover_operation(self, folder):
+        self._records_cache.clear()
+        self._loading_updates.clear()
+        self._cache_epoch += 1
         journal = read_json(folder / 'journal.json')
         if not journal['committed']:
             for item in journal['entries']:
@@ -159,7 +214,7 @@ class InstanceLock:
                 fcntl.flock(self.file, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as exc:
             self.file.close()
-            raise DataError('La aplicación ya está abierta para esta carpeta de datos.') from exc
+            raise AlreadyRunning('La aplicación ya está abierta para esta carpeta de datos.') from exc
 
     def close(self):
         self.file.close()

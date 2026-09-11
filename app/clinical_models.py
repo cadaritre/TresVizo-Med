@@ -113,7 +113,7 @@ def validate_medications(rows, final=False):
         for key in ('dose', 'duration', 'quantity'):
             if row.get(key):
                 numeric(row[key], key, minimum=0)
-        if row.get('frequency_kind') in ('Cada N horas', 'Vecces al día', 'Veces al día') and row.get('frequency'):
+        if row.get('frequency_kind') in ('Cada N horas', 'Veces al día') and row.get('frequency'):
             if numeric(row['frequency'], 'Frecuencia', minimum=0) == 0:
                 raise DataError('La frecuencia debe ser mayor que cero.')
         for key in ('start', 'end'):
@@ -136,7 +136,7 @@ def medication_text(row):
         parts.append('Según necesidad: '+row.get('as_needed_reason', ''))
     return ' · '.join(p for p in parts if p)
 
-def encounter_sections(record):
+def encounter_sections(record, authors=None):
     sections = [('Atención', display_date(record.get('attended_at', ''))),
                 ('Motivo', record.get('reason', '')), ('Síntomas y evolución', record.get('subjective', '')),
                 ('Exploración física', record.get('objective', ''))]
@@ -147,11 +147,16 @@ def encounter_sections(record):
         if group.get('bmi'):
             measures.append(f"IMC: {group['bmi']} kg/m²")
     sections += [('Signos vitales', '\n'.join(measures)), ('Diagnósticos', record.get('assessment', '')),
+                 ('Valoración clínica', record.get('assessment_notes', '')),
                  ('Plan e indicaciones', record.get('plan', ''))]
     meds = [medication_text(m)+'\n'+m.get('instructions', '') for m in record.get('prescriptions', [])]
     if record.get('medications'):
         meds.append('Texto heredado: '+record['medications'])
-    sections += [('Medicamentos', '\n\n'.join(meds)), ('Estudios', '\n'.join(r['name']+' · '+r.get('status', '') for r in record.get('study_orders', [])) or record.get('studies', ''))]
+    sections += [('Medicamentos', '\n\n'.join(meds)), ('Estudios', '\n'.join(r['name']+' · '+r.get('status', '')+('\n'+r['notes'] if r.get('notes') else '') for r in record.get('study_orders', [])) or record.get('studies', ''))]
+    followup = record.get('followup', {})
+    if followup.get('date'):
+        sections.append(('Seguimiento', display_date(followup['date'])+' · '+followup.get('reason', '')))
     for item in record.get('addenda', []):
-        sections.append(('Adenda · '+display_date(item['at']), item['reason']+'\n'+item['content']+'\nAutor: '+item['actor']))
+        author = (authors or {}).get(item['actor'], 'Doctor registrado')
+        sections.append(('Adenda · '+display_date(item['at']), item['reason']+'\n'+item['content']+'\nAutor: '+author))
     return sections
