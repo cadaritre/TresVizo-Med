@@ -11,6 +11,8 @@ local-data/
 RegistroClinico/
 attachments/
 avatars/
+!assets/avatars/
+!assets/avatars/**
 exports/
 backups/
 build/

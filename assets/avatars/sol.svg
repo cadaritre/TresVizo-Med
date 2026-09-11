@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<ellipse cx="128.0" cy="128.0" rx="128.0" ry="128.0" fill="#EAF1F7"/>
+<polyline points="206.0,128.0 227.0,128.0" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="195.54998149518622,167.0 213.73651497465943,177.5" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="167.0,195.54998149518622 177.5,213.73651497465943" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="128.0,206.0 128.0,227.0" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="89.00000000000001,195.54998149518622 78.50000000000003,213.73651497465943" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="60.450018504813784,167.0 42.26348502534057,177.5" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="50.0,128.0 29.0,128.0" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="60.45001850481377,89.00000000000003 42.26348502534056,78.50000000000003" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="88.99999999999997,60.4500185048138 78.49999999999996,42.263485025340586" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="127.99999999999999,50.0 127.99999999999999,29.0" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="167.0,60.450018504813784 177.5,42.263485025340586" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<polyline points="195.5499814951862,88.99999999999997 213.7365149746594,78.49999999999996" fill="none" stroke="#DDA65B" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="128.0" cy="128.0" rx="61.0" ry="61.0" fill="#EFCC80"/>
+<ellipse cx="98.5" cy="125.5" rx="6.5" ry="7.5" fill="#34465A"/>
+<ellipse cx="157.5" cy="125.5" rx="6.5" ry="7.5" fill="#34465A"/>
+</svg>

@@ -100,7 +100,7 @@ class Attachments:
         mime = self.validate(source)
         identifier = str(uuid.uuid4())
         relative = f'attachments/originals/{identifier}{source.suffix.lower()}'
-        staged = self.store.root/'attachments'/'staging'/identifier
+        staged = self.store.root/'attachments'/'staging'/(identifier+source.suffix.lower())
         staged.parent.mkdir(parents=True, exist_ok=True)
         sha = hashlib.sha256()
         total = source.stat().st_size
@@ -115,7 +115,7 @@ class Attachments:
                     progress(copied/total)
                 out.flush()
                 os.fsync(out.fileno())
-            self.validate(staged.with_suffix(source.suffix)) if False else None
+            self.validate(staged)
             # La huella y el contenido se verifican sobre la copia que se publicará.
             with staged.open('rb') as stream:
                 if hashlib.file_digest(stream, 'sha256').hexdigest() != sha.hexdigest():

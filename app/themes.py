@@ -15,7 +15,7 @@ COLORS = {
     'secondary': 'Botones secundarios', 'selection': 'Selección', 'focus': 'Foco',
     **{f'chart{i}': f'Gráficas · serie {i}' for i in range(1, 7)},
 }
-BASE = dict(zip(COLORS, ['#0066CC', '#087D89', '#F5F5F7', '#FFFFFF', '#FFFFFF', '#EFEFF2',
+BASE = dict(zip(COLORS, ['#0066CC', '#087B86', '#F5F5F7', '#FFFFFF', '#FFFFFF', '#EFEFF2',
                        '#1D1D1F', '#626269', '#85858B', '#0066CC', '#EFEFF2', '#E8F1FC', '#0066CC',
                        '#086A8C', '#197653', '#8055A1', '#9A6200', '#A24468', '#4269A6']))
 BUILTINS = {

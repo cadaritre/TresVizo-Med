@@ -12,21 +12,34 @@ from app.ui_theme import ThemeManager
 from app.branding import Identity, logo_photo, ASSETS
 from app.appearance_ui import AppearanceEditor
 from app.components import ScrollFrame, field, DatePicker, Chart, Tooltip
+from app.widgets import DateField
+from app.clinical_models import display_date
 from app.transfer import Transfer
+from app.care import Care, migrate
+from app.attachments import Attachments
+from app.profiles import Profiles
+from app.workspace import Workspace
+from tkinterdnd2 import TkinterDnD
 
 
-class Application(tk.Tk):
+class Application(Workspace, TkinterDnD.Tk):
     def __init__(self, data_dir=None):
         super().__init__()
         self.withdraw()
         self.store = Store(data_dir)
         self.instance = InstanceLock(self.store.root)
+        migrate(self.store)
         self.auth = Auth(self.store)
         self.clinic = Clinic(self.store, self.auth)
+        self.care = Care(self.store, self.auth, self.clinic)
+        self.attachments = Attachments(self.store, self.auth, self.clinic)
+        self.profiles = Profiles(self.store, self.auth)
         self.transfer = Transfer(self.store, self.auth, self.clinic)
         self.appearance = Appearance(self.store, self.auth)
         self.identity = Identity(self.store, self.auth)
         self.theme = ThemeManager(self)
+        from app.icons import Icons
+        self.icons = Icons(self.theme)
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.pending = set()
         self.session_generation = 0
@@ -82,7 +95,7 @@ class Application(tk.Tk):
         self.theme.subscribe(label, refresh)
         return label
 
-    def login_screen(self):
+    def _legacy_login_screen(self):
         self.clear()
         self.theme.apply(self.appearance.tokens())
         login_scroll = ScrollFrame(self)
@@ -132,7 +145,7 @@ class Application(tk.Tk):
         ttk.Button(outer, text=self.identity.values['website_text']+' ↗', command=lambda: self.guard(self.identity.open_website)).pack(pady=(10, 0))
         self.theme._walk(outer)
 
-    def shell(self):
+    def _legacy_shell(self):
         self.session_generation += 1
         self.clear()
         self.theme.apply(self.appearance.tokens())
@@ -162,7 +175,7 @@ class Application(tk.Tk):
         self.content.columnconfigure(0, weight=1)
         self.show('Inicio')
 
-    def show(self, name):
+    def _legacy_show(self, name):
         if not self.auth.current:
             return
         builders = {'Inicio': self.home, 'Pacientes': self.patients, 'Consultas': self.encounters,
@@ -183,7 +196,7 @@ class Application(tk.Tk):
         if hint:
             ttk.Label(parent, text=hint, style='Subtitle.TLabel', wraplength=780).pack(anchor='w', pady=(0, 16))
 
-    def home(self, parent):
+    def _legacy_home(self, parent):
         self.heading(parent, 'Tu jornada, en un lugar', 'Selecciona un paciente, revisa sus antecedentes y documenta la atención.')
         cards = ttk.Frame(parent)
         cards.pack(fill='x', pady=12)
@@ -238,7 +251,7 @@ class Application(tk.Tk):
         for index, (_, row) in enumerate(sorted((tree.set(r, key), r) for r in tree.get_children())):
             tree.move(row, '', index)
 
-    def patients(self, parent):
+    def _legacy_patients(self, parent):
         self.heading(parent, 'Pacientes', 'Busca por nombre, expediente o teléfono. Los expedientes se comparten entre doctores.')
         bar = ttk.Frame(parent)
         bar.pack(fill='x')
@@ -267,7 +280,7 @@ class Application(tk.Tk):
         self.theme._walk(win)
         return win
 
-    def patient_editor(self, record=None, refresh=lambda: None):
+    def _legacy_patient_editor(self, record=None, refresh=lambda: None):
         record = record or {}
         win = self.window('Editar paciente' if record else 'Nuevo paciente')
         scroll = ScrollFrame(win)
@@ -293,7 +306,7 @@ class Application(tk.Tk):
         ttk.Button(win, text='Guardar paciente', style='Primary.TButton', command=lambda: self.guard(save)).pack(pady=12)
         self.theme._walk(win)
 
-    def patient_record(self, identifier):
+    def _legacy_patient_record(self, identifier):
         record = next(p for p in self.clinic.list('patients') if p['id'] == identifier)
         win = self.window(f"Expediente {record['file_number']}", '920x740')
         body = ttk.Frame(win, padding=20)
@@ -318,7 +331,7 @@ class Application(tk.Tk):
         if messagebox.askyesno('Confirmar paciente', f"¿Iniciar atención para {patient['name']}?\nExpediente {patient['file_number']}", parent=self):
             self.encounter_editor(patient)
 
-    def encounter_editor(self, patient, record=None):
+    def _legacy_encounter_editor(self, patient, record=None):
         record = record or {'patient_id': patient['id'], 'status': 'Borrador', 'attended_at': now()}
         win = self.window('Consulta · '+patient['name'], '900x800')
         footer = ttk.Frame(win, padding=12)
@@ -382,11 +395,11 @@ class Application(tk.Tk):
         ttk.Label(footer, textvariable=indicator).pack(side='right')
         self.theme._walk(win)
 
-    def encounters(self, parent):
+    def _legacy_encounters(self, parent):
         self.heading(parent, 'Consultas', 'Tus borradores y el historial compartido de consultas finalizadas.')
         tree = self.table(parent, {'date': 'Atención', 'patient': 'Paciente', 'status': 'Estado', 'reason': 'Motivo'})
         def refresh():
-            patients = {p['id']: p['name'] for p in self.clinic.list('patients')}
+            patients = {p['id']: p['name'] for p in self.clinic.list('patients', True)}
             tree.delete(*tree.get_children())
             for row in sorted(self.clinic.list('encounters'), key=lambda r: r['attended_at'], reverse=True):
                 tree.insert('', 'end', iid=row['id'], values=(row['attended_at'][:16], patients.get(row['patient_id'], 'Paciente no disponible'), row['status'], row.get('reason', '')))
@@ -394,7 +407,7 @@ class Application(tk.Tk):
         tree.bind('<Double-1>', lambda e: self.open_encounter(tree.selection()[0]) if tree.selection() else None)
         ttk.Button(parent, text='Abrir consulta seleccionada', command=lambda: self.open_encounter(tree.selection()[0]) if tree.selection() else None).pack(anchor='w')
 
-    def open_encounter(self, identifier):
+    def _legacy_open_encounter(self, identifier):
         record = next(r for r in self.clinic.list('encounters') if r['id'] == identifier)
         patient = next(p for p in self.clinic.list('patients') if p['id'] == record['patient_id'])
         if record['status'] == 'Borrador':
@@ -471,11 +484,11 @@ class Application(tk.Tk):
         self.heading(parent, 'Agenda' if kind == 'appointments' else 'Seguimientos', 'Pendientes asignados al doctor autenticado.')
         tree = self.table(parent, {'date': 'Fecha y hora', 'patient': 'Paciente', 'reason': 'Motivo', 'status': 'Estado'})
         def refresh():
-            patients = {p['id']: p['name'] for p in self.clinic.list('patients')}
+            patients = {p['id']: p['name'] for p in self.clinic.list('patients', True)}
             tree.delete(*tree.get_children())
             for row in sorted(self.clinic.list(kind), key=lambda r: r['due_at']):
                 if row['doctor_id'] == self.auth.current['id']:
-                    tree.insert('', 'end', iid=row['id'], values=(row['due_at'], patients.get(row['patient_id'], ''), row.get('reason', ''), row['status']))
+                    tree.insert('', 'end', iid=row['id'], values=(display_date(row['due_at']), patients.get(row['patient_id'], ''), row.get('reason', ''), row['status']))
         parent.refresh = refresh
         def editor(record=None):
             record = record or {}
@@ -489,13 +502,16 @@ class Application(tk.Tk):
             patient = tk.StringVar(value=next((n for n, pid in names.items() if pid == record.get('patient_id')), next(iter(names))))
             ttk.Label(body, text='Paciente').pack(anchor='w')
             ttk.Combobox(body, textvariable=patient, values=list(names), state='readonly').pack(fill='x', pady=8)
-            due, _ = field(body, 'Fecha y hora · AAAA-MM-DD HH:MM', record.get('due_at', date.today().isoformat()+' 09:00'))
+            ttk.Label(body, text='Fecha').pack(anchor='w')
+            due = DateField(body, self.theme, record.get('due_at', date.today().isoformat())[:10])
+            due.pack(fill='x', pady=6)
+            hour, _ = field(body, 'Hora · HH:MM', record.get('due_at', date.today().isoformat()+'T09:00:00')[11:16])
             reason, _ = field(body, 'Motivo', record.get('reason', ''))
             status = tk.StringVar(value=record.get('status', 'Programada' if kind == 'appointments' else 'Pendiente'))
             options = ('Programada', 'Confirmada', 'En espera', 'En consulta', 'Atendida', 'Cancelada', 'No asistió') if kind == 'appointments' else ('Pendiente', 'Completado', 'Cancelado')
             ttk.Combobox(body, textvariable=status, values=options, state='readonly').pack(fill='x', pady=16)
             def save():
-                self.clinic.save(kind, {**record, 'patient_id': names[patient.get()], 'due_at': due.get(), 'reason': reason.get(), 'status': status.get()}, record.get('revision'))
+                self.clinic.save(kind, {**record, 'patient_id': names[patient.get()], 'due_at': due.get()+'T'+hour.get()+':00', 'reason': reason.get(), 'status': status.get()}, record.get('revision'))
                 win.destroy()
                 refresh()
             ttk.Button(body, text='Guardar', style='Primary.TButton', command=lambda: self.guard(save)).pack(anchor='w')
@@ -503,7 +519,7 @@ class Application(tk.Tk):
         ttk.Button(parent, text='Nuevo registro', style='Primary.TButton', command=editor).pack(anchor='w')
         tree.bind('<Double-1>', lambda e: editor(next(r for r in self.clinic.list(kind) if r['id'] == tree.selection()[0])) if tree.selection() else None)
 
-    def statistics(self, parent):
+    def _legacy_statistics(self, parent):
         self.heading(parent, 'Mis estadísticas', 'Consultas finalizadas por fecha de atención. Las adendas y anulaciones no suman actividad.')
         filters = ttk.Frame(parent)
         filters.pack(fill='x', pady=8)
@@ -648,6 +664,9 @@ class Application(tk.Tk):
             self.status.set('Política de bloqueo guardada.')
         ttk.Button(security, text='Guardar política', command=lambda: self.guard(save_security)).pack(anchor='w', pady=12)
         ttk.Button(security, text='Cambiar mi contraseña', command=self.change_password).pack(anchor='w')
+        from app.profiles import ProfileEditor
+        profile = ProfileEditor(tabs, self)
+        tabs.add(profile, text='Mi perfil')
         if self.auth.current['role'] == 'admin':
             users = ttk.Frame(tabs, padding=20)
             tabs.add(users, text='Doctores')
@@ -701,7 +720,7 @@ class Application(tk.Tk):
         self.brand(parent).pack(anchor='w', pady=12)
         ttk.Label(parent, text='TresVizo', font=('Segoe UI Semibold', 27)).pack(anchor='w')
         ttk.Label(parent, text='Registro de pacientes y consultas · Almacenamiento local', style='Subtitle.TLabel').pack(anchor='w', pady=12)
-        ttk.Button(parent, text=self.identity.values['website_text']+' ↗', command=lambda: self.guard(self.identity.open_website)).pack(anchor='w')
+        ttk.Button(parent, text=self.identity.values['website_text']+' ↗', style='Link.TButton', command=lambda: self.guard(self.identity.open_website)).pack(anchor='w')
         ttk.Label(parent, text='Datos y configuración:\n'+str(self.store.root), wraplength=780).pack(anchor='w', pady=20)
 
     def exports(self, parent):
@@ -717,13 +736,31 @@ class Application(tk.Tk):
                 if destination:
                     self.background(lambda: self.transfer.backup(destination), lambda _: self.status.set('Respaldo creado y verificado.'))
             ttk.Button(parent, text='Crear respaldo completo verificado', command=backup).pack(anchor='w', pady=10)
+            def restore():
+                source = filedialog.askopenfilename(parent=self, filetypes=[('Respaldo ZIP', '*.zip')])
+                if not source:
+                    return
+                folder = filedialog.askdirectory(parent=self, title='Carpeta donde crear una copia restaurada')
+                if not folder:
+                    return
+                destination = Path(folder)/('clinica-restaurada-'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+                def done(path):
+                    self.status.set('Respaldo restaurado y verificado en '+str(path))
+                    def open_copy():
+                        import subprocess, sys
+                        root = Path(__file__).resolve().parents[1]
+                        command = [sys.executable] + ([] if getattr(sys,'frozen',False) else [str(root/'main.py')]) + ['--data-dir',str(path)]
+                        subprocess.Popen(command,cwd=root,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                    ttk.Button(parent,text='Abrir copia restaurada',command=open_copy).pack(anchor='w',pady=8)
+                self.background(lambda:self.transfer.restore(source,destination),done)
+            ttk.Button(parent,text='Restaurar respaldo en una carpeta separada…',command=restore).pack(anchor='w',pady=10)
             ttk.Label(parent, text='Incluye datos, configuración, adjuntos y avatares.\nUna copia en el mismo disco no protege frente a la pérdida del equipo.', wraplength=750).pack(anchor='w', pady=10)
 
     def check_idle(self):
         if self.auth.current and not self.locked:
             minutes = self.store.read('config/security.json', {'idle_minutes': 10})['idle_minutes']
             if time.monotonic()-self.last_activity >= minutes*60:
-                self.logout(force=True)
+                self.lock_session()
         self.after(1000, self.check_idle)
 
     def logout(self, force=False):
@@ -770,7 +807,7 @@ class Application(tk.Tk):
             cover.destroy()
             self.deiconify()
             for win, _, _ in self.editors:
-                if win.winfo_exists():
+                if win.winfo_exists() and isinstance(win, tk.Toplevel):
                     win.deiconify()
             self.activity()
             self.locked = False

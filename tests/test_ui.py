@@ -90,8 +90,8 @@ def test_editor_actions_remain_in_window_at_tk_scaling(tmp_path, scale):
                 yield child
                 yield from widgets(child)
         buttons = [w for w in widgets(app) if isinstance(w, ttk.Button) and w.cget('text') in
-                   ('Aplicar cambios', 'Cancelar cambios', 'Guardar con nombre', 'Restablecer Clínico')]
-        assert len(buttons) == 4
+                   ('Aplicar cambios', 'Cancelar cambios')]
+        assert len(buttons) == 2
         for button in buttons:
             assert button.winfo_rootx() >= app.winfo_rootx()
             assert button.winfo_rootx()+button.winfo_width() <= app.winfo_rootx()+app.winfo_width()

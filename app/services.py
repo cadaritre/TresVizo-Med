@@ -124,7 +124,7 @@ class Clinic:
             data = [r for r in data if not r.get('archived')]
         return data
 
-    def save(self, kind, record, revision=None):
+    def save(self, kind, record, revision=None, related=None):
         actor = self.auth.require()
         if kind not in ('patients', 'encounters', 'appointments', 'followups'):
             raise DataError('Tipo de registro no admitido.')
@@ -193,7 +193,7 @@ class Clinic:
                           created_at=previous['created_at'] if previous else now(),
                           created_by=previous['created_by'] if previous else actor['id'], updated_at=now(), updated_by=actor['id'])
             audit_id = str(uuid.uuid4())
-            self.store.transaction({path: record, f'data/audit/{audit_id}.json': {'id': audit_id, 'actor': actor['id'], 'action': f'guardar_{kind}', 'target': identifier, 'at': now()}})
+            self.store.transaction({**(related or {}), path: record, f'data/audit/{audit_id}.json': {'id': audit_id, 'actor': actor['id'], 'action': f'guardar_{kind}', 'target': identifier, 'at': now()}})
             return record
 
     def archive(self, kind, identifier, reason, restore=False, revision=None):

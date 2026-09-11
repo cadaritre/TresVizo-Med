@@ -70,8 +70,15 @@ class Form(ttk.Frame):
         self.columns = columns
         for i in range(2):
             self.columnconfigure(i, weight=1 if i < columns else 0)
-        for index, cell in enumerate(self.cells):
-            cell.grid(row=index//columns, column=index%columns, sticky='nsew')
+        row, col = 0, 0
+        for cell, spec in zip(self.cells, self.specs):
+            wide = spec[2] == 'text'
+            if wide and col:
+                row, col = row+1, 0
+            cell.grid(row=row, column=col, columnspan=columns if wide else 1, sticky='nsew')
+            col += columns if wide else 1
+            if col >= columns:
+                row, col = row+1, 0
 
     def notify(self):
         if not self.loading:
@@ -113,8 +120,9 @@ class Collection(ttk.Frame):
         self.tree.heading('value', text='Registros · doble clic para editar')
         self.tree.column('value', width=480, minwidth=140)
         self.tree.pack(fill='x')
+        self.empty = ttk.Label(self, text='Sin registros. Usa Añadir para incorporar uno.', style='Subtitle.TLabel', padding=(8,6))
         self.tree.bind('<Double-1>', lambda e: self.edit())
-        actions = ttk.Frame(self)
+        actions = self.list_actions = ttk.Frame(self)
         actions.pack(fill='x', pady=4)
         ttk.Button(actions, text='Editar', style='Link.TButton', command=self.edit).pack(side='left')
         ttk.Button(actions, text='Quitar de esta edición', style='Link.TButton', command=self.remove).pack(side='left', padx=8)
@@ -137,6 +145,14 @@ class Collection(ttk.Frame):
         for index, row in enumerate(self.rows):
             self.tree.insert('', 'end', iid=str(index), values=(self.summary(row),))
         self.tree.configure(height=max(1, min(5, len(self.rows))))
+        self.empty.pack_forget()
+        if not self.rows:
+            self.tree.pack_forget()
+            self.list_actions.pack_forget()
+            self.empty.pack(fill='x', after=self.heading.master)
+        else:
+            self.tree.pack(fill='x', after=self.heading.master)
+            self.list_actions.pack(fill='x', pady=4, after=self.tree)
 
     def new(self):
         self.edit_index = None

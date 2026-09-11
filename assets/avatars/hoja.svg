@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<ellipse cx="128.0" cy="128.0" rx="128.0" ry="128.0" fill="#EAF1F7"/>
+<polygon points="50,193 58,119 99,66 209,40 198,144 153,184 88,201" fill="#74AA94"/>
+<polyline points="41,220 172,81" fill="none" stroke="#376653" stroke-width="7" stroke-linecap="round"/>
+<polyline points="89,169 84,112" fill="none" stroke="#D5E7DD" stroke-width="4" stroke-linecap="round"/>
+<polyline points="121,136 170,133" fill="none" stroke="#D5E7DD" stroke-width="4" stroke-linecap="round"/>
+</svg>

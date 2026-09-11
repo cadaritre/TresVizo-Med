@@ -19,12 +19,12 @@ VITALS = {
 }
 MED_FIELDS = [('name', 'Medicamento'), ('ingredient', 'Principio activo'),
               ('presentation', 'Presentación'), ('strength', 'Concentración'),
-              ('dose', 'Dosis'), ('dose_unit', 'Unidad de dosis'), ('route', 'Vía'),
-              ('frequency_kind', 'Tipo de frecuencia'), ('frequency', 'Frecuencia / horarios'),
+              ('dose', 'Dosis'), ('dose_unit', 'Unidad de dosis'), ('route', 'Vía'), ('status', 'Estado'),
+              ('frequency_kind', 'Tipo de frecuencia'), ('frequency', 'Intervalo, veces, horarios o pauta'),
               ('duration', 'Duración'), ('duration_unit', 'Unidad de duración'),
+              ('start', 'Inicio'), ('end', 'Fin'),
               ('quantity', 'Cantidad a dispensar'), ('quantity_unit', 'Unidad a dispensar'),
-              ('start', 'Inicio'), ('end', 'Fin'), ('instructions', 'Indicaciones'),
-              ('status', 'Estado')]
+              ('instructions', 'Indicaciones adicionales')]
 
 def numeric(value, label, minimum=None, maximum=None):
     try:
@@ -113,6 +113,9 @@ def validate_medications(rows, final=False):
         for key in ('dose', 'duration', 'quantity'):
             if row.get(key):
                 numeric(row[key], key, minimum=0)
+        if row.get('frequency_kind') in ('Cada N horas', 'Vecces al día', 'Veces al día') and row.get('frequency'):
+            if numeric(row['frequency'], 'Frecuencia', minimum=0) == 0:
+                raise DataError('La frecuencia debe ser mayor que cero.')
         for key in ('start', 'end'):
             if row.get(key):
                 row[key] = local_date(row[key])

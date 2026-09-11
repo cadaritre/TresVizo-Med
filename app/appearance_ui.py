@@ -9,73 +9,95 @@ from app.storage import DataError
 
 class AppearanceEditor(ttk.Frame):
     def __init__(self, parent, app):
-        super().__init__(parent, padding=16)
+        super().__init__(parent, padding=14)
         self.app, self.service = app, app.appearance
         self.selected = self.service.active_key()
-        self.variables = {}
         self.saved = self.service.tokens()
-        self.loading = False
+        self.variables, self.loading = {}, True
         self.columnconfigure(0, weight=1)
         self.rowconfigure(2, weight=1)
-        ttk.Label(self, text='Apariencia → Colores', style='Title.TLabel').grid(row=0, column=0, sticky='w')
+        ttk.Label(self, text='Apariencia', style='Title.TLabel').grid(row=0, column=0, sticky='w', pady=(0,8))
         top = ttk.Frame(self)
-        top.grid(row=1, column=0, sticky='ew', pady=12)
+        top.grid(row=1, column=0, sticky='ew', pady=(0,8))
         self.choice = tk.StringVar()
-        self.combo = ttk.Combobox(top, textvariable=self.choice, state='readonly', width=24)
-        for column in range(3):
-            top.columnconfigure(column, weight=1)
-        self.combo.grid(row=0, column=0, sticky='ew', padx=3, pady=3)
+        self.combo = ttk.Combobox(top, textvariable=self.choice, state='readonly', width=22)
+        self.combo.pack(side='left')
         self.combo.bind('<<ComboboxSelected>>', self.choose)
-        for index, (label, command) in enumerate([('Duplicar', self.duplicate), ('Renombrar', self.rename), ('Eliminar', self.delete),
-                               ('Importar JSON', self.import_file), ('Exportar JSON', self.export_file)], 1):
-            ttk.Button(top, text=label, command=command).grid(row=index//3, column=index%3, sticky='ew', padx=3, pady=3)
-        split = ttk.Panedwindow(self, orient='horizontal')
-        split.grid(row=2, column=0, sticky='nsew')
-        scroll = ScrollFrame(split)
-        split.add(scroll, weight=2)
-        form = scroll.body
+        ttk.Button(top, text='Color de acento', command=lambda:self.pick('accent')).pack(side='left', padx=8)
+        more = ttk.Menubutton(top, text='Más opciones')
+        menu = tk.Menu(more, tearoff=False)
+        for label, command in [('Guardar con nombre',self.save_named), ('Duplicar',self.duplicate), ('Renombrar',self.rename),
+                               ('Importar JSON',self.import_file), ('Exportar JSON',self.export_file), ('Restablecer Clínico',self.reset), ('Eliminar tema',self.delete)]:
+            menu.add_command(label=label, command=command)
+        more.configure(menu=menu)
+        more.pack(side='right')
+        tabs = ttk.Notebook(self)
+        tabs.grid(row=2, column=0, sticky='nsew')
+        preview_scroll = ScrollFrame(tabs)
+        tabs.add(preview_scroll, text='Temas y vista previa')
+        advanced = ScrollFrame(tabs)
+        tabs.add(advanced, text='Personalización avanzada')
+        form = advanced.body
         form.columnconfigure(1, weight=1)
-        for row, (key, label) in enumerate(COLORS.items()):
-            ttk.Label(form, text=label, wraplength=125).grid(row=row, column=0, sticky='w', padx=6, pady=6)
+        for row,(key,label) in enumerate(COLORS.items()):
+            ttk.Label(form,text=label,wraplength=220).grid(row=row,column=0,sticky='w',padx=6,pady=6)
             var = tk.StringVar(value=self.saved[key])
             self.variables[key] = var
-            entry = ttk.Entry(form, textvariable=var, width=9)
-            entry.grid(row=row, column=1, sticky='ew', padx=8)
-            swatch = tk.Canvas(form, width=30, height=23, highlightthickness=1, cursor='hand2')
+            entry = ttk.Entry(form,textvariable=var,width=9)
+            entry.grid(row=row,column=1,sticky='ew',padx=8)
+            swatch = tk.Canvas(form,width=30,height=23,highlightthickness=0,cursor='hand2',background=var.get())
             swatch.own_palette = True
-            swatch.grid(row=row, column=2, padx=8)
-            swatch.bind('<Button-1>', lambda e, k=key: self.pick(k))
-            ttk.Button(form, text='…', width=2, command=lambda k=key: self.pick(k)).grid(row=row, column=3, padx=4)
-            var.trace_add('write', lambda *a, k=key, w=swatch, en=entry: self.changed(k, w, en))
-            swatch.configure(background=var.get())
-        preview_scroll = ScrollFrame(split)
-        split.add(preview_scroll, weight=3)
+            swatch.grid(row=row,column=2,padx=8)
+            swatch.bind('<Button-1>',lambda e,k=key:self.pick(k))
+            ttk.Button(form,text='Elegir',command=lambda k=key:self.pick(k)).grid(row=row,column=3,padx=6)
+            var.trace_add('write',lambda *a,k=key,w=swatch,en=entry:self.changed(k,w,en))
         preview = preview_scroll.body
-        ttk.Label(preview, text='Vista previa · datos de ejemplo', style='Subtitle.TLabel').pack(anchor='w')
-        self.preview = tk.Canvas(preview, width=440, height=430, highlightthickness=0)
+        gallery = ttk.Frame(preview)
+        gallery.pack(fill='x',pady=(4,12))
+        cards = []
+        for name,tokens in BUILTINS.items():
+            card = ttk.Frame(gallery,padding=4)
+            canvas = tk.Canvas(card,width=110,height=62,highlightthickness=0,background=tokens['background'])
+            canvas.own_palette = True
+            canvas.pack()
+            canvas.create_rectangle(7,8,26,54,fill=tokens['sidebar'],outline='')
+            canvas.create_rectangle(33,8,103,31,fill=tokens['surface'],outline='')
+            canvas.create_rectangle(33,39,80,51,fill=tokens['button'],outline='')
+            def choose_name(n=name):
+                self.choice.set(n)
+                self.choose()
+            canvas.bind('<Button-1>',lambda e,n=name:choose_name(n))
+            ttk.Button(card,text=name,style='Link.TButton',command=choose_name).pack()
+            cards.append(card)
+        cols = [0]
+        def layout(event):
+            n = max(1,min(5,event.width//140))
+            if cols[0] == n: return
+            cols[0] = n
+            for i,card in enumerate(cards): card.grid(row=i//n,column=i%n,sticky='nsew')
+        gallery.bind('<Configure>',layout)
+        ttk.Label(preview,text='Vista previa · datos de ejemplo',style='Subtitle.TLabel').pack(anchor='w')
+        self.preview = tk.Canvas(preview,width=440,height=430,highlightthickness=0)
         self.preview.own_palette = True
-        self.preview.bind('<Configure>', lambda e: self.draw_preview())
+        self.preview.bind('<Configure>',lambda e:self.draw_preview())
+        self.preview.pack(fill='both',expand=True,pady=8)
         self.warning = tk.StringVar()
-        ttk.Label(preview, text='Las alertas conservan colores, iconos y texto.\nLa impresión tiene su propia paleta en Identidad.',
-                  style='Subtitle.TLabel', wraplength=430).pack(side='bottom', anchor='w', pady=8)
-        ttk.Button(preview, text='Corregir contraste automáticamente', command=self.auto_fix).pack(side='bottom', anchor='w')
-        ttk.Label(preview, textvariable=self.warning, wraplength=440, justify='left').pack(side='bottom', fill='x', pady=8)
-        self.preview.pack(fill='both', expand=True, pady=8)
+        ttk.Label(preview,textvariable=self.warning,wraplength=640,justify='left').pack(fill='x',pady=6)
+        ttk.Button(preview,text='Corregir contraste automáticamente',command=self.auto_fix).pack(anchor='w',pady=6)
+        ttk.Label(preview,text='La impresión conserva la identidad y la paleta de la clínica.',style='Subtitle.TLabel').pack(anchor='w',pady=8)
         footer = ttk.Frame(self)
-        footer.grid(row=3, column=0, sticky='ew', pady=(14, 0))
-        pref = self.service.state['users'].get(app.auth.current['id'], {})
-        self.inherit = tk.BooleanVar(value=pref.get('inherit', True))
+        footer.grid(row=3,column=0,sticky='ew',pady=(12,0))
+        pref = self.service.state['users'].get(app.auth.current['id'],{})
+        self.inherit = tk.BooleanVar(value=pref.get('inherit',True))
         self.clinic = tk.BooleanVar(value=False)
-        ttk.Checkbutton(footer, text='Usar apariencia de la clínica', variable=self.inherit).pack(anchor='w')
+        ttk.Checkbutton(footer,text='Usar apariencia de la clínica',variable=self.inherit).pack(anchor='w')
         if app.auth.current['role'] == 'admin':
-            ttk.Checkbutton(footer, text='Establecer como predeterminada de la clínica', variable=self.clinic).pack(anchor='w')
+            ttk.Checkbutton(footer,text='Establecer como predeterminada de la clínica',variable=self.clinic).pack(anchor='w',pady=4)
         actions = ttk.Frame(footer)
-        actions.pack(fill='x', pady=(8, 0))
-        actions.columnconfigure(0, weight=1)
-        actions.columnconfigure(1, weight=1)
-        for index, (label, cmd, style) in enumerate([('Aplicar cambios', self.apply, 'Primary.TButton'), ('Cancelar cambios', self.cancel, 'TButton'),
-                                  ('Restablecer Clínico', self.reset, 'TButton'), ('Guardar con nombre', self.save_named, 'TButton')]):
-            ttk.Button(actions, text=label, command=cmd, style=style).grid(row=index//2, column=index%2, sticky='ew', padx=4, pady=3)
+        actions.pack(fill='x',pady=(8,0))
+        ttk.Button(actions,text='Aplicar cambios',style='Primary.TButton',command=self.apply).pack(side='left')
+        ttk.Button(actions,text='Cancelar cambios',command=self.cancel).pack(side='left',padx=8)
+        self.loading = False
         self.refresh_choices()
         self.draw_preview()
 

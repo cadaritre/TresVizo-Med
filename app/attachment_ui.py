@@ -57,12 +57,15 @@ class AttachmentPanel(ttk.Frame):
             self.tree.heading(key, text=title)
             self.tree.column(key, width=150, minwidth=70)
         self.tree.pack(fill='both', expand=True, pady=8)
+        self.tree.configure(selectmode='extended')
         self.tree.bind('<Double-1>', lambda e: self.open())
         self.gallery = ttk.Frame(self)
         actions = ttk.Frame(self)
         actions.pack(fill='x')
         for label, command in [('Ver', self.open), ('Editar detalles', self.details), ('Archivar / restaurar', self.archive), ('Exportar', self.export), ('Nueva versión', self.replace)]:
             ttk.Button(actions, text=label, command=command, style='Link.TButton').pack(side='left', padx=(0, 6))
+        if not draft_id:
+            ttk.Button(self, text='Exportar expediente con documentos seleccionados…', style='Link.TButton', command=self.package).pack(anchor='w',pady=5)
         self.search.trace_add('write', lambda *a: self.refresh())
         self.refresh()
 
@@ -234,6 +237,13 @@ class AttachmentPanel(ttk.Frame):
                     shutil.copy2(self.app.attachments.path(row['id']), target)
                     self.app.auth.audit('exportar_adjunto', row['id'])
                 self.app.background(work, lambda _: self.notice.configure(text='Documento exportado.'))
+
+    def package(self):
+        selected = list(self.tree.selection())
+        target = filedialog.asksaveasfilename(parent=self,defaultextension='.zip',initialfile='expediente.zip',filetypes=[('Expediente y documentos','*.zip')])
+        if target:
+            self.app.background(lambda:self.app.transfer.export_package(target,self.target['patient_id'],selected,self.target['encounter_id']),
+                                lambda _:self.notice.configure(text='Expediente y documentos seleccionados exportados.'))
 
 class DocumentViewer(tk.Toplevel):
     def __init__(self, app, path, title='Documento'):

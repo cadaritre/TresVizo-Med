@@ -24,7 +24,8 @@ def migrate(store):
         with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:
             for path in existing:
                 name = path.relative_to(store.root).as_posix()
-                manifest['files'][name] = hashlib.file_digest(path.open('rb'), 'sha256').hexdigest()
+                with path.open('rb') as stream:
+                    manifest['files'][name] = hashlib.file_digest(stream, 'sha256').hexdigest()
                 archive.write(path, name)
             archive.writestr('manifest.json', json.dumps(manifest))
         with zipfile.ZipFile(destination) as archive:
@@ -83,21 +84,15 @@ class Care:
             # Un identificador persistido hace idempotente una recuperación tras cierre inesperado.
             pid = draft.get('patient_id') or draft.setdefault('target_id', str(uuid.uuid4()))
             self.store.write(path, draft)
-            previous = self.store.read(f'data/patients/{pid}.json')
-            if previous and previous.get('registration_draft') == identifier and not draft.get('patient_id'):
-                patient = previous
-            else:
-                data = {**payload, 'id': pid, 'registration_draft': identifier}
-                patient = self.clinic.save('patients', data, draft.get('source_revision'))
             changes = {}
             for attachment in self.store.records('attachments'):
                 if attachment.get('draft_id') == identifier:
                     attachment.update(patient_id=pid, draft_id=None, updated_at=now())
                     changes[f"data/attachments/{attachment['id']}.json"] = attachment
+            revision = draft.get('source_revision')
             draft.update(status='Registrado', patient_id=pid, updated_at=now())
             changes[path] = draft
-            self.store.transaction(changes)
-            return patient
+            return self.clinic.save('patients', {**payload, 'id': pid, 'registration_draft': identifier}, revision, related=changes)
 
     def catalog(self, query=''):
         self.auth.require()
