@@ -246,23 +246,7 @@ class Clinic:
                           created_by=previous['created_by'] if previous else actor['id'], updated_at=now(), updated_by=actor['id'])
             audit_id = str(uuid.uuid4())
             related = deepcopy(related or {})
-            if kind == 'encounters' and record['status'] == 'Finalizada' and record.get('followup', {}).get('date'):
-                followup = record['followup']
-                date.fromisoformat(followup['date'])
-                fid = str(uuid.uuid5(uuid.UUID(identifier), 'followup'))
-                related[f'data/followups/{fid}.json'] = {'schema_version':2, 'id':fid, 'patient_id':record['patient_id'],
-                    'doctor_id':actor['id'], 'encounter_id':identifier, 'due_at':followup['date'],
-                    'reason':followup.get('reason',''), 'status':'Pendiente', 'revision':1, 'created_at':now(), 'updated_at':now(),
-                    'created_by':actor['id'], 'updated_by':actor['id']}
-            if kind == 'encounters' and record['status'] == 'Finalizada' and record.get('appointment_id'):
-                appointment_path = f"data/appointments/{uuid.UUID(record['appointment_id'])}.json"
-                appointment = self.store.read(appointment_path)
-                if not appointment or appointment.get('encounter_id') != identifier or appointment['patient_id'] != record['patient_id']:
-                    raise DataError('La cita asociada no coincide con esta consulta.')
-                if appointment['status'] not in ('Cancelada', 'No asistió'):
-                    appointment.update(status='Atendida', revision=appointment['revision']+1, updated_at=now(), updated_by=actor['id'])
-                    appointment.setdefault('lifecycle', []).append({'at': now(), 'actor': actor['id'], 'action': 'consulta_finalizada', 'encounter_id': identifier})
-                    related[appointment_path] = appointment
+            # Agenda y seguimientos retirados: conservar relaciones históricas sin programar ni modificar tareas.
             self.store.transaction({**(related or {}), path: record, f'data/audit/{audit_id}.json': {'id': audit_id, 'actor': actor['id'], 'action': f'guardar_{kind}', 'target': identifier, 'at': now()}})
             return record
 
@@ -370,8 +354,6 @@ class Clinic:
                 birth, at = date.fromisoformat(birth), date.fromisoformat(r['attended_at'][:10])
                 age = at.year-birth.year-((at.month, at.day) < (birth.month, birth.day))
                 ages['0–5' if age < 6 else '6–17' if age < 18 else '18–39' if age < 40 else '40–64' if age < 65 else '65+'] += 1
-        appointments = [r for r in self.list('appointments') if (doctor == '*' or r['doctor_id'] == doctor) and start <= r['due_at'][:10] <= end]
-        followups = [r for r in self.list('followups') if (doctor == '*' or r['doctor_id'] == doctor) and r['status'] == 'Pendiente']
         drafts = [r for r in self.list('encounters') if r['status'] == 'Borrador' and (doctor == '*' or r['doctor_id'] == doctor)]
         span = (date.fromisoformat(end)-date.fromisoformat(start)).days+1
         prior_start = (date.fromisoformat(start)-timedelta(days=span)).isoformat()
@@ -390,8 +372,6 @@ class Clinic:
                 'diagnoses': dict(diagnoses.most_common()), 'activity': dict(sorted(activity.items())),
                 'frequency': dict(counts.most_common()), 'start': start, 'end': end, 'doctor': doctor,
                 'types': dict(types), 'reasons': dict(reasons.most_common()), 'ages': dict(ages), 'sexes': dict(sexes),
-                'appointments': dict(Counter(r['status'] for r in appointments)),
-                'pending': len(followups), 'overdue': sum(r['due_at'][:10] < date.today().isoformat() for r in followups),
                 'drafts': len(drafts), 'no_diagnosis': sum(not r.get('assessment', '').strip() for r in rows),
                 'previous': prior_count, 'difference': len(rows)-prior_count,
                 'variation': (len(rows)-prior_count)/prior_count*100 if prior_count else None,

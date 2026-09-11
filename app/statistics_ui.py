@@ -68,7 +68,7 @@ class StatisticsPage(ScrollFrame):
         ttk.Button(frequent,text='Abrir expediente',command=lambda:app.patient_record(self.frequent.selection()[0]) if self.frequent.selection() else None).pack(anchor='w',pady=6)
         distributions = ttk.Frame(tabs)
         tabs.add(distributions,text='Distribuciones')
-        self.views = {'Tipos de consulta':'types','Edad en la atención':'ages','Sexo registrado':'sexes','Estados de citas':'appointments','Motivos frecuentes':'reasons'}
+        self.views = {'Tipos de consulta':'types','Edad en la atención':'ages','Sexo registrado':'sexes','Motivos frecuentes':'reasons'}
         self.view = tk.StringVar(value='Tipos de consulta')
         select = ttk.Combobox(distributions,textvariable=self.view,values=list(self.views),state='readonly')
         select.pack(anchor='w',pady=8)
@@ -78,7 +78,6 @@ class StatisticsPage(ScrollFrame):
         ttk.Label(body,text='Una consulta puede tener varios diagnósticos; sus porcentajes pueden sumar más de 100 %.',style='Subtitle.TLabel',wraplength=850).pack(anchor='w',pady=8)
         actions = ttk.Frame(body)
         actions.pack(fill='x',pady=8)
-        ttk.Button(actions,text='Seguimientos pendientes',command=lambda:app.show('Seguimientos')).pack(side='left')
         self.export_buttons = [ttk.Button(actions,text='Exportar CSV',command=self.csv), ttk.Button(actions,text='Vista previa PDF',command=self.pdf)]
         for button in self.export_buttons:
             button.pack(side='left', padx=8)
@@ -142,7 +141,7 @@ class StatisticsPage(ScrollFrame):
                 button.state(['!disabled'])
             for key,label in self.numbers.items():label.configure(text=str(data[key]))
             variation = f"{data['variation']:+.1f}%" if data['variation'] is not None else 'Sin base de comparación'
-            self.summary.set(f"{doctor_label} · {display_date(start)} — {display_date(end)} · {data['recurrent']} recurrentes · {data['average']:.1f} consultas por día activo\n{data['pending']} seguimientos pendientes ({data['overdue']} vencidos) · {data['drafts']} borradores propios · Cambio: {variation}")
+            self.summary.set(f"{doctor_label} · {display_date(start)} — {display_date(end)} · {data['recurrent']} recurrentes · {data['average']:.1f} consultas por día activo\n{data['drafts']} borradores propios · Cambio: {variation}")
             self.latest['_summary'] = self.summary.get()
             self.activity.set(data['activity'])
             self.diagnoses.delete(*self.diagnoses.get_children())
@@ -182,7 +181,7 @@ class StatisticsPage(ScrollFrame):
             writer.writerow(['Indicador','Valor'])
             for label, value in self.latest['_scope'].items():
                 writer.writerow([label, safe_csv(value)])
-            for key,label in [('consultations','Consultas'),('patients','Pacientes únicos'),('new','Nuevos'),('recurrent','Recurrentes'),('pending','Seguimientos pendientes'),('overdue','Seguimientos vencidos')]:
+            for key,label in [('consultations','Consultas'),('patients','Pacientes únicos'),('new','Nuevos'),('recurrent','Recurrentes')]:
                 writer.writerow([label,data[key]])
             for label,values in [('Día',data['activity']),('Diagnóstico',data['diagnoses'])]:
                 for key,value in values.items():writer.writerow([safe_csv(label+' · '+key),value])

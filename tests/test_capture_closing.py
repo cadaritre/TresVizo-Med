@@ -64,6 +64,7 @@ def test_all_consultation_captures_close_and_allow_reopening(tmp_path, control):
         note.focus_force()
         app.update()
         note.mark_set('insert', '1.5')
+        editor.model.data['followup'] = {'date': '2026-09-10', 'reason': 'Dato histórico de prueba'}
         for kind in ('medication', 'vitals', 'study', 'followup', 'header', 'diagnosis', 'history', 'reuse', 'review', 'documents'):
             capture = editor.open_tool(kind)
             capture.focus_force()

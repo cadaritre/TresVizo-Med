@@ -173,7 +173,7 @@ class AppearanceEditor(ttk.Frame):
         text(24, 77, 'Tarjeta del paciente · Ejemplo', 'primary', 12)
         text(24, 101, 'Motivo de consulta', 'muted')
         rect(24, 116, w-24, 148, 'surface', 'focus')
-        text(34, 132, 'Seguimiento programado')
+        text(34, 132, 'Consulta guardada')
         for x, key, label in [(24, 'button', 'Guardar'), (140, 'secondary', 'Cancelar'), (258, 'secondary_disabled', 'Inactivo')]:
             rect(x, 166, min(x+105, w-20), 197, key)
             text(x+8, 181, label, 'on_'+key, 9)

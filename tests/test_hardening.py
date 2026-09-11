@@ -113,9 +113,9 @@ def test_attend_and_finalization_relationships_are_atomic_and_idempotent(service
     with pytest.raises(DataError):
         clinic.save('encounters', final, encounter['revision'])
     assert clinic.attend(appointment['id'])['id'] == saved['id']
-    assert store.read(f"data/appointments/{appointment['id']}.json")['status'] == 'Atendida'
-    assert clinic.list('followups')[0]['due_at'] == '2026-10-02'
-    assert len(clinic.list('followups')) == 1
+    assert store.read(f"data/appointments/{appointment['id']}.json")['status'] == 'En consulta'
+    assert not clinic.list('followups')
+    assert saved['followup']['date'] == '2026-10-02'
     assert saved['patient_id'] == patient['id'] != other['id']
     assert saved['doctor_id'] == auth.current['id']
 
@@ -345,29 +345,27 @@ def test_first_file_selection_is_durable_and_missing_source_is_reported(tmp_path
 
 
 @pytest.mark.desktop
-def test_day_rollover_and_agenda_explicit_selection(tmp_path):
+def test_day_rollover_keeps_current_patient_and_retired_routes_unavailable(tmp_path):
     from datetime import date, timedelta
-    from app import main_window, schedule_ui
-    from tests.test_consultation_context import descendants
-    from tkinter import ttk
+    from app import main_window
     with workspace(tmp_path) as (app, visit, uid):
-        app.show('Agenda')
-        page = app.pages['Agenda'].schedule_page
-        settle(app)
+        app.show('Pacientes')
+        page = app.pages['Pacientes']
+        page.search_input.insert(0, 'Paciente')
         next_day = date.today()+timedelta(days=1)
         class Tomorrow(date):
             @classmethod
             def today(cls):
                 return next_day
-        with patch.object(main_window, 'date', Tomorrow), patch.object(schedule_ui, 'date', Tomorrow):
+        with patch.object(main_window, 'date', Tomorrow):
             app.check_day()
             settle(app)
-            assert page.start.get() == next_day.isoformat() == page.end.get()
-        page.editor()
-        window = next(w for w in app.winfo_children() if isinstance(w, __import__('tkinter').Toplevel))
-        picker = next(w for w in descendants(window) if isinstance(w, ttk.Combobox))
-        assert picker.get() == ''
-        window.destroy()
+            assert app.day_key == next_day
+        assert page.search_input.get() == 'Paciente'
+        for retired in ('Agenda', 'Seguimientos'):
+            with pytest.raises(ValueError):
+                app.show(retired)
+        assert app.current_page == 'Pacientes'
 
 
 @pytest.mark.desktop

@@ -3,7 +3,7 @@ from datetime import date, datetime
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox, filedialog
 from app.components import ScrollFrame, Tooltip
-from app.widgets import text_editor
+from app.widgets import text_editor, Collapsible
 from app.services import now, normalized
 from app.clinical_models import age_label, display_date, medication_text, encounter_sections
 from app.patient_ui import PatientEditor
@@ -95,7 +95,8 @@ class Workspace:
         self.theme.apply(self.appearance.tokens())
         self.activity()
         self.pages, self.nav_buttons, self.editors = {}, {}, []
-        self.current_page = 'Inicio'
+        self._starting_patients = set()
+        self.current_page = 'Pacientes'
         header = ttk.Frame(self, style='Header.TFrame', padding=(20,10))
         header.pack(fill='x')
         ttk.Label(header, text=self.identity.values['clinic_name'], style='Header.TLabel', font=('Segoe UI Semibold', 13)).pack(side='left')
@@ -115,23 +116,23 @@ class Workspace:
         brand = self.brand(nav, 'Nav.TLabel', size=44)
         brand.pack(pady=(6,20))
         Tooltip(brand, 'TresVizo Med', self.theme)
-        for name in ('Inicio', 'Pacientes', 'Consultas', 'Agenda', 'Seguimientos', 'Mis estadísticas', 'Exportar y respaldar'):
+        for name in ('Pacientes', 'Consultas', 'Más opciones'):
             button = ttk.Button(nav, text=name, style='Nav.TButton', command=lambda n=name: self.show(n))
             button.pack(fill='x', pady=2)
             self.nav_buttons[name] = button
-            self.icons.bind(button,{'Inicio':'house','Pacientes':'users','Consultas':'stethoscope','Agenda':'calendar-days','Seguimientos':'calendar-check','Mis estadísticas':'chart-no-axes-combined','Exportar y respaldar':'archive'}[name],token='on_sidebar', show_text=True)
+            self.icons.bind(button,{'Pacientes':'users','Consultas':'stethoscope','Más opciones':'settings'}[name],token='on_sidebar', show_text=True)
         bottom = ttk.Frame(nav, style='Nav.TFrame')
         bottom.pack(side='bottom', fill='x', pady=12)
-        for name in ('Configuración', 'Acerca de'):
+        for name in ('Exportar y respaldar', 'Acerca de'):
             button = ttk.Button(bottom, text=name, style='Nav.TButton', command=lambda n=name: self.show(n))
             button.pack(fill='x', pady=2)
             self.nav_buttons[name] = button
-            self.icons.bind(button,'settings' if name == 'Configuración' else 'info',token='on_sidebar', show_text=True)
+            self.icons.bind(button,'archive' if name == 'Exportar y respaldar' else 'info',token='on_sidebar', show_text=True)
         self.content = ttk.Frame(self, padding=(20,14))
         self.content.pack(side='left', fill='both', expand=True)
         self.content.rowconfigure(0, weight=1)
         self.content.columnconfigure(0, weight=1)
-        self.show('Inicio')
+        self.show('Pacientes')
 
     def show(self, name):
         if not self.auth.current or self.locked:
@@ -141,10 +142,12 @@ class Workspace:
             capture.lift()
             return
         builders = {'Inicio': self.home, 'Pacientes': self.patients, 'Consultas': self.encounters,
-                    'Agenda': lambda p: self.schedule(p,'appointments'), 'Seguimientos': lambda p: self.schedule(p,'followups'),
+                    'Más opciones': self.more_options,
                     'Mis estadísticas': self.statistics, 'Exportar y respaldar': self.exports,
                     'Configuración': self.settings, 'Acerca de': self.about,
                     'Mi perfil': lambda p: ProfileEditor(p,self).pack(fill='both', expand=True)}
+        if name not in self.pages and name not in builders:
+            raise ValueError('Esta sección ya no está disponible.')
         if name not in self.pages:
             frame = ttk.Frame(self.content)
             frame.grid(row=0, column=0, sticky='nsew')
@@ -157,6 +160,8 @@ class Workspace:
         self.pages[name].tkraise()
         self.current_page = name
         section = 'Pacientes' if name.startswith(('paciente:', 'alta:')) else 'Consultas' if name.startswith(('consulta:', 'historia:')) else name
+        if section in ('Mis estadísticas', 'Configuración', 'Mi perfil', 'Inicio'):
+            section = 'Más opciones'
         for key, button in self.nav_buttons.items():
             button.configure(style='Active.Nav.TButton' if key == section else 'Nav.TButton')
             button.refresh_icon()
@@ -256,104 +261,98 @@ class Workspace:
         self.theme._walk(cover)
         entry.focus_set()
 
+    def more_options(self, parent):
+        scroll = ScrollFrame(parent)
+        scroll.pack(fill='both', expand=True)
+        self.heading(scroll.body, 'Más opciones', 'Herramientas complementarias, disponibles cuando las necesites.')
+        for name, description, destination, icon in [
+                ('Registros en curso', 'Retomar un alta incompleta o una consulta en borrador.', 'Inicio', 'clipboard-list'),
+                ('Mis estadísticas', 'Consultar actividad, filtros y gráficas detalladas.', 'Mis estadísticas', 'chart-no-axes-combined'),
+                ('Configuración', 'Apariencia, identidad de la clínica, doctores y preferencias.', 'Configuración', 'settings'),
+                ('Exportar y respaldar', 'Exportaciones, copias de seguridad e importación administrativa.', 'Exportar y respaldar', 'archive'),
+                ('Mi perfil', 'Datos profesionales y avatar.', 'Mi perfil', 'users')]:
+            box = ttk.Frame(scroll.body, style='Card.TFrame', padding=12)
+            box.pack(fill='x', pady=5)
+            button = ttk.Button(box, text=name, command=lambda n=destination: self.show(n))
+            button.pack(anchor='w')
+            self.icons.bind(button, icon, show_text=True)
+            label = ttk.Label(box, text=description, style='Card.TLabel', wraplength=700)
+            label.pack(fill='x', pady=(6, 0))
+            box.bind('<Configure>', lambda e, label=label: label.configure(wraplength=max(180, e.width-24)))
+
     def home(self, parent):
         scroll = ScrollFrame(parent)
         scroll.pack(fill='both', expand=True)
-        body = scroll.body
-        self.heading(body, 'Hola, '+self.auth.current['name'])
-        journey = ttk.Label(body, style='Subtitle.TLabel')
-        journey.pack(anchor='w', pady=(0, 8))
-        actions = ttk.Frame(body)
-        actions.pack(fill='x', pady=(4,16))
-        ttk.Button(actions, text='Buscar y atender', style='Primary.TButton', command=self.focus_patient_search).pack(side='left')
-        ttk.Button(actions, text='Registrar paciente', style='Link.TButton', command=self.patient_editor).pack(side='left', padx=12)
-        ttk.Button(actions, text='Ver agenda', style='Link.TButton', command=lambda: self.show('Agenda')).pack(side='left')
-        metrics = ttk.Frame(body)
-        metrics.pack(fill='x', pady=8)
-        values = []
-        for label in ('Atenciones hoy', 'Pacientes hoy', 'Borradores de consulta'):
-            frame = ttk.Frame(metrics, style='Card.TFrame', padding=8)
-            frame.pack(side='left', fill='both', expand=True, padx=(0,8))
-            value = ttk.Label(frame, text='—', style='Section.TLabel')
-            value.pack(anchor='w')
-            ttk.Label(frame, text=label, style='Card.TLabel').pack(anchor='w')
-            values.append(value)
+        self.heading(scroll.body, 'Registros en curso', 'Borradores privados del doctor activo.')
+        ttk.Button(scroll.body, text='Buscar paciente', command=self.focus_patient_search).pack(anchor='w', pady=8)
         lists = {}
-        for key, title in [('drafts','Continuar consulta'), ('registrations','Registros de pacientes en curso'), ('appointments','Citas de hoy'), ('followups','Seguimientos pendientes')]:
-            ttk.Label(body, text=title, style='Section.TLabel').pack(anchor='w', pady=(18,6))
-            lists[key] = ttk.Frame(body)
+        for key, title in [('drafts', 'Consultas por continuar'), ('registrations', 'Altas de pacientes incompletas')]:
+            ttk.Label(scroll.body, text=title, style='Section.TLabel').pack(anchor='w', pady=(12, 6))
+            lists[key] = ttk.Frame(scroll.body)
             lists[key].pack(fill='x')
-            ttk.Label(lists[key], text='Cargando…', style='Subtitle.TLabel', padding=8).pack(anchor='w')
-        metrics.pack_forget()
-        metrics.pack(fill='x', pady=12)
-        def gather():
-            actor = self.auth.current['id']
-            today = date.today().isoformat()
-            patients = {p['id']: p for p in self.clinic.list('patients', True)}
-            encounters = self.clinic.list('encounters')
-            drafts = [r for r in encounters if r['status'] == 'Borrador' and r['doctor_id'] == actor]
-            final = [r for r in encounters if r['status'] == 'Finalizada' and r['doctor_id'] == actor and r['attended_at'][:10] == today]
-            data = {'drafts': drafts, 'registrations': self.care.drafts(),
-                    'appointments': sorted([r for r in self.clinic.list('appointments') if r['doctor_id'] == actor and r['due_at'][:10] == today and r['status'] in ('Programada','Confirmada','En espera','En consulta')], key=lambda r:r['due_at'])[:5],
-                    'followups': sorted([r for r in self.clinic.list('followups') if r['doctor_id'] == actor and r['status'] == 'Pendiente'], key=lambda r:r['due_at'])[:5]}
-            return patients, data, (len(final), len({r['patient_id'] for r in final}), len(drafts))
         ticket = [0]
         def refresh():
-            journey.configure(text=date.today().strftime('%d/%m/%Y')+' · Tu jornada')
             ticket[0] += 1
-            current = ticket[0]
+            request = ticket[0]
+            actor = self.auth.current['id']
+            def gather():
+                patients = {p['id']: p for p in self.clinic.list('patients', True)}
+                drafts = [r for r in self.clinic.list('encounters') if r['status'] == 'Borrador' and r['doctor_id'] == actor]
+                return patients, {'drafts': drafts, 'registrations': self.care.drafts()}
             def done(result):
-                if not parent.winfo_exists() or current != ticket[0]: return
-                patients, data, counts = result
-                for widget, value in zip(values, counts): widget.configure(text=str(value))
+                if not parent.winfo_exists() or request != ticket[0]: return
+                patients, data = result
                 for key, box in lists.items():
-                    for child in box.winfo_children():
-                        child.destroy()
-                    for row in data[key][:5]:
-                        line = ttk.Frame(box, style='Card.TFrame', padding=(12,7))
-                        line.pack(fill='x', pady=2)
-                        name = row.get('payload',{}).get('name') or patients.get(row.get('patient_id'),{}).get('name','Registro sin nombre')
-                        patient_context = patients.get(row.get('patient_id'), {})
-                        if patient_context:
-                            name += ' · '+patient_context.get('file_number', '')+' · '+age_label(patient_context)
-                        text = name+' · '+display_date(row.get('due_at',row.get('updated_at',row.get('attended_at',''))))
-                        label_widget = ttk.Label(line, text=text, style='Card.TLabel', wraplength=760, justify='left')
-                        label_widget.pack(side='left', fill='x', expand=True)
-                        line.bind('<Configure>', lambda event, label=label_widget: label.configure(wraplength=max(220, event.width-180)))
-                        command = (lambda r=row:self.open_encounter(r['id'])) if key == 'drafts' else (lambda r=row:self.patient_editor(draft=r)) if key == 'registrations' else (lambda r=row:self.guard(lambda:self.attend_appointment(r['id']))) if key == 'appointments' else (lambda r=row:self.patient_record(r['patient_id']))
-                        label = 'Retomar' if key in ('drafts','registrations') else ('Abrir consulta' if row.get('encounter_id') else 'Atender') if key == 'appointments' else 'Ver expediente'
-                        ttk.Button(line, text=label, style='Link.TButton', command=command).pack(side='right')
+                    for child in box.winfo_children(): child.destroy()
+                    for row in data[key]:
+                        line = ttk.Frame(box, style='Card.TFrame', padding=8)
+                        line.pack(fill='x', pady=3)
+                        patient = patients.get(row.get('patient_id'), {})
+                        name = row.get('payload', {}).get('name') or patient.get('name') or 'Registro sin nombre'
+                        label = ttk.Label(line, text=name+' · '+patient.get('file_number', '')+' · '+display_date(row.get('updated_at', '')), style='Card.TLabel', wraplength=650)
+                        label.pack(side='left', fill='x', expand=True)
+                        command = (lambda r=row: self.open_encounter(r['id'])) if key == 'drafts' else (lambda r=row: self.patient_editor(draft=r))
+                        ttk.Button(line, text='Retomar', command=command).pack(side='right')
+                        line.bind('<Configure>', lambda e, label=label: label.configure(wraplength=max(180, e.width-140)))
                     if not data[key]:
-                        empty = {'appointments':'No tienes citas hoy. Puedes programar una desde Agenda.', 'drafts':'No tienes consultas pendientes de continuar.', 'registrations':'No tienes registros de pacientes incompletos.', 'followups':'No tienes seguimientos pendientes.'}[key]
-                        ttk.Label(box, text=empty, style='Subtitle.TLabel', padding=8).pack(anchor='w')
+                        ttk.Label(box, text='No hay registros pendientes.', style='Subtitle.TLabel').pack(anchor='w')
             self.background(gather, done)
         parent.refresh = refresh
 
     def patients(self, parent):
-        self.heading(parent, 'Pacientes', 'Buscar y atender · Ctrl+K')
+        heading = ttk.Frame(parent)
+        heading.pack(fill='x')
+        self.heading(heading, 'Pacientes', 'Busca por nombre, expediente o contacto · Ctrl+K')
+        tools = ttk.Frame(parent)
+        tools.pack(fill='x', pady=(0, 8))
+        new = ttk.Button(tools, text='Nuevo paciente', style='Primary.TButton', command=lambda: self.patient_editor(attend=True))
+        new.pack(side='left')
+        self.icons.bind(new, 'plus', show_text=True)
+        ttk.Button(tools, text='Registros en curso', style='Link.TButton', command=lambda: self.show('Inicio')).pack(side='left', padx=12)
         bar = ttk.Frame(parent)
         bar.pack(fill='x')
         query = tk.StringVar()
         ttk.Label(bar, text='Buscar').pack(side='left', padx=(0,8))
-        parent.search_input = ttk.Entry(bar, textvariable=query)
+        parent.search_input = ttk.Entry(bar, textvariable=query, font=('Segoe UI', 13))
         parent.search_input.pack(side='left', fill='x', expand=True)
         mode = tk.StringVar(value='Activos')
         mode_box = ttk.Combobox(bar, textvariable=mode, values=['Activos','Archivados','Todos'], state='readonly', width=12)
         mode_box.pack(side='left', padx=8)
         ttk.Button(bar, text='Limpiar', style='Link.TButton', command=lambda: (query.set(''), mode.set('Activos'))).pack(side='left')
-        ttk.Button(bar, text='+ Nuevo paciente', style='Primary.TButton', command=self.patient_editor).pack(side='left')
         tree = self.table(parent, {'name':'Paciente', 'file':'Expediente', 'age':'Edad', 'phone':'Contacto'})
         tree.column('name', width=330)
         tree.column('file', width=120, stretch=False)
         tree.column('age', width=125)
         bottom = ttk.Frame(parent)
-        bottom.pack(fill='x')
+        bottom.pack(side='bottom', fill='x', before=tree.master)
         open_button = ttk.Button(bottom, text='Abrir expediente', command=lambda: self.patient_record(tree.selection()[0]) if tree.selection() else None, state='disabled')
         open_button.pack(side='left')
-        attend_button = ttk.Button(bottom, text='Atender', style='Primary.TButton', command=lambda: self.confirm_encounter(self.store.read('data/patients/'+tree.selection()[0]+'.json')) if tree.selection() else None, state='disabled')
+        attend_button = ttk.Button(bottom, text='Atender / retomar', style='Primary.TButton', command=lambda: self.confirm_encounter(self.store.read('data/patients/'+tree.selection()[0]+'.json')) if tree.selection() else None, state='disabled')
         attend_button.pack(side='left', padx=8)
         def selected_changed(event=None):
             row = self.store.read('data/patients/'+tree.selection()[0]+'.json') if tree.selection() else None
+            new.configure(style='TButton' if row and not row.get('archived') else 'Primary.TButton')
+            new.refresh_icon()
             open_button.state(['!disabled'] if row else ['disabled'])
             attend_button.state(['!disabled'] if row and not row.get('archived') else ['disabled'])
         tree.bind('<<TreeviewSelect>>', selected_changed)
@@ -371,7 +370,11 @@ class Workspace:
                 total = self.clinic.search_patients(q, current_mode)[1]
                 return [r['id'] for r in self.clinic.search_patients(q, current_mode, page_size=max(1, total))[0]]
             self.background(work, lambda identifiers: export_patients(self, identifiers, selected))
-        ttk.Button(bottom, text='Exportar…', command=export_filtered).pack(side='left', padx=8)
+        more = ttk.Menubutton(bottom, text='Más acciones')
+        more.pack(side='left', padx=8)
+        advanced = tk.Menu(more, tearoff=False)
+        advanced.add_command(label='Exportar pacientes…', command=export_filtered)
+        more.configure(menu=advanced)
         if self.auth.current['role'] == 'admin':
             def archive():
                 if not tree.selection(): return
@@ -380,15 +383,17 @@ class Workspace:
                 if reason:
                     self.guard(lambda:self.clinic.archive('patients',row['id'],reason,restore=row.get('archived',False),revision=row['revision']))
                     refresh()
-            ttk.Button(bottom, text='Archivar / restaurar', style='Link.TButton', command=archive).pack(side='left')
+            advanced.add_command(label='Archivar / restaurar paciente…', command=archive)
+        pagination = ttk.Frame(parent)
+        pagination.pack(side='bottom', fill='x', pady=5, before=bottom)
         page = [0]
-        count = ttk.Label(bottom, style='Subtitle.TLabel')
+        count = ttk.Label(pagination, style='Subtitle.TLabel')
         count.pack(side='right')
         def turn(delta):
             page[0] = max(0,page[0]+delta)
             refresh()
-        ttk.Button(bottom, text='›', width=3, command=lambda:turn(1)).pack(side='right')
-        ttk.Button(bottom, text='‹', width=3, command=lambda:turn(-1)).pack(side='right')
+        ttk.Button(pagination, text='›', width=3, command=lambda:turn(1)).pack(side='right')
+        ttk.Button(pagination, text='‹', width=3, command=lambda:turn(-1)).pack(side='right')
         timer = [None]
         ticket = [0]
         def refresh():
@@ -402,6 +407,10 @@ class Workspace:
                 if not parent.winfo_exists() or current != ticket[0]: return
                 rows, total, page[0] = result
                 selected, position = tree.selection(), tree.yview()[0]
+                preferred = getattr(parent, 'preferred_patient', None)
+                if preferred and any(row['id'] == preferred for row in rows):
+                    selected = (preferred,)
+                    parent.preferred_patient = None
                 tree.delete(*tree.get_children())
                 for row in rows:
                     tree.insert('', 'end', iid=row['id'], values=(row['name']+(' · Archivado' if row.get('archived') else ''),row['file_number'],age_label(row),row.get('phone','')))
@@ -423,14 +432,14 @@ class Workspace:
         tree.bind('<Return>',lambda e:self.patient_record(tree.selection()[0]) if tree.selection() else None)
         parent.refresh = refresh
 
-    def patient_editor(self, record=None, refresh=lambda:None, draft=None, on_created=None):
+    def patient_editor(self, record=None, refresh=lambda:None, draft=None, on_created=None, attend=False):
         if draft:
             if draft.get('patient_id'):
                 record = self.store.read(f"data/patients/{draft['patient_id']}.json")
         elif record:
             draft = next((d for d in self.care.drafts() if d.get('patient_id') == record['id']),None)
         draft = draft or self.care.save_draft(record or {}, patient_id=(record or {}).get('id'), revision=(record or {}).get('revision'))
-        editor = self.mount('alta:'+draft['id'], lambda parent:PatientEditor(parent,self,record,draft))
+        editor = self.mount('alta:'+draft['id'], lambda parent:PatientEditor(parent,self,record,draft,attend=attend))
         if on_created:
             editor.on_created = on_created
         return editor
@@ -461,7 +470,7 @@ class Workspace:
                 bar.pack(fill='x')
                 ttk.Button(bar,text='‹ Pacientes',style='Link.TButton',command=lambda:self.show('Pacientes')).pack(side='left')
                 ttk.Button(bar,text='Editar',command=lambda:self.patient_editor(patient)).pack(side='right')
-                ttk.Button(bar,text='Nueva consulta',style='Primary.TButton',command=lambda:self.confirm_encounter(patient),state='disabled' if patient.get('archived') else 'normal').pack(side='right',padx=8)
+                ttk.Button(bar,text='Atender / retomar',style='Primary.TButton',command=lambda:self.confirm_encounter(patient),state='disabled' if patient.get('archived') else 'normal').pack(side='right',padx=8)
                 self.heading(frame,patient['name'],patient['file_number']+' · '+age_label(patient)+' · '+patient.get('sex','No especificado')+(' · Archivado' if patient.get('archived') else ''))
                 if patient.get('photo_attachment_id'):
                     try:
@@ -494,7 +503,11 @@ class Workspace:
                 for row in sorted(encounters,key=lambda r:r['attended_at'],reverse=True):
                     if row['patient_id'] == identifier:
                         tree.insert('','end',iid=row['id'],values=(display_date(row['attended_at']),doctors.get(row['doctor_id'],'Doctor'),row['status'],row.get('reason','')))
-                tree.bind('<Double-1>',lambda e:self.open_encounter(tree.selection()[0]) if tree.selection() else None)
+                open_visit = ttk.Button(history, text='Abrir atención completa', command=lambda: self.open_encounter(tree.selection()[0]) if tree.selection() else None, state='disabled')
+                open_visit.pack(side='bottom', fill='x', pady=6, before=tree.master)
+                tree.bind('<<TreeviewSelect>>', lambda e: open_visit.state(['!disabled'] if tree.selection() else ['disabled']))
+                tree.bind('<Return>', lambda e: open_visit.invoke())
+                tree.bind('<Double-1>', lambda e: open_visit.invoke())
                 trend = ScrollFrame(tabs)
                 tabs.add(trend,text='Evolución')
                 TrendPanel(trend.body,self,identifier).pack(fill='both',expand=True)
@@ -541,10 +554,6 @@ class Workspace:
         record = record or self.clinic.save('encounters',{'patient_id':patient['id'],'status':'Borrador','attended_at':now()})
         return self.mount('consulta:'+record['id'],lambda parent:ConsultationEditor(parent,self,patient,record))
 
-    def attend_appointment(self, identifier):
-        encounter = self.clinic.attend(identifier)
-        return self.open_encounter(encounter['id'])
-
     def encounters(self, parent):
         self.heading(parent,'Consultas','Tus borradores y el historial compartido de atenciones finalizadas.')
         show_trash = tk.BooleanVar()
@@ -581,7 +590,7 @@ class Workspace:
             row = self.store.read('data/encounters/'+tree.selection()[0]+'.json')
             restoring = row.get('archived', False) or row['status'] == 'Anulada'
             title = 'Restaurar consulta' if restoring else 'Anular consulta' if row['status'] == 'Finalizada' else 'Archivar borrador'
-            effect = 'La consulta finalizada volverá a contar en estadísticas.' if row['status'] == 'Anulada' else 'La consulta dejará de contar en estadísticas. La cita y los seguimientos conservan su historial y estado.' if row['status'] == 'Finalizada' else 'El borrador y sus documentos se conservan para recuperación.'
+            effect = 'La consulta finalizada volverá a contar en estadísticas.' if row['status'] == 'Anulada' else 'La consulta dejará de contar en estadísticas. El registro y sus documentos se conservan.' if row['status'] == 'Finalizada' else 'El borrador y sus documentos se conservan para recuperación.'
             reason = simpledialog.askstring(title,'Consulta del '+display_date(row['attended_at'])+'\n'+effect+'\nMotivo:',parent=self)
             if reason:
                 def apply():
@@ -597,7 +606,7 @@ class Workspace:
                 self.guard(apply)
                 refresh()
         bar = ttk.Frame(parent)
-        bar.pack(fill='x')
+        bar.pack(side='bottom', fill='x', before=tree.master)
         ttk.Button(bar,text='Abrir consulta',command=open_row).pack(side='left')
         lifecycle = ttk.Button(bar,text='Selecciona una consulta',style='Link.TButton',command=remove, state='disabled')
         lifecycle.pack(side='left',padx=12)

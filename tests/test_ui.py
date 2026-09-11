@@ -139,7 +139,7 @@ def test_all_screens_session_change_and_private_drafts(tmp_path):
         app.shell()
         patient = app.clinic.save('patients', {'name': 'Paciente de prueba'})
         draft = app.clinic.save('encounters', {'patient_id': patient['id'], 'status': 'Borrador', 'attended_at': '2026-09-10T09:00:00-06:00'})
-        for page in ('Inicio', 'Pacientes', 'Consultas', 'Agenda', 'Seguimientos', 'Mis estadísticas', 'Exportar y respaldar', 'Configuración', 'Acerca de'):
+        for page in ('Inicio', 'Pacientes', 'Consultas', 'Más opciones', 'Mis estadísticas', 'Exportar y respaldar', 'Configuración', 'Acerca de'):
             app.show(page)
             app.update_idletasks()
         for future in list(app.pending):

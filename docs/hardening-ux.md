@@ -1,5 +1,7 @@
 # Revisión de confianza y uso cotidiano
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior.
+
 10 de septiembre de 2026. Implementación sobre el árbol de trabajo existente, con Python, Tkinter y ttk. Se conservaron la consulta continua, los datos estructurados, temas, marca, permisos, transacciones y visores. No se generó ejecutable ni instalador. Todos los ensayos y capturas descritos aquí usan datos ficticios y carpetas aisladas.
 
 ## Problemas corregidos

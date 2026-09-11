@@ -61,6 +61,7 @@ class ConsultationDraft:
             for row in self.data[field]:
                 row.setdefault('id', str(uuid.uuid4()))
         saved = deepcopy(record.get('editor_state', {}))
+        self.section_state = saved.get('sections', {})
         if saved.get('version') == 3:
             self.pending = saved.get('pending', {})
             self.legacy_state = saved.get('legacy_unmapped', {})
@@ -210,7 +211,7 @@ class ConsultationDraft:
         if not final:
             data['editor_state'] = {'version': 3, 'pending': deepcopy(self.pending),
                                     'attachment_queue': deepcopy(self.queue), 'selected_take': self.selected_take,
-                                    'legacy_unmapped': deepcopy(self.legacy_state)}
+                                    'legacy_unmapped': deepcopy(self.legacy_state), 'sections': dict(self.section_state)}
         return data
 
     def saved(self, record):

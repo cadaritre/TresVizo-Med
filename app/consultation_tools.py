@@ -158,7 +158,11 @@ class CaptureWindow(tk.Toplevel):
         self.edit_focus = None
         self.title(title)
         self.transient(self.app)
-        self.return_focus = owner.last_text if getattr(owner, 'last_text', None) else owner.focus_get()
+        current_focus = owner.focus_get()
+        last_text = getattr(owner, 'last_text', None)
+        self.return_focus = (current_focus if isinstance(current_focus, tk.Text) and str(current_focus).startswith(str(owner)+'.')
+                             else last_text if last_text and last_text.winfo_exists() and last_text.winfo_ismapped()
+                             else current_focus)
         self.return_scroll = owner.scroll.canvas.canvasy(0) if hasattr(owner, 'scroll') else None
         self.return_anchor = (self.return_focus.winfo_rooty()-owner.scroll.body.winfo_rooty()) if self.return_scroll is not None and self.return_focus else None
         self.app.active_capture = self
@@ -366,7 +370,7 @@ class DetailCapture(CaptureWindow):
             self.initial = {'status': 'Solicitado'}
         self.form = self.add_form(specs)
         if self.kind == 'followup':
-            ttk.Label(self.body, text='Al finalizar se incorpora una sola vez a Seguimientos.\nDeja fecha y motivo vacíos para quitarlo del borrador.', style='Subtitle.TLabel', wraplength=590).pack(fill='x', pady=10)
+            ttk.Label(self.body, text='Captura recuperada de una versión anterior. Se conserva en la nota, sin programar tareas.\nDeja fecha y motivo vacíos para retirarla explícitamente del borrador.', style='Subtitle.TLabel', wraplength=590).pack(fill='x', pady=10)
 
     def validate(self):
         raw = self.raw()

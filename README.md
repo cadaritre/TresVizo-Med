@@ -20,7 +20,7 @@ Pruebas y vista de demostración aislada:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe scripts\preview_ui.py
+.\.venv\Scripts\python.exe scripts\preview_simple.py --view patients
 ```
 
 La demostración crea únicamente información sintética en un directorio temporal. No afecta los datos de la clínica. `--data-dir RUTA` permite otra carpeta explícita para pruebas.
@@ -35,12 +35,16 @@ El inicio de sesión usa la paleta de la clínica. El doctor puede heredar esa p
 
 Configuración → Clínica e identidad permite cambiar nombre, contacto, logo clínico, enlace HTTP/HTTPS, texto visible y preferencias de documentos. La marca de la aplicación y su enlace están desactivados por defecto en PDF.
 
+## Recorrido cotidiano
+
+La versión de código fuente 1.0.1 simplifica la atención con SOAP progresivo. Consulta el [recorrido, verificaciones y límites](docs/recorrido-simple.md). El MSI 1.0.0 anterior permanece intacto y no incluye estos cambios.
+
 ## Funciones clínicas disponibles
 
 - Creación de administradores y doctores, autenticación scrypt, espera progresiva, cambio de contraseña, activación/desactivación y protección del último administrador.
 - Registro y búsqueda de pacientes, advertencia de posibles duplicados, antecedentes y alergias visibles.
 - Consultas SOAP, borradores con autoguardado, revisión antes de finalizar y adendas sin sobrescribir el original.
-- Agenda y seguimientos mediante listas editables, estadísticas básicas y distribuciones por periodo.
+- Entrada directa en Pacientes; herramientas secundarias en Más opciones, estadísticas por periodo y alta con secciones desplegables. Agenda y Seguimientos están retirados; sus datos históricos se conservan.
 - Exportación de pacientes CSV/JSON, PDF con vista previa y respaldos ZIP con manifiesto e integridad verificada.
 
 Este repositorio **no implementa todavía la totalidad de los 26 apartados del encargo**. Consultar [estado y límites](docs/estado.md) antes de usarlo con información real. No se declara validado para producción clínica.

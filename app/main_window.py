@@ -245,11 +245,42 @@ class Application(Workspace, TkinterDnD.Tk):
 
 
     def confirm_encounter(self, patient):
-        if messagebox.askyesno('Confirmar paciente', f"¿Iniciar atención para {patient['name']}?\nExpediente {patient['file_number']}", parent=self):
-            self.encounter_editor(patient)
-
-
-
+        if not patient:
+            return
+        actor = self.auth.require()['id']
+        current = self.store.read(f"data/patients/{patient['id']}.json")
+        if not current or current.get('archived'):
+            raise DataError('Este paciente no está activo. Revisa su expediente.')
+        pending = getattr(self, '_starting_patients', set())
+        self._starting_patients = pending
+        if current['id'] in pending:
+            return
+        pending.add(current['id'])
+        def find_drafts():
+            try:
+                return sorted(self.store.select_records('encounters', lambda r: r['patient_id'] == current['id'] and
+                    r['doctor_id'] == actor and r['status'] == 'Borrador' and not r.get('archived')), key=lambda r: r['updated_at'], reverse=True)
+            except (ValueError, OSError):
+                pending.discard(current['id'])
+                raise
+        def continue_visit(drafts):
+            latest = self.store.read(f"data/patients/{current['id']}.json")
+            if not latest or latest.get('archived'):
+                raise DataError('El paciente ya no está activo. Su expediente se conserva.')
+            if drafts:
+                draft = drafts[0]
+                if messagebox.askyesno('Retomar consulta pendiente', latest['name']+' · '+latest['file_number']+
+                        '\nYa tienes una consulta en borrador del '+display_date(draft['attended_at'])+'.\n¿Retomarla?', parent=self):
+                    self.open_encounter(draft['id'])
+                return
+            if messagebox.askyesno('Confirmar paciente', latest['name']+' · '+latest['file_number']+'\n¿Comenzar la consulta?', parent=self):
+                self.encounter_editor(latest)
+        def ready(drafts):
+            try:
+                continue_visit(drafts)
+            finally:
+                pending.discard(current['id'])
+        self.background(find_drafts, ready)
 
     def pdf_preview(self, title, sections, doctor='', patient=''):
         from app.documents import create_pdf
@@ -283,13 +314,6 @@ class Application(Workspace, TkinterDnD.Tk):
             win.bind('<Destroy>', cleanup, add='+')
             self.status.set('Vista previa lista. Revisa el contenido antes de exportar.')
         self.background(generate, done)
-
-    def schedule(self, parent, kind):
-        from app.schedule_ui import SchedulePage
-        page = SchedulePage(parent, self, kind)
-        page.pack(fill='both', expand=True)
-        parent.refresh = page.refresh
-        parent.schedule_page = page
 
     def settings(self, parent):
         tabs = ttk.Notebook(parent)
@@ -484,7 +508,7 @@ class Application(Workspace, TkinterDnD.Tk):
             page = getattr(self, 'pages', {}).get(getattr(self, 'current_page', ''))
             if page and hasattr(page, 'day_changed'):
                 page.day_changed()
-            elif page and self.current_page in ('Inicio', 'Agenda', 'Seguimientos'):
+            elif page and self.current_page == 'Inicio':
                 page.refresh()
 
     def logout(self, force=False):

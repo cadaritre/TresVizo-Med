@@ -10,7 +10,7 @@ from PIL import Image
 from app.main_window import Application
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--view', choices=['home', 'patients', 'agenda', 'consultation', 'import', 'settings', 'conflict', 'documents', 'login'], default='home')
+parser.add_argument('--view', choices=['home', 'patients', 'options', 'consultation', 'import', 'settings', 'conflict', 'documents', 'login'], default='home')
 parser.add_argument('--front', action='store_true', help='Mantener la demostración al frente para capturas sin otras ventanas superpuestas.')
 args = parser.parse_args()
 with tempfile.TemporaryDirectory(prefix='tresvizo-hardening-visual-') as folder:
@@ -38,8 +38,8 @@ with tempfile.TemporaryDirectory(prefix='tresvizo-hardening-visual-') as folder:
     app.geometry('1366x768')
     app.title('TresVizo Med · revisión sintética · '+args.view+(' · primer plano' if args.front else ''))
     app.update_idletasks()
-    if args.view in ('patients', 'agenda', 'settings'):
-        app.show({'patients': 'Pacientes', 'agenda': 'Agenda', 'settings': 'Configuración'}[args.view])
+    if args.view in ('patients', 'options', 'settings'):
+        app.show({'patients': 'Pacientes', 'options': 'Más opciones', 'settings': 'Configuración'}[args.view])
     elif args.view in ('consultation', 'conflict', 'documents'):
         editor = app.encounter_editor(patient, visit)
         if args.view == 'conflict':

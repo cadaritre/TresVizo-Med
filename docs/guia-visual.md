@@ -1,5 +1,7 @@
 # Guía visual del rediseño
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior.
+
 Capturas de la aplicación real, con nombres y expedientes ficticios. No son maquetas. Cada pantalla conserva controles nativos de Windows/Tk.
 
 La actualización de consulta en una sola pantalla tiene su [propia guía y ocho capturas](consulta-contextual.md). Sustituye las capturas antiguas del editor de consulta de esta tabla.

@@ -1,5 +1,7 @@
 # Consulta en un solo espacio de trabajo
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior.
+
 Implementación del 10 de septiembre de 2026. Sustituye las cinco pestañas del editor de consulta por una página continua. El resto del acceso, alta de pacientes, perfiles y navegación mantiene su diseño.
 
 ## Flujo implementado

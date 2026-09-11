@@ -6,6 +6,22 @@ from tkinter import ttk, messagebox
 from app.components import DatePicker
 from app.clinical_models import display_date, local_date
 
+def wrap_actions(frame, buttons):
+    """Distribuir acciones en filas sin recortar sus etiquetas al escalar."""
+    for button in buttons:
+        button.pack_forget()
+    def layout(event=None):
+        available = max(1, frame.winfo_width())
+        row, column, occupied = 0, 0, 0
+        for button in buttons:
+            width = button.winfo_reqwidth()+8
+            if column and occupied+width > available:
+                row, column, occupied = row+1, 0, 0
+            button.grid(row=row, column=column, sticky='w', padx=(0, 8), pady=3)
+            column, occupied = column+1, occupied+width
+    frame.bind('<Configure>', layout, add='+')
+    frame.after_idle(layout)
+
 def text_editor(parent, value='', height=4, changed=lambda: None):
     widget = tk.Text(parent, height=height, wrap='word', undo=True, relief='flat', highlightthickness=1,
                      padx=10, pady=8, font=('Segoe UI', 11))
@@ -262,22 +278,46 @@ class Collection(ttk.Frame):
             self.pending = True
 
 class Collapsible(ttk.Frame):
-    def __init__(self, parent, title, opened=False):
+    def __init__(self, parent, title, opened=False, summary='', changed=None):
         super().__init__(parent)
         self.opened = opened
         self.animation = None
         self.title = title
-        self.button = ttk.Button(self, text=('− ' if opened else '+ ')+title, command=self.toggle, style='Link.TButton')
+        self.changed = changed
+        self.button = ttk.Button(self, text=('− ' if opened else '+ ')+title, command=self.toggle, style='Disclosure.Link.TButton')
         self.button.pack(fill='x', pady=6)
+        self.summary = ttk.Label(self, text=summary, style='Subtitle.TLabel', wraplength=760, justify='left')
+        self.summary.pack(fill='x', padx=12)
+        self.bind('<Configure>', lambda e: self.summary.configure(wraplength=max(160, e.width-24)))
+        if not summary:
+            self.summary.pack_forget()
         self.body = ttk.Frame(self, padding=(12, 0, 0, 8))
         if opened:
             self.body.pack(fill='x')
+    def set_summary(self, text):
+        self.summary.configure(text=text)
+        if text and not self.summary.winfo_manager():
+            self.summary.pack(fill='x', padx=12, after=self.button)
+        elif not text:
+            self.summary.pack_forget()
+
+    def reveal(self):
+        if not self.opened:
+            self.toggle()
+        if self.animation:
+            self.after_cancel(self.animation)
+            self.animation = None
+        self.body.pack_propagate(True)
+        self.body.pack(fill='x')
+
     def toggle(self):
         if self.animation:
             self.after_cancel(self.animation)
             self.animation = None
         self.opened = not self.opened
         self.button.configure(text=('− ' if self.opened else '+ ')+self.title)
+        if self.changed:
+            self.changed()
         app = self.winfo_toplevel()
         reduced = not hasattr(app, 'profiles') or not app.auth.current or app.profiles.get(app.auth.current['id']).get('reduce_motion', False)
         if reduced:

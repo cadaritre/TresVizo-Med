@@ -1,5 +1,7 @@
 # Estado de la entrega de rediseño
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior. La revisión actual aprobó 114 pruebas y una repetición final de 9 casos de alta/consulta/recuperación; se revisaron seis capturas de ventanas reales con datos sintéticos.
+
 Implementación sobre TresVizo-Med, 10 de septiembre de 2026. El rediseño y las correcciones de cierre están incluidos en la distribución MSI **1.0.0 x64**. Se puede seguir ejecutando desde Python para desarrollar. Consulta [instalación, versiones y actualización](distribucion.md).
 
 El estado actual se detalla en [Revisión de confianza y uso cotidiano](hardening-ux.md): correcciones A–H, matriz de 22 recorridos, pruebas, mediciones y límites. La [auditoría del rediseño](auditoria-redisenio.md) se conserva como registro histórico de la etapa anterior.

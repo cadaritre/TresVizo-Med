@@ -1,5 +1,7 @@
 # Auditoría del rediseño
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior.
+
 > Registro histórico anterior al hardening. El estado vigente, las correcciones y los límites comprobados están en [hardening-ux.md](hardening-ux.md). La nueva petición vuelve a exigir icono y texto en navegación y acciones principales; las observaciones de esta auditoría describen su fecha de revisión.
 
 Revisión del 10 de septiembre de 2026 contra `Prompt_Rediseno_UI_UX_TresVizo_Med.txt` del Escritorio, el código actual y las pruebas de la aplicación. **El documento no está implementado al 100 %.** Los flujos principales están operativos; la tabla distingue lo existente de las diferencias concretas. No se asigna un porcentaje basado solo en la presencia de pantallas.

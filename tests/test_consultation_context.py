@@ -148,6 +148,7 @@ def test_complete_contextual_visit_final_view_and_pdf_match(tmp_path):
         capture.form.vars['name'].set('Estudio sintético')
         capture.form.inputs['notes'].insert('1.0', 'Indicaciones del estudio de prueba')
         assert capture.apply()
+        editor.model.remember('followup', 'followup', {'date': '20/09/2026', 'reason': ''})
         capture = editor.open_tool('followup')
         capture.form.vars['date'].set('20/09/2026')
         capture.form.inputs['reason'].insert('1.0', 'Revisión sintética')
@@ -178,7 +179,8 @@ def test_complete_contextual_visit_final_view_and_pdf_match(tmp_path):
         final = app.store.read(f'data/encounters/{identifier}.json')
         assert final['status'] == 'Finalizada'
         assert 'editor_state' not in final
-        assert len(app.clinic.list('followups')) == 1
+        assert not app.clinic.list('followups')
+        assert final['followup']['reason'] == 'Revisión sintética'
         final_view = app.pages['historia:'+identifier]
         assert not any(isinstance(w, ttk.Notebook) for w in descendants(final_view))
         sections = encounter_sections(final)

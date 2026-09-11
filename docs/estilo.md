@@ -1,5 +1,7 @@
 # Sistema visual
 
+Actualización 11/09/2026: el [recorrido simplificado 1.0.1](recorrido-simple.md) sustituye la entrada y organización descritas en esta etapa anterior. Agenda y Seguimientos están retirados; la consulta usa secciones SOAP progresivas. El MSI 1.0.0 conserva la entrega anterior.
+
 Referencia revisada: código de la aplicación de reportes, específicamente ui.py, ux_components.py, settings_dialog.py y las definiciones visuales de branding.py. No se ejecutó la aplicación de referencia ni se copiaron sus datos, firmas, cédulas o contactos.
 
 La apariencia predeterminada es clara: fondo #F5F5F7, tarjetas blancas, texto #1D1D1F, secundario #626269 y azul #0066CC. La barra lateral ocupa aproximadamente 210 unidades lógicas. Segoe UI y sus variantes semibold mantienen jerarquía sin títulos saturados. Los iconos Lucide se incluyen localmente con su licencia. La petición de hardening prioriza icono y texto en navegación y acciones importantes. Los dibujos de la galería de avatares conservan la presentación sin etiquetas permanentes, con nombre en ttk y ayuda al pasar el cursor o recibir foco con Tab. Los nombres de doctores, etiquetas de campos y advertencias clínicas siguen visibles. Los separadores decorativos se derivan del tema y se distinguen de bordes y foco funcionales.

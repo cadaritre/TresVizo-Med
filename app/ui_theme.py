@@ -43,6 +43,7 @@ class ThemeManager:
         s.configure('Active.Nav.TButton', background=t['selection'], foreground=t['on_selection'], font=('Segoe UI Semibold', 11), anchor='center', padding=(12, 8), borderwidth=0)
         s.map('Active.Nav.TButton', background=[('disabled', t['selection_disabled']), ('pressed', t['selection_pressed']), ('active', t['selection_hover'])],
               foreground=[('disabled', t['on_selection_disabled']), ('pressed', t['on_selection_pressed']), ('active', t['on_selection_hover'])])
+        s.configure('Disclosure.Link.TButton', anchor='w', font=('Segoe UI Semibold', 12), padding=(8, 6))
         s.configure('Link.TButton', background=t['background'], foreground=readable(t['primary'], t['background']), borderwidth=0, padding=(4, 6))
         s.map('Link.TButton', background=[('disabled', t['background']), ('pressed', t['selection_pressed']), ('active', t['selection_hover'])],
               foreground=[('disabled', readable(t['muted'], t['background'])), ('pressed', t['on_selection_pressed']), ('active', t['on_selection_hover'])])
