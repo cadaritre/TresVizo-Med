@@ -5,6 +5,7 @@ import json
 import os
 import threading
 import uuid
+import shutil
 from copy import deepcopy
 from pathlib import Path
 
@@ -78,6 +79,69 @@ class Store:
     def records(self, kind):
         with self.lock:
             return [read_json(p) for p in (self.root / 'data' / kind).glob('*.json')]
+
+    def path(self, name):
+        path = (self.root / name).resolve()
+        if not path.is_relative_to(self.root.resolve()) or path == self.root.resolve():
+            raise DataError('Ruta fuera de la carpeta administrada.')
+        return path
+
+    def transaction(self, changes, files=None):
+        """Publicar un conjunto completo; las operaciones sin commit se revierten."""
+        with self.lock:
+            folder = self.root / 'operations' / str(uuid.uuid4())
+            folder.mkdir(parents=True)
+            entries = []
+            try:
+                for index, name in enumerate([*changes, *(files or {})]):
+                    destination = self.path(name)
+                    old, staged = folder / f'{index}.old', folder / f'{index}.new'
+                    if destination.exists():
+                        shutil.copy2(destination, old)
+                    if name in changes:
+                        atomic_json(staged, changes[name])
+                    else:
+                        with open(files[name], 'rb') as source, staged.open('wb') as target:
+                            shutil.copyfileobj(source, target, 1024*1024)
+                            target.flush()
+                            os.fsync(target.fileno())
+                    entries.append({'name': name, 'index': index, 'existed': old.exists()})
+                atomic_json(folder / 'journal.json', {'entries': entries, 'committed': False})
+                for item in entries:
+                    target = self.path(item['name'])
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    os.replace(folder / f"{item['index']}.new", target)
+                atomic_json(folder / 'journal.json', {'entries': entries, 'committed': True})
+            except BaseException:
+                if (folder / 'journal.json').exists():
+                    self._recover_operation(folder)
+                else:
+                    shutil.rmtree(folder)
+                raise
+            shutil.rmtree(folder, ignore_errors=True)
+
+    def _recover_operation(self, folder):
+        journal = read_json(folder / 'journal.json')
+        if not journal['committed']:
+            for item in journal['entries']:
+                target = self.path(item['name'])
+                old = folder / f"{int(item['index'])}.old"
+                if item['existed']:
+                    # Conservar el respaldo del journal hasta completar toda la recuperación.
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    temp = target.with_name(target.name+'.recover')
+                    shutil.copy2(old, temp)
+                    os.replace(temp, target)
+                elif target.exists():
+                    target.unlink()
+        shutil.rmtree(folder)
+
+    def recover(self):
+        with self.lock:
+            for folder in (self.root / 'operations').glob('*'):
+                if (folder / 'journal.json').is_file():
+                    self._recover_operation(folder)
+
 
 
 class InstanceLock:

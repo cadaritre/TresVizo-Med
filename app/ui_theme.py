@@ -20,24 +20,30 @@ class ThemeManager:
     def apply(self, palette):
         t = self.tokens = derived(palette)
         s = self.style
-        s.configure('.', font=('Segoe UI', 10), foreground=t['text'], background=t['background'],
+        s.configure('.', font=('Segoe UI', 11), foreground=t['text'], background=t['background'],
                     bordercolor=t['border'], lightcolor=t['border'], darkcolor=t['border'], troughcolor=t['secondary'],
                     focuscolor=t['focus'], selectbackground=t['selection'], selectforeground=t['on_selection'])
         for prefix, bg, fg in [('', 'background', 'text'), ('Card.', 'surface', 'text'),
                                 ('Header.', 'header', 'on_header'), ('Nav.', 'sidebar', 'on_sidebar')]:
             s.configure(prefix+'TFrame', background=t[bg])
             s.configure(prefix+'TLabel', background=t[bg], foreground=t[fg])
-        s.configure('Title.TLabel', font=('Segoe UI Semibold', 23), foreground=t['primary'])
+        s.configure('Title.TLabel', font=('Segoe UI Semibold', 23), foreground=t['text'])
+        s.configure('Section.TLabel', font=('Segoe UI Semibold', 15), foreground=t['text'])
+        s.configure('TSeparator', background=t['separator'])
         s.configure('Subtitle.TLabel', foreground=t['muted'])
-        s.configure('Metric.TLabel', font=('Segoe UI Semibold', 28), background=t['surface'], foreground=t['primary'])
+        s.configure('Metric.TLabel', font=('Segoe UI Semibold', 22), background=t['surface'], foreground=t['text'])
         s.configure('TLabelframe', background=t['background'], bordercolor=t['border'], padding=12)
         s.configure('TLabelframe.Label', foreground=t['text'], background=t['background'])
         for style, key in [('TButton', 'secondary'), ('Primary.TButton', 'button'), ('Nav.TButton', 'sidebar')]:
-            s.configure(style, background=t[key], foreground=t['on_'+key], padding=(14, 9), borderwidth=1,
+            s.configure(style, background=t[key], foreground=t['on_'+key], padding=(12, 8), borderwidth=0,
                         focuscolor=t['focus'], focusthickness=2, anchor='w' if key == 'sidebar' else 'center')
             s.map(style, background=[('disabled', t[key+'_disabled']), ('pressed', t[key+'_pressed']), ('active', t[key+'_hover'])],
                   foreground=[('disabled', t['on_'+key+'_disabled']), ('pressed', t['on_'+key+'_pressed']), ('active', t['on_'+key+'_hover'])],
                   bordercolor=[('focus', t['focus'])])
+        s.configure('Active.Nav.TButton', background=t['selection'], foreground=t['on_selection'], font=('Segoe UI Semibold', 11), anchor='w', padding=(12, 9), borderwidth=0)
+        s.map('Active.Nav.TButton', background=[('active', t['selection_hover'])], foreground=[('active', t['on_selection_hover'])])
+        s.configure('Link.TButton', background=t['background'], foreground=t['primary'], borderwidth=0, padding=(4, 6))
+        s.map('Link.TButton', background=[('active', t['selection'])], foreground=[('active', t['on_selection'])])
         for style in ('TEntry', 'TCombobox', 'TSpinbox'):
             s.configure(style, fieldbackground=t['surface'], foreground=t['text'], insertcolor=t['text'], padding=7,
                         selectbackground=t['selection'], selectforeground=t['on_selection'], bordercolor=t['border'], arrowsize=16)
@@ -48,9 +54,9 @@ class ThemeManager:
         s.map('TCombobox', selectbackground=[('!focus', t['surface']), ('focus', t['selection'])],
               selectforeground=[('!focus', t['text']), ('focus', t['on_selection'])])
         s.configure('Treeview', background=t['surface'], fieldbackground=t['surface'], foreground=t['text'],
-                    rowheight=32, bordercolor=t['border'])
+                    rowheight=38, bordercolor=t['separator'], borderwidth=0)
         s.map('Treeview', background=[('selected', t['selection'])], foreground=[('selected', t['on_selection'])])
-        s.configure('Treeview.Heading', background=t['secondary'], foreground=t['on_secondary'], padding=8)
+        s.configure('Treeview.Heading', background=t['surface'], foreground=t['muted'], padding=8, borderwidth=0, font=('Segoe UI Semibold', 10))
         s.map('Treeview.Heading', background=[('active', t['secondary_hover'])], foreground=[('active', t['on_secondary_hover'])])
         s.configure('TNotebook', background=t['background'])
         s.configure('TNotebook.Tab', background=t['secondary'], foreground=t['on_secondary'], padding=(14, 8))

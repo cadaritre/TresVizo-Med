@@ -11,7 +11,13 @@ class ScrollFrame(ttk.Frame):
         bar = ttk.Scrollbar(self, orient='vertical', command=self.canvas.yview)
         self.body = ttk.Frame(self.canvas)
         self.window = self.canvas.create_window((0, 0), window=self.body, anchor='nw')
-        self.canvas.configure(yscrollcommand=bar.set)
+        def set_scroll(first, last):
+            bar.set(first, last)
+            if float(first) <= 0 and float(last) >= 1:
+                bar.pack_forget()
+            elif not bar.winfo_manager():
+                bar.pack(side='right', fill='y', before=self.canvas)
+        self.canvas.configure(yscrollcommand=set_scroll)
         bar.pack(side='right', fill='y')
         self.canvas.pack(side='left', fill='both', expand=True)
         self.body.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
@@ -95,6 +101,16 @@ class DatePicker(ttk.Frame):
         title.pack(pady=10)
         controls = ttk.Frame(window)
         controls.pack(fill='x')
+        year = tk.StringVar(value=str(month[0]))
+        month_var = tk.StringVar(value=str(month[1]))
+        direct = ttk.Frame(window, padding=8)
+        direct.pack(fill='x')
+        ttk.Label(direct, text='Mes').pack(side='left')
+        month_box = ttk.Combobox(direct, textvariable=month_var, values=list(range(1, 13)), width=5, state='readonly')
+        month_box.pack(side='left', padx=6)
+        ttk.Label(direct, text='Año').pack(side='left')
+        year_box = ttk.Spinbox(direct, from_=1800, to=2200, textvariable=year, width=8)
+        year_box.pack(side='left', padx=6)
         grid = ttk.Frame(window, padding=12)
         grid.pack()
         def select(day):
@@ -104,6 +120,8 @@ class DatePicker(ttk.Frame):
             y, m = month
             index = y*12+m-1+delta
             month[:] = [index//12, index%12+1]
+            year.set(str(month[0]))
+            month_var.set(str(month[1]))
             title.configure(text=f'{month[0]} · {month[1]:02d}')
             for child in grid.winfo_children():
                 child.destroy()
@@ -115,6 +133,17 @@ class DatePicker(ttk.Frame):
                         ttk.Button(grid, text=str(day), width=3, command=lambda d=day: select(d)).grid(row=row, column=col)
         ttk.Button(controls, text='‹ Mes anterior', command=lambda: render(-1)).pack(side='left')
         ttk.Button(controls, text='Mes siguiente ›', command=lambda: render(1)).pack(side='right')
+        def jump(event=None):
+            try:
+                y, m = int(year.get()), int(month_var.get())
+                if 1800 <= y <= 2200 and 1 <= m <= 12:
+                    month[:] = [y, m]
+                    render()
+            except ValueError:
+                pass
+        month_box.bind('<<ComboboxSelected>>', jump)
+        year_box.bind('<Return>', jump)
+        ttk.Button(direct, text='Ir', command=jump).pack(side='left')
         render()
         self.theme._walk(window)
 

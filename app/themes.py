@@ -15,20 +15,20 @@ COLORS = {
     'secondary': 'Botones secundarios', 'selection': 'Selección', 'focus': 'Foco',
     **{f'chart{i}': f'Gráficas · serie {i}' for i in range(1, 7)},
 }
-BASE = dict(zip(COLORS, ['#07356F', '#087D89', '#F4F9FC', '#FFFFFF', '#07356F', '#07356F',
-                       '#263746', '#526675', '#718592', '#086A8C', '#DFEEF4', '#CDE8F2', '#087F8C',
+BASE = dict(zip(COLORS, ['#0066CC', '#087D89', '#F5F5F7', '#FFFFFF', '#FFFFFF', '#EFEFF2',
+                       '#1D1D1F', '#626269', '#85858B', '#0066CC', '#EFEFF2', '#E8F1FC', '#0066CC',
                        '#086A8C', '#197653', '#8055A1', '#9A6200', '#A24468', '#4269A6']))
 BUILTINS = {
     'Clínico': BASE,
     'TresVizo': {**BASE, 'accent': '#0A79A4', 'primary': '#173B5F'},
-    'Verde suave': {**BASE, 'primary': '#245B4B', 'header': '#245B4B', 'sidebar': '#245B4B',
+    'Verde suave': {**BASE, 'primary': '#245B4B', 'header': '#FFFFFF', 'sidebar': '#EAF1ED',
                     'background': '#F1F8F4', 'button': '#276E54', 'accent': '#276E54', 'secondary': '#DEEFE5'},
     'Azul profundo': {**BASE, 'background': '#101D2E', 'surface': '#1C2D42', 'header': '#132239',
                      'sidebar': '#132239', 'text': '#F0F6FC', 'muted': '#B9CDDD', 'border': '#8197AE',
                      'primary': '#A7D8FF', 'accent': '#69CBD0', 'button': '#70C7EA', 'secondary': '#304861',
                      'selection': '#416185', 'focus': '#70C7EA', 'chart1': '#70C7EA', 'chart2': '#76DBAD',
                      'chart3': '#C5A0EA', 'chart4': '#EBC576', 'chart5': '#F29AB9', 'chart6': '#9FB5FF'},
-    'Neutro': {**BASE, 'primary': '#414A52', 'header': '#343D46', 'sidebar': '#343D46',
+    'Neutro': {**BASE, 'primary': '#414A52', 'header': '#FFFFFF', 'sidebar': '#EFEFF2',
                'background': '#F5F5F3', 'accent': '#59636C', 'button': '#505A63', 'secondary': '#E4E7E8'},
 }
 SEMANTIC = {'error_bg': '#FDEBEC', 'error_fg': '#9E182C', 'warning_bg': '#FFF2CE',
@@ -124,6 +124,8 @@ def repair(t):
 
 def derived(tokens):
     t = {**validate_tokens(tokens), **SEMANTIC}
+    t['separator'] = mix(t['surface'], t['text'], .13)
+    t['surface_secondary'] = mix(t['surface'], t['background'], .6)
     for key in ('header', 'sidebar', 'button', 'secondary', 'selection'):
         t[f'on_{key}'] = on(t[key])
         for state, amount in [('hover', .10), ('pressed', .19), ('disabled', .48)]:

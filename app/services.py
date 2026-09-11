@@ -115,11 +115,13 @@ class Clinic:
     def __init__(self, store, auth):
         self.store, self.auth = store, auth
 
-    def list(self, kind):
+    def list(self, kind, include_archived=False):
         actor = self.auth.require()
         data = self.store.records(kind)
         if kind == 'encounters':
             data = [r for r in data if r['status'] != 'Borrador' or r['doctor_id'] == actor['id']]
+        if not include_archived:
+            data = [r for r in data if not r.get('archived')]
         return data
 
     def save(self, kind, record, revision=None):
@@ -144,6 +146,10 @@ class Clinic:
                     except ValueError as exc:
                         raise DataError('Nacimiento inválido. Usa AAAA-MM-DD y una fecha no futura.') from exc
                 record['file_number'] = previous['file_number'] if previous else f'RC-{len(self.store.records(kind))+1:06d}'
+                if record.get('birth_date') and record.get('approx_age', {}).get('value') not in ('', None):
+                    raise DataError('Elige fecha de nacimiento o edad aproximada.')
+                if previous:
+                    record['archived'] = previous.get('archived', False)
             if kind == 'encounters':
                 if previous and (previous['doctor_id'] != actor['id'] or previous['status'] != 'Borrador'):
                     raise DataError('Solo el responsable puede editar su borrador. Usa una adenda para consultas finalizadas.')
@@ -158,14 +164,23 @@ class Clinic:
                 record['doctor_id'] = previous['doctor_id'] if previous else actor['id']
                 record['captured_by'] = previous['captured_by'] if previous else actor['id']
                 record.setdefault('addenda', [])
+                from app.clinical_models import validate_vitals, validate_medications
+                record['vitals'] = validate_vitals(record.get('vitals', []))
+                record['prescriptions'] = validate_medications(record.get('prescriptions', []), record['status'] == 'Finalizada')
+                record['archived'] = previous.get('archived', False) if previous else False
+                if record['archived']:
+                    raise DataError('Restaura el borrador antes de editarlo.')
             if kind in ('encounters', 'appointments', 'followups'):
                 pid = record.get('patient_id', '')
                 try:
                     uuid.UUID(pid)
                 except ValueError as exc:
                     raise DataError('Selecciona un paciente válido.') from exc
-                if not self.store.read(f'data/patients/{pid}.json'):
+                patient = self.store.read(f'data/patients/{pid}.json')
+                if not patient:
                     raise DataError('El paciente ya no existe.')
+                if patient.get('archived') and not previous:
+                    raise DataError('Reactiva el expediente antes de iniciar una atención.')
             if kind in ('appointments', 'followups'):
                 record['doctor_id'] = previous['doctor_id'] if previous else actor['id']
                 if previous and previous['doctor_id'] != actor['id']:
@@ -174,12 +189,34 @@ class Clinic:
                     datetime.fromisoformat(record['due_at'])
                 except (ValueError, KeyError) as exc:
                     raise DataError('Fecha inválida. Usa AAAA-MM-DD HH:MM.') from exc
-            record.update(schema_version=1, id=identifier, revision=(previous['revision']+1 if previous else 1),
+            record.update(schema_version=2, id=identifier, revision=(previous['revision']+1 if previous else 1),
                           created_at=previous['created_at'] if previous else now(),
                           created_by=previous['created_by'] if previous else actor['id'], updated_at=now(), updated_by=actor['id'])
-            self.store.write(path, record)
-            self.auth.audit(f'guardar_{kind}', identifier)
+            audit_id = str(uuid.uuid4())
+            self.store.transaction({path: record, f'data/audit/{audit_id}.json': {'id': audit_id, 'actor': actor['id'], 'action': f'guardar_{kind}', 'target': identifier, 'at': now()}})
             return record
+
+    def archive(self, kind, identifier, reason, restore=False, revision=None):
+        actor = self.auth.require('admin' if kind == 'patients' else None)
+        if kind not in ('patients', 'encounters') or not reason.strip():
+            raise DataError('Indica el motivo de la operación.')
+        with self.store.lock:
+            path = f'data/{kind}/{uuid.UUID(identifier)}.json'
+            row = self.store.read(path)
+            if not row:
+                raise DataError('No existe el registro.')
+            if revision is not None and row['revision'] != revision:
+                raise DataError('El registro cambió. Actualiza antes de continuar.')
+            if kind == 'encounters':
+                if row['status'] == 'Finalizada' and not restore:
+                    return self.addendum(identifier, reason, 'Consulta anulada: '+reason, annul=True)
+                if row['status'] != 'Borrador' or row['doctor_id'] != actor['id']:
+                    raise DataError('Solo puedes retirar o restaurar tus propios borradores.')
+            row.update(archived=not restore, revision=row['revision']+1, updated_at=now(), updated_by=actor['id'])
+            row.setdefault('lifecycle', []).append({'actor': actor['id'], 'at': now(), 'reason': reason, 'action': 'restaurar' if restore else 'archivar'})
+            self.store.transaction({path: row})
+            self.auth.audit('restaurar' if restore else 'archivar', identifier)
+            return row
 
     def addendum(self, identifier, reason, content, annul=False):
         actor = self.auth.require()
@@ -222,7 +259,7 @@ class Clinic:
         activity = Counter(r['attended_at'][:10] for r in rows)
         types = Counter(r.get('type', 'General') or 'General' for r in rows)
         reasons = Counter(normalized(r.get('reason', '')) or 'No registrado' for r in rows)
-        patients = {p['id']: p for p in self.list('patients')}
+        patients = {p['id']: p for p in self.list('patients', include_archived=True)}
         ages, sexes = Counter(), Counter()
         for r in rows:
             patient = patients.get(r['patient_id'], {})
