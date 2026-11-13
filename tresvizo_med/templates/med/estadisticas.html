@@ -1,0 +1,46 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Estadísticas{% endblock %}
+{% block encabezado %}<h1>Estadísticas</h1>{% endblock %}
+{% block contenido %}
+<form method="get" action="{% url 'med:estadisticas' %}" class="tv-tarjeta med-filtros" data-estadisticas>
+  <div class="tv-campo"><label for="desde">Desde</label><input id="desde" name="desde" type="date" value="{{ filtros.inicio }}" required></div>
+  <div class="tv-campo"><label for="hasta">Hasta</label><input id="hasta" name="hasta" type="date" value="{{ filtros.fin }}" required></div>
+  {% if medicos %}<div class="tv-campo"><label for="doctor">Médico</label><select id="doctor" name="doctor"><option value=""{% if filtros.doctor == None %} selected{% endif %}>Yo</option><option value="*"{% if filtros.doctor == '*' %} selected{% endif %}>Toda la clínica</option>{% for m in medicos %}<option value="{{ m.id }}"{% if filtros.doctor == m.id %} selected{% endif %}>{{ m.nombre }}</option>{% endfor %}</select></div>{% endif %}
+  <div class="tv-campo"><label for="tipo">Tipo de consulta</label><input id="tipo" name="tipo" value="{{ filtros.tipo }}" placeholder="General, Control…"></div>
+  <div class="tv-campo"><label for="diagnostico">Diagnóstico contiene</label><input id="diagnostico" name="diagnostico" value="{{ filtros.diagnostico }}"></div>
+  <div class="tv-campo"><label for="grupo">Pacientes</label><select id="grupo" name="grupo">{% for g in grupos %}<option value="{{ g }}"{% if g == filtros.grupo %} selected{% endif %}>{{ g }}</option>{% endfor %}</select></div>
+  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Calcular</button></div>
+</form>
+{% if error %}{% alerta tipo="error" %}{{ error }}{% endalerta %}{% endif %}
+{% if datos %}
+<section class="med-resultado" id="resultado" aria-live="polite">
+  <p class="med-obsoleto-aviso tv-alerta tv-alerta--aviso">Cambiaste los filtros. Calcula de nuevo para ver y exportar el resultado de esos filtros.</p>
+  <h2>{{ quien }} · {{ datos.start }} a {{ datos.end }}</h2>
+  <div class="med-numeros">
+    <div class="med-numero"><strong>{{ datos.consultations }}</strong>Consultas</div>
+    <div class="med-numero"><strong>{{ datos.patients }}</strong>Pacientes</div>
+    <div class="med-numero"><strong>{{ datos.new }}</strong>Nuevos</div>
+    <div class="med-numero"><strong>{{ datos.recurrent }}</strong>Recurrentes</div>
+    <div class="med-numero"><strong>{{ datos.days }}</strong>Días con actividad</div>
+    <div class="med-numero"><strong>{{ datos.average|floatformat:1 }}</strong>Promedio por día</div>
+    <div class="med-numero"><strong>{{ datos.drafts }}</strong>Borradores</div>
+    <div class="med-numero"><strong>{{ datos.no_diagnosis }}</strong>Sin diagnóstico</div>
+  </div>
+  <p class="tv-tarjeta">Periodo previo ({{ datos.previous_start }} a {{ datos.previous_end }}): <strong>{{ datos.previous }}</strong> consultas ·
+    diferencia <strong>{{ datos.difference }}</strong>{% if datos.variation != None %} · variación <strong>{{ datos.variation|floatformat:1 }} %</strong>{% else %} · sin periodo previo para comparar{% endif %}.</p>
+  {% if grafica %}<section class="tv-tarjeta"><h3>Consultas por día</h3><div class="med-grafica-caja">{{ grafica }}</div></section>{% endif %}
+  <div class="tv-rejilla">
+  {% for titulo, filas in tablas %}<section class="tv-tarjeta"><h3>{{ titulo }}</h3>{% if filas %}<table class="tv-tabla"><tbody>{% for k, v in filas %}<tr><td>{{ k }}</td><td class="tv-num">{{ v }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="tv-tenue">Sin datos.</p>{% endif %}</section>{% endfor %}
+  </div>
+  <div class="tv-formulario__acciones med-exportar">
+    <a class="tv-boton tv-boton--secundario" href="{% url 'med:estadisticas_csv' %}?{{ instantanea }}">Exportar CSV</a>
+    <form method="post" action="{% url 'med:estadisticas_pdf' %}" hx-post="{% url 'med:estadisticas_pdf' %}" hx-target="#tarea-pdf" hx-swap="innerHTML">{% csrf_token %}
+      <input type="hidden" name="desde" value="{{ filtros.inicio }}"><input type="hidden" name="hasta" value="{{ filtros.fin }}"><input type="hidden" name="doctor" value="{% if filtros.doctor != None %}{{ filtros.doctor }}{% endif %}">
+      <input type="hidden" name="tipo" value="{{ filtros.tipo }}"><input type="hidden" name="diagnostico" value="{{ filtros.diagnostico }}"><input type="hidden" name="grupo" value="{{ filtros.grupo }}">
+      <button class="tv-boton" type="submit">Generar PDF</button></form>
+  </div>
+  <div id="tarea-pdf"></div>
+  <p class="tv-tenue">Calculado con los filtros mostrados arriba; las exportaciones usan exactamente esos filtros.</p>
+</section>
+{% endif %}
+{% endblock %}

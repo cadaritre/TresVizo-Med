@@ -1,7 +1,7 @@
 """Rutas de Med en la raíz de su host (``med.tresvizo.com``). Todas se resuelven con ``reverse('med:…')``."""
 from django.urls import path
 
-from .vistas import consulta, documentos, pacientes, sistema
+from .vistas import configuracion, consulta, documentos, estadisticas, pacientes, pdf, sistema, transferencia
 
 app_name = 'med'
 
@@ -43,6 +43,36 @@ urlpatterns = [
     path('consultas/<uuid:consulta>/anular/', consulta.anular, name='anular'),
     path('consultas/<uuid:consulta>/restaurar/', consulta.restaurar, name='restaurar'),
     path('consultas/<uuid:consulta>/papelera/', consulta.papelera, name='papelera'),
+    path('consultas/<uuid:consulta>/pdf/<str:tipo>/', pdf.pdf_consulta, name='pdf_consulta'),
+    path('pdf/<uuid:documento>/', pdf.pdf, name='pdf'),
+    path('pdf/<uuid:documento>/archivo/', pdf.pdf_archivo, name='pdf_archivo'),
+    path('descargas/<uuid:documento>/', pdf.descarga, name='descarga'),
+    path('estadisticas/', estadisticas.pagina, name='estadisticas'),
+    path('estadisticas/csv/', estadisticas.csv, name='estadisticas_csv'),
+    path('estadisticas/pdf/', estadisticas.pdf, name='estadisticas_pdf'),
+    path('exportar/', transferencia.exportar, name='exportar'),
+    path('exportar/pacientes/', transferencia.exportar_pacientes, name='exportar_pacientes'),
+    path('exportar/consultas/', transferencia.exportar_consultas, name='exportar_consultas'),
+    path('exportar/completa/', transferencia.exportacion_completa, name='exportacion_completa'),
+    path('pacientes/<uuid:paciente>/paquete/', transferencia.paquete, name='paquete'),
+    path('importar/', transferencia.importar, name='importar'),
+    path('importar/<uuid:lote>/mapear/', transferencia.importar_mapear, name='importar_mapear'),
+    path('importar/<uuid:lote>/vista-previa/', transferencia.importar_previa, name='importar_previa'),
+    path('importar/<uuid:lote>/recibo/', transferencia.importar_recibo, name='importar_recibo'),
+    path('configuracion/', configuracion.hub, name='configuracion'),
+    path('configuracion/apariencia/', configuracion.apariencia_pagina, name='apariencia'),
+    path('configuracion/apariencia/aplicar/', configuracion.apariencia_aplicar, name='apariencia_aplicar'),
+    path('configuracion/apariencia/verificar/', configuracion.apariencia_verificar, name='apariencia_verificar'),
+    path('configuracion/apariencia/guardar/', configuracion.apariencia_guardar, name='apariencia_guardar'),
+    path('configuracion/apariencia/importar/', configuracion.apariencia_importar, name='apariencia_importar'),
+    path('configuracion/apariencia/<str:clave>/', configuracion.apariencia_tema, name='apariencia_tema'),
+    path('configuracion/apariencia/<str:clave>/exportar/', configuracion.apariencia_exportar, name='apariencia_exportar'),
+    path('configuracion/clinica/', configuracion.identidad, name='identidad'),
+    path('configuracion/clinica/logo/', configuracion.logo, name='logo'),
+    path('configuracion/doctores/', configuracion.doctores, name='doctores'),
+    path('perfil/', configuracion.perfil, name='perfil'),
+    path('perfil/<int:cuenta>/', configuracion.perfil, name='perfil_de'),
+    path('perfil/<int:cuenta>/foto/', configuracion.perfil_foto, name='perfil_foto'),
     path('bloquear/', sistema.bloquear, name='bloquear'),
     path('desbloquear/', sistema.desbloquear, name='desbloquear'),
     path('tema.css', sistema.tema_css, name='tema'),

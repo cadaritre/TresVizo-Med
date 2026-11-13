@@ -1,0 +1,7 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Importación terminada{% endblock %}
+{% block encabezado %}<h1>Importación terminada</h1>{% endblock %}
+{% block contenido %}
+{% alerta tipo="exito" %}Se importaron {{ lote.recibo.count }} paciente{{ lote.recibo.count|pluralize }} del archivo «{{ lote.recibo.nombre }}». Repetir la importación no duplica nada.{% endalerta %}
+<p><a class="tv-boton" href="{% url 'med:pacientes' %}">Ver pacientes</a></p>
+{% endblock %}

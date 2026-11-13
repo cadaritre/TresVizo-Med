@@ -1,0 +1,16 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Vista previa de la importación{% endblock %}
+{% block encabezado %}<h1>Vista previa de la importación</h1>{% endblock %}
+{% block contenido %}
+<p>{{ conteos.validas }} válida{{ conteos.validas|pluralize }}, {{ conteos.con_errores }} con errores, {{ conteos.con_duplicados }} con posibles duplicados. Las filas con errores no se pueden importar. Un posible duplicado exige confirmar que es una persona distinta.</p>
+<form method="post" action="{% url 'med:importar_previa' lote.id %}" class="tv-formulario tv-formulario--ancho">{% csrf_token %}
+  <div class="tv-tabla-envoltura"><table class="tv-tabla"><thead><tr><th scope="col">Importar</th><th scope="col">Fila</th><th scope="col">Nombre</th><th scope="col">Nacimiento</th><th scope="col">Teléfono</th><th scope="col">Correo</th><th scope="col">Avisos</th></tr></thead><tbody>
+  {% for f in filas %}<tr>
+    <td data-etiqueta="Importar">{% if not f.errors %}<input type="checkbox" name="fila" value="{{ f.number }}" aria-label="Importar la fila {{ f.number }}"{% if not f.duplicates %} checked{% endif %}>{% endif %}</td>
+    <td data-etiqueta="Fila">{{ f.number }}</td><td data-etiqueta="Nombre">{{ f.patient.name }}</td><td data-etiqueta="Nacimiento">{{ f.patient.birth_date }}</td><td data-etiqueta="Teléfono">{{ f.patient.phone }}</td><td data-etiqueta="Correo">{{ f.patient.email }}</td>
+    <td data-etiqueta="Avisos">{% for campo, mensaje in f.errors.items %}<span class="tv-campo__error">{{ mensaje }}</span> {% endfor %}
+      {% if f.duplicates %}{% for d in f.duplicates %}<span>{{ d }}</span> {% endfor %}<label><input type="checkbox" name="duplicado" value="{{ f.number }}"> Es una persona distinta</label>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Importar las filas elegidas</button><a class="tv-boton tv-boton--secundario" href="{% url 'med:importar_mapear' lote.id %}">Cambiar el mapeo</a></div>
+</form>
+{% endblock %}

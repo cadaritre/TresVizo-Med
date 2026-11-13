@@ -12,7 +12,7 @@ RUTAS = [(p.name, p.pattern._route, p.callback) for p in urls.urlpatterns]
 
 
 def argumentos(ruta):
-    return [str(uuid.uuid4()) if conv == 'uuid' else 'vitals' if nombre == 'tipo' else 'x'
+    return [str(uuid.uuid4()) if conv == 'uuid' else '1' if conv == 'int' else 'vitals' if nombre == 'tipo' else 'x'
             for conv, nombre in re.findall(r'<(\w+):(\w+)>', ruta)]
 
 
@@ -49,8 +49,9 @@ def test_sin_el_rol_exigido_es_403(nombre, ruta, vista, cliente_med):
     _, roles = vista.tv_requiere
     if set(roles) >= {'admin', 'medico'}:
         pytest.skip('la ruta admite ambos roles')
-    solo_admin = cliente_med('admin', username=f'jefa-{nombre}')
-    for metodo in (solo_admin.get, solo_admin.post):
+    faltante = 'medico' if 'admin' in roles else 'admin'  # un cliente con el único rol que la ruta no admite
+    cliente = cliente_med(faltante, username=f'sin-rol-{nombre}')
+    for metodo in (cliente.get, cliente.post):
         assert metodo(url_de(nombre, ruta)).status_code == 403
 
 

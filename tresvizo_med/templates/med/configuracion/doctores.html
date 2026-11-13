@@ -1,0 +1,10 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Doctores{% endblock %}
+{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>Doctores</h1></div>{% endblock %}
+{% block contenido %}
+{% alerta tipo="info" %}Aquí editas los perfiles profesionales. Las altas, bajas, contraseñas y roles de Med se administran en el <a href="{{ portal }}">portal</a>, solo por el propietario.{% endalerta %}
+<ul class="med-lista-consultas">
+{% for f in filas %}<li><a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:perfil_de' f.persona.id %}"><strong>{{ f.perfil.nombre_visible|default:f.persona.nombre }}</strong> · {{ f.persona.usuario }}<br><span class="tv-tenue">{{ f.perfil.especialidad|default:"Sin especialidad" }}{% if f.perfil.cedula %} · Cédula {{ f.perfil.cedula }}{% endif %}{% if f.perfil and not f.perfil.activo %} · inactivo{% endif %}</span></a></li>
+{% empty %}<li class="tv-tenue">Todavía no hay cuentas con rol en Med.</li>{% endfor %}
+</ul>
+{% endblock %}

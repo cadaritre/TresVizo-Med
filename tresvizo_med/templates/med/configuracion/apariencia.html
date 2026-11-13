@@ -1,0 +1,44 @@
+{% extends "med/base.html" %}{% load tv med static %}
+{% block titulo %}Apariencia{% endblock %}
+{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>Apariencia</h1></div>{% endblock %}
+{% block contenido %}
+{% tiene_rol "med" "admin" as es_admin %}
+<p class="tv-tenue">Tu tema: <strong>{% for t in temas %}{% if t.clave == activo %}{{ t.nombre }}{% endif %}{% endfor %}</strong>{% if hereda %} (el de la clínica){% endif %}. La apariencia nunca cambia los documentos impresos.</p>
+<div class="med-temas">
+{% for t in temas %}
+  <section class="tv-tarjeta med-tema{% if t.clave == activo %} med-tema--activo{% endif %}">
+    <h2>{{ t.nombre }}{% if t.clave == clinica %} <span class="tv-insignia">Clínica</span>{% endif %}</h2>
+    <div class="med-muestras" aria-hidden="true">{% for k, v in t.tokens.items %}{% if k in 'primary accent background surface header button' %}<span class="med-muestra" data-color="{{ v }}"></span>{% endif %}{% endfor %}</div>
+    <form method="post" action="{% url 'med:apariencia_aplicar' %}" class="tv-formulario">{% csrf_token %}
+      <input type="hidden" name="clave" value="{{ t.clave }}">
+      <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="h-{{ forloop.counter }}" name="hereda"><label for="h-{{ forloop.counter }}">Usar siempre el tema de la clínica</label></div>
+      <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" name="ambito" value="personal" type="submit">Usar este tema</button>{% if es_admin %}<button class="tv-boton tv-boton--secundario" name="ambito" value="clinica" type="submit">Tema de la clínica</button>{% endif %}
+      <a class="tv-boton tv-boton--secundario" href="?base={{ t.clave|urlencode }}">Copiar y editar</a><a class="tv-boton tv-boton--secundario" href="{% url 'med:apariencia_exportar' t.clave %}">Exportar</a></div>
+    </form>
+    {% if t.puede_editar %}
+    <form method="post" action="{% url 'med:apariencia_tema' t.clave %}" class="tv-formulario">{% csrf_token %}
+      <div class="tv-campo"><label for="n-{{ forloop.counter }}">Nombre</label><input id="n-{{ forloop.counter }}" name="nombre" value="{{ t.nombre }}"></div>
+      <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" name="accion" value="renombrar" type="submit">Renombrar</button><button class="tv-boton tv-boton--peligro" name="accion" value="eliminar" type="submit">Eliminar</button></div></form>
+    {% endif %}
+  </section>
+{% endfor %}
+</div>
+<section class="tv-tarjeta"><h2>Importar un tema</h2>
+  <form method="post" action="{% url 'med:apariencia_importar' %}" enctype="multipart/form-data" class="tv-formulario">{% csrf_token %}
+    <div class="tv-campo"><label for="tema-archivo">Archivo .json (máximo 64 KB)</label><input id="tema-archivo" name="archivo" type="file" accept=".json,application/json" required></div>
+    <button class="tv-boton" type="submit">Importar</button></form></section>
+{% if editor %}
+<section class="tv-tarjeta" id="editor-tema"><h2>Editor de colores</h2>
+  <form method="post" action="{% url 'med:apariencia_guardar' %}" class="tv-formulario tv-formulario--ancho med-editor-tema" data-editor-tema
+        hx-post="{% url 'med:apariencia_verificar' %}" hx-trigger="change, input changed delay:400ms" hx-target="#contraste" hx-swap="outerHTML" hx-sync="this:replace">{% csrf_token %}
+    <input type="hidden" name="base" value="{{ editor.base }}">
+    <div class="tv-campo"><label for="tema-nombre">Nombre del tema</label><input id="tema-nombre" name="nombre" value="{{ editor.nombre }}" required maxlength="80" placeholder="Mi tema"></div>
+    <div class="med-tokens">{% for k, etiqueta, v in editor.tokens %}
+      <div class="tv-campo"><label for="c-{{ k }}">{{ etiqueta }}</label><div class="med-token"><input id="c-{{ k }}" name="c_{{ k }}" type="color" value="{{ v }}" data-token="{{ k }}"><input type="text" value="{{ v }}" aria-label="{{ etiqueta }} en hexadecimal" maxlength="7" data-hex-de="c-{{ k }}" pattern="#[0-9A-Fa-f]{6}"></div></div>{% endfor %}</div>
+    {% include "med/configuracion/_contraste.html" with problemas=editor.problemas error="" %}
+    <div class="med-vista-previa tv-tarjeta" data-vista-previa><strong>Vista previa</strong><p>Texto de ejemplo sobre una tarjeta.</p><button type="button" class="tv-boton">Botón principal</button> <button type="button" class="tv-boton tv-boton--secundario">Secundario</button></div>
+    <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Guardar tema</button><button class="tv-boton tv-boton--secundario" type="submit" name="accion" value="reparar" formnovalidate>Corregir contraste automáticamente</button></div>
+  </form></section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'med/med-config.js' %}" defer></script>{% endblock %}

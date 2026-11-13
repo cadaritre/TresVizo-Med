@@ -1,0 +1,12 @@
+{% extends "med/base.html" %}{% load tv static %}
+{% block titulo %}Vista previa del PDF{% endblock %}
+{% block encabezado %}<h1>Vista previa del PDF</h1>{% endblock %}
+{% block contenido %}
+<section class="tv-tarjeta med-visor">
+  <div class="med-pdf" data-pdf data-src="{% url 'med:pdf_archivo' pdf_id %}" data-lib="{% static 'med/vendor/pdfjs/pdf.min.mjs' %}" data-worker="{% static 'med/vendor/pdfjs/pdf.worker.min.mjs' %}">
+    <p class="tv-tenue" data-pdf-estado>Cargando el documento…</p><div data-pdf-paginas></div>
+  </div>
+  <script type="module" src="{% static 'med/med-pdf.js' %}" nonce="{{ csp_nonce }}"></script>
+  <p><a class="tv-boton" href="{% url 'med:pdf_archivo' pdf_id %}" download="documento.pdf">Descargar el PDF</a> <span class="tv-tenue">Disponible 24 horas.</span></p>
+</section>
+{% endblock %}

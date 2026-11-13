@@ -1,0 +1,8 @@
+{% load tv %}<nav class="med-subnav" aria-label="Med">
+  <a href="{% url 'med:pacientes' %}"{% if seccion == 'pacientes' %} aria-current="page"{% endif %}>Pacientes</a>
+  <a href="{% url 'med:en_curso' %}"{% if seccion == 'en_curso' %} aria-current="page"{% endif %}>Registros en curso</a>
+  <a href="{% url 'med:estadisticas' %}"{% if seccion == 'estadisticas' %} aria-current="page"{% endif %}>Estadísticas</a>
+  <a href="{% url 'med:exportar' %}"{% if seccion == 'exportar' %} aria-current="page"{% endif %}>Exportar</a>
+  <a href="{% url 'med:configuracion' %}"{% if seccion == 'configuracion' %} aria-current="page"{% endif %}>Configuración</a>
+  <a class="tv-boton" href="{% url 'med:alta_nueva' %}">Nuevo paciente</a>
+</nav>

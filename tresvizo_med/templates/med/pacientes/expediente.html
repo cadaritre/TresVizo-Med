@@ -15,6 +15,7 @@
   {% tiene_rol "med" "medico" as es_medico %}{% tiene_rol "med" "admin" as es_admin %}
   {% if es_medico and not p.archivado %}<form method="post" action="{% url 'med:atender' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton" type="submit">Atender</button></form>{% endif %}
   <form method="post" action="{% url 'med:editar' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Editar</button></form>
+  <a class="tv-boton tv-boton--secundario" href="{% url 'med:paquete' p.id %}">Paquete del expediente</a>
   {% if es_admin %}
   <details class="med-archivar"><summary class="tv-boton tv-boton--secundario">{% if p.archivado %}Restaurar{% else %}Archivar{% endif %}</summary>
     <form method="post" action="{% url 'med:archivar' p.id %}" class="tv-formulario">{% csrf_token %}
@@ -39,6 +40,7 @@
       {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }} {{ d.emergency_contact.guardian_relation }}</dd>{% endif %}
     </dl>
   </section>
+  <section class="tv-tarjeta"><h2>Enlace</h2><div class="tv-campo"><label for="enlace">Para compartir con tu equipo (pide iniciar sesión)</label><input id="enlace" value="{{ enlace }}" readonly></div></section>
   {% if d.problem_records %}<section class="tv-tarjeta"><h2>Problemas activos</h2><ul>{% for r in d.problem_records %}<li>{{ r.name }} · {{ r.status }}{% if r.notes %} — {{ r.notes }}{% endif %}</li>{% endfor %}</ul></section>{% endif %}
   {% if historias %}<section class="tv-tarjeta"><h2>Antecedentes</h2>{% for titulo, h in historias %}<h3>{{ titulo }}</h3><p>{{ h.status }}{% if h.notes %}: {{ h.notes|linebreaksbr }}{% endif %}</p>{% endfor %}</section>{% endif %}
   {% if d.medication_records %}<section class="tv-tarjeta"><h2>Medicación habitual</h2><ul>{% for m in d.medication_records %}<li>{{ m.name }} {{ m.strength }} {{ m.dose }} {{ m.dose_unit }} {{ m.route }} · {{ m.status }}</li>{% endfor %}</ul></section>{% endif %}

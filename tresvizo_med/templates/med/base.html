@@ -1,10 +1,11 @@
-{% extends "tvplataforma/base.html" %}{% load static tv %}
+{% extends "tvplataforma/base.html" %}{% load static tv med %}
 {% block cabeza %}
 <link rel="stylesheet" href="{% url 'med:tema' %}">
 <link rel="stylesheet" href="{% static 'med/med.css' %}">
 {% endblock %}
 {% block acciones %}
 {% if not bloqueado %}
+{% yo as persona %}{% if persona %}<a class="med-yo" href="{% url 'med:perfil' %}" aria-label="Mi perfil: {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales">{{ persona.iniciales }}</span>{% endif %}<span class="med-yo__nombre">{{ persona.nombre }}</span></a>{% endif %}
 <form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario" title="Oculta el contenido hasta escribir tu contraseña">Bloquear</button></form>
 {% endif %}
 {% endblock %}

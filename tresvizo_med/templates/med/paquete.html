@@ -1,0 +1,13 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Paquete del expediente{% endblock %}
+{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p><h1>Paquete del expediente</h1></div>{% endblock %}
+{% block contenido %}
+<p>ZIP con los datos del paciente, sus consultas visibles para ti y los documentos que elijas, con manifiesto SHA-256.</p>
+<form method="post" action="{% url 'med:paquete' p.id %}" hx-post="{% url 'med:paquete' p.id %}" hx-target="#tarea-paquete" class="tv-formulario">{% csrf_token %}
+  <fieldset class="tv-tarjeta"><legend>Documentos</legend>
+    {% for d in documentos %}<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="pd-{{ d.id }}" name="documento" value="{{ d.id }}" checked><label for="pd-{{ d.id }}">{{ d.titulo }} · {{ d.categoria }}</label></div>
+    {% empty %}<p class="tv-tenue">Este paciente no tiene documentos; el paquete llevará solo los datos.</p>{% endfor %}</fieldset>
+  <button class="tv-boton" type="submit">Generar paquete</button>
+</form>
+<div id="tarea-paquete"></div>
+{% endblock %}

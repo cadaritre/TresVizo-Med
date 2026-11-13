@@ -1,0 +1,10 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Importar pacientes{% endblock %}
+{% block encabezado %}<h1>Importar pacientes desde CSV</h1>{% endblock %}
+{% block contenido %}
+<p>Un CSV en UTF-8 de hasta 10 MB y 10 000 filas. El siguiente paso es elegir las columnas y revisar una vista previa: nada se guarda hasta que lo confirmes.</p>
+<form method="post" action="{% url 'med:importar' %}" enctype="multipart/form-data" class="tv-formulario">{% csrf_token %}
+  <div class="tv-campo"><label for="archivo">Archivo CSV</label><input id="archivo" name="archivo" type="file" accept=".csv,text/csv" required></div>
+  <div class="tv-campo"><label for="delimitador">Separador</label><select id="delimitador" name="delimitador"><option value=",">Coma (,)</option><option value=";">Punto y coma (;)</option><option value="&#9;">Tabulador</option></select></div>
+  <button class="tv-boton" type="submit">Leer archivo</button></form>
+{% endblock %}

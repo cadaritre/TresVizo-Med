@@ -8,6 +8,9 @@
   {% alerta tipo="exito" %}Todo está completo. Al finalizar, la consulta ya no cambia: solo admitirá adendas.{% endalerta %}
 {% endif %}
 <article class="med-lectura">{% for titulo, texto in secciones %}{% if texto %}<section class="tv-tarjeta"><h2>{{ titulo }}</h2><p>{{ texto|linebreaksbr }}</p></section>{% endif %}{% endfor %}</article>
+<section class="tv-tarjeta"><h2>Vista previa</h2><p class="tv-tenue">PDF marcado como borrador; no sustituye a la receta final.</p>
+  <form method="post" action="{% url 'med:pdf_consulta' c.id 'receta' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'receta' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Receta (borrador)</button></form>
+  <form method="post" action="{% url 'med:pdf_consulta' c.id 'resumen' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'resumen' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Resumen (borrador)</button></form><div id="tarea-pdf"></div></section>
 <form method="post" action="{% url 'med:finalizar' c.id %}" class="tv-barra-inferior med-barra" data-tv-una-vez>{% csrf_token %}
   <a class="tv-boton tv-boton--secundario" href="{% url 'med:consulta' c.id %}">Seguir editando</a>
   <button class="tv-boton" type="submit"{% if pendientes %} disabled{% endif %}>Finalizar consulta</button>

@@ -1,0 +1,17 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Configuración{% endblock %}
+{% block encabezado %}<h1>Configuración</h1>{% endblock %}
+{% block contenido %}
+{% include "med/parciales/_subnav.html" with seccion="configuracion" %}
+{% tiene_rol "med" "admin" as es_admin %}
+<div class="tv-rejilla">
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:perfil' %}"><h2>Mi perfil</h2><p class="tv-tenue">Nombre visible, cédula, especialidad, avatar o foto.</p></a>
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:apariencia' %}"><h2>Apariencia</h2><p class="tv-tenue">Colores de fábrica y temas propios, con contraste verificado.</p></a>
+  {% if es_admin %}
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:identidad' %}"><h2>Clínica e identidad</h2><p class="tv-tenue">Nombre, logo, contacto y preferencias de los documentos impresos.</p></a>
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:doctores' %}"><h2>Doctores</h2><p class="tv-tenue">Perfiles profesionales. Las altas, bajas y roles se hacen en el portal.</p></a>
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:importar' %}"><h2>Importar pacientes</h2><p class="tv-tenue">Desde un CSV con vista previa.</p></a>
+  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:exportar' %}"><h2>Exportación completa</h2><p class="tv-tenue">ZIP verificable de toda la clínica.</p></a>
+  {% endif %}
+</div>
+{% endblock %}

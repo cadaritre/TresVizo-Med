@@ -54,3 +54,28 @@ def serie_para(series):
                       f'{" · borrador" if provisional else ""}</title></circle>')
     partes.append('</svg>')
     return mark_safe(''.join(partes))
+
+
+def barras(valores, ancho=ANCHO, alto=200):
+    """Barras por día (``{'2026-09-10': 3, …}``) para la actividad del periodo. Los números exactos van en la tabla."""
+    if not valores:
+        return ''
+    items = sorted(valores.items())
+    maximo = max(v for _, v in items) or 1
+    sitio = (ancho-MARGEN['izq']-MARGEN['der'])/len(items)
+    grueso = min(28, sitio*.7)
+    partes = [f'<svg class="med-grafica" viewBox="0 0 {ancho} {alto}" role="img" aria-label="Consultas por día; el máximo es {maximo}.">']
+    base = alto-MARGEN['inf']
+    for k in range(5):
+        y = base-(base-MARGEN['sup'])*k/4
+        partes.append(f'<line class="med-grafica__rejilla" x1="{MARGEN["izq"]}" x2="{ancho-MARGEN["der"]}" y1="{y:.1f}" y2="{y:.1f}"/>')
+        partes.append(f'<text class="med-grafica__eje" x="{MARGEN["izq"]-6}" y="{y+4:.1f}" text-anchor="end">{maximo*k/4:.0f}</text>')
+    paso = max(1, len(items)//8)
+    for i, (dia, valor) in enumerate(items):
+        x = MARGEN['izq']+sitio*i+(sitio-grueso)/2
+        altura = (base-MARGEN['sup'])*valor/maximo
+        partes.append(f'<rect class="med-grafica__barra" x="{x:.1f}" y="{base-altura:.1f}" width="{grueso:.1f}" height="{altura:.1f}"><title>{escape(dia)}: {valor}</title></rect>')
+        if i % paso == 0:
+            partes.append(f'<text class="med-grafica__eje" x="{x+grueso/2:.1f}" y="{alto-14}" text-anchor="middle">{escape(dia[8:10]+"/"+dia[5:7])}</text>')
+    partes.append('</svg>')
+    return mark_safe(''.join(partes))

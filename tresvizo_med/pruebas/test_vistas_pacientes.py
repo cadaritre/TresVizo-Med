@@ -138,6 +138,7 @@ def test_expediente_pestanas_y_alerta_de_alergias(web):
     assert 'Dolor de cabeza' in lista and 'Finalizada' in lista
     assert 'No hay documentos' in web.get(url, {'pestana': 'documentos'}).content.decode()
     assert 'Evolución del paciente' in web.get(url, {'pestana': 'evolucion'}).content.decode()
+    assert f'http://med.tresvizo.com{url}' in resumen  # enlace absoluto con el host del módulo
     assert web.get(url, {'pestana': 'inexistente'}).status_code == 200
 
 

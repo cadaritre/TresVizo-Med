@@ -1,0 +1,5 @@
+<div id="contraste" aria-live="polite">
+{% if error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>
+{% elif problemas %}<div class="tv-alerta tv-alerta--aviso" role="alert"><p class="tv-alerta__titulo">Contraste insuficiente</p><ul>{% for p in problemas %}<li>{{ p }}</li>{% endfor %}</ul></div>
+{% else %}<div class="tv-alerta tv-alerta--exito">El contraste cumple AA en todas las combinaciones.</div>{% endif %}
+</div>

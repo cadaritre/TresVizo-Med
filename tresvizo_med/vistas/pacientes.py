@@ -15,7 +15,7 @@ from ..formato import consulta_a_dict, paciente_a_dict
 from ..formularios import paciente as form_paciente
 from ..formularios.campos import fila_nueva
 from ..graficas import serie_para
-from ..models import BorradorAlta, Consulta, Documento
+from ..models import BorradorAlta, Clinica, Consulta, Documento
 from ..servicios import VersionConflict, borradores, consultas, documentos, pacientes
 from .comun import TODOS, es_htmx, redirigir, vista_med
 from .documentos import contexto_gestor
@@ -27,6 +27,9 @@ PESTANAS = [('resumen', 'Resumen'), ('consultas', 'Consultas'), ('documentos', '
 
 @vista_med(*TODOS)
 def inicio(request):
+    """Primera vez: quien administra la clínica la configura (nombre, logo, enlace y preferencias de documentos)."""
+    if request.actor.es_admin and not Clinica.obtener().configurada:
+        return redirect('med:identidad')
     return redirect('med:pacientes')
 
 
@@ -185,7 +188,10 @@ def expediente(request, paciente):
     pestana = request.GET.get('pestana', 'resumen')
     if pestana not in dict(PESTANAS):
         pestana = 'resumen'
-    contexto = {**_contexto_expediente(request, persona), 'pestana': pestana}
+    from tvplataforma import hosts
+    from tvplataforma.modulos import modulo
+    contexto = {**_contexto_expediente(request, persona), 'pestana': pestana,
+                'enlace': hosts.url_de(modulo('med'), reverse('med:expediente', args=[persona.id]))}
     if pestana == 'resumen':
         d = contexto['d']
         contexto['historias'] = [(t, d.get('histories', {}).get(k, {})) for k, t in form_paciente.HISTORIAS

@@ -38,8 +38,21 @@ def tokens_activos(actor):
     return deepcopy(disponibles.get(clave, disponibles['Clínico'])['tokens'])
 
 
+def problemas(tokens):
+    """Problemas de contraste de un tema (lista vacía si cumple AA); el editor los muestra mientras se edita."""
+    return themes.issues(themes.validate_theme({'schema_version': 1, 'name': 'tema', 'tokens': tokens})['tokens'])
+
+
+def reparar(tokens):
+    """Corrige solo lo necesario para alcanzar el contraste mínimo."""
+    return themes.repair(themes.validate_theme({'schema_version': 1, 'name': 'tema', 'tokens': tokens})['tokens'])
+
+
 def guardar_tema(actor, nombre, tokens):
     datos = themes.validate_theme({'schema_version': 1, 'name': nombre, 'tokens': tokens})
+    fallas = themes.issues(datos['tokens'])
+    if fallas:
+        raise DataError('El contraste no es suficiente para leer con comodidad: '+' '.join(fallas[:3]))
     if datos['name'].casefold() == 'personalizada':
         raise DataError('Elige un nombre propio para distinguir el tema del editor Personalizada.')
     if any(t['name'].casefold() == datos['name'].casefold() for t in listar().values()):
