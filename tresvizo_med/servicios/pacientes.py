@@ -134,3 +134,18 @@ def archivar(actor, identificador, motivo, restaurar=False, revision=None):
                                                     'reason': motivo, 'action': 'restaurar' if restaurar else 'archivar'}]
         paciente.save()
         return paciente
+
+
+def posibles_duplicados(datos, excluir=None):
+    """Pacientes (activos o archivados) con el mismo nombre o teléfono normalizados. Aceptar significa «persona
+    distinta»: nunca se fusionan."""
+    nombre, telefono = normalized(datos.get('name', '')), normalized(datos.get('phone', ''))
+    filas = Paciente.objects.none()
+    if nombre:
+        filas = filas | Paciente.objects.filter(nombre_norm=nombre)
+    if telefono:
+        filas = filas | Paciente.objects.filter(telefono__isnull=False).exclude(telefono='').filter(busqueda__contains=telefono)
+    if excluir:
+        filas = filas.exclude(pk=excluir)
+    return [p for p in filas.order_by('nombre_norm', 'folio')[:5]
+            if p.nombre_norm == nombre or (telefono and normalized(p.telefono) == telefono)]

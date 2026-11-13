@@ -1,0 +1,5 @@
+{% include "med/consulta/_resumenes.html" with oob=True %}
+<div id="diagnosticos" hx-swap-oob="true">{% include "med/consulta/_diagnosticos.html" %}</div>
+<span id="indicador" class="med-indicador" hx-swap-oob="true">Guardado {{ hora|time:"H:i:s" }}</span>
+<input type="hidden" id="f-revision" name="revision" value="{{ estado_editor.revision }}" hx-swap-oob="true">
+<input type="hidden" id="f-base" name="base" value="{{ estado_editor.base }}" hx-swap-oob="true">

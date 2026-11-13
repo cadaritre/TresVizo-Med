@@ -1,0 +1,19 @@
+{% extends "med/base.html" %}{% load static tv %}
+{% block titulo %}Pacientes{% endblock %}
+{% block encabezado %}<h1>Pacientes</h1>{% endblock %}
+{% block contenido %}
+<nav class="med-subnav" aria-label="Med">
+  <a href="{% url 'med:pacientes' %}" aria-current="page">Pacientes</a>
+  <a href="{% url 'med:en_curso' %}">Registros en curso</a>
+  <a class="tv-boton" href="{% url 'med:alta_nueva' %}">Nuevo paciente</a>
+</nav>
+<form method="get" action="{% url 'med:pacientes' %}" class="med-busqueda" role="search"
+      hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:#modo, submit" hx-push-url="true" hx-sync="this:replace">
+  <div class="tv-campo"><label for="q">Buscar por nombre, folio o teléfono</label>
+    <input id="q" name="q" type="search" value="{{ q }}" autocomplete="off" autofocus data-atajo-buscar></div>
+  <div class="tv-campo"><label for="modo">Mostrar</label>
+    <select id="modo" name="modo">{% for m in modos %}<option value="{{ m }}"{% if m == modo %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  <button type="submit" class="tv-boton tv-boton--secundario med-busqueda__boton">Buscar</button>
+</form>
+<div id="resultados" aria-live="polite">{% include "med/pacientes/_resultados.html" %}</div>
+{% endblock %}

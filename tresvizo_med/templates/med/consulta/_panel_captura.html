@@ -1,0 +1,22 @@
+<section class="med-hoja" role="dialog" aria-labelledby="titulo-panel" aria-modal="false">
+  <header class="med-hoja__cabecera"><h2 id="titulo-panel">{{ rotulo }}</h2>
+    <button type="button" class="tv-boton tv-boton--secundario" data-cerrar-panel aria-label="Cerrar panel">✕</button></header>
+  {% if pendiente %}<p class="tv-tenue">Retomas una captura sin aplicar.</p>{% endif %}
+  {% if error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
+  <form id="captura" method="post" action="{% url 'med:captura_item' c.id tipo item %}"
+        hx-post="{% url 'med:captura_item' c.id tipo item %}" hx-target="#panel" hx-swap="innerHTML" hx-sync="#editor:queue all"
+        hx-trigger="submit, input changed delay:900ms" class="tv-formulario tv-formulario--ancho">
+    {% csrf_token %}
+    <input type="hidden" name="item" value="{{ item }}">
+    {% if tipo == 'medication' %}
+      <datalist id="catalogo-med">{% for r in catalogo %}<option value="{{ r.name }}">{% endfor %}</datalist>
+      {% if favoritos and not existe %}<div class="med-favoritos"><p class="tv-tenue">Favoritos</p>
+        {% for f in favoritos %}<button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura_item' c.id 'medication' item %}?de={{ f.id }}" hx-target="#panel">{{ f.name }} {{ f.strength }}</button>{% endfor %}</div>{% endif %}
+    {% endif %}
+    {% for c in campos %}{% include "med/parciales/_campo.html" %}{% endfor %}
+    <div class="tv-formulario__acciones">
+      <button type="submit" class="tv-boton" name="accion" value="aplicar">Aplicar a la consulta</button>
+      <button type="submit" class="tv-boton tv-boton--secundario" name="accion" value="descartar" formnovalidate>Descartar captura</button>
+    </div>
+  </form>
+</section>

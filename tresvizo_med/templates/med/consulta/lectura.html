@@ -1,0 +1,37 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Consulta · {{ p.nombre }}{% endblock %}
+{% block encabezado %}
+<div class="med-cabecera-paciente">
+  <p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p>
+  <h1>Consulta del {{ d.attended_at|slice:":10" }}</h1>
+  <p class="tv-tenue">{{ p.nombre }} · {{ p.folio }} · {{ edad }} · {{ doctor }} · <span class="tv-insignia med-estado med-estado--{{ c.estado|lower }}">{{ c.estado }}</span>{% if c.archivada %} · en la papelera{% endif %}</p>
+  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {{ alergias|join:", " }}</p>{% endif %}
+</div>
+{% endblock %}
+{% block contenido %}
+{% if c.estado == 'Anulada' %}{% alerta tipo="aviso" titulo="Consulta anulada" %}Se conserva en el expediente y no cuenta en las estadísticas.{% endalerta %}{% endif %}
+{% if c.estado == 'Borrador' %}{% alerta tipo="info" %}Este borrador es privado de su responsable.{% endalerta %}{% endif %}
+<article class="med-lectura">
+  {% for titulo, texto in secciones %}{% if texto %}<section class="tv-tarjeta"><h2>{{ titulo }}</h2><p>{{ texto|linebreaksbr }}</p></section>{% endif %}{% endfor %}
+</article>
+{% if documentos %}<section class="tv-tarjeta"><h2>Documentos de la consulta</h2><ul>{% for x in documentos %}<li><a href="{% url 'med:documento_archivo' x.id %}">{{ x.titulo }}</a> · {{ x.categoria }}</li>{% endfor %}</ul></section>{% endif %}
+{% if c.estado == 'Finalizada' or c.estado == 'Anulada' %}
+  {% if puede_adenda %}
+  <details class="tv-tarjeta"><summary>Agregar adenda</summary>
+    <p class="tv-tenue">La consulta no cambia: la adenda se agrega con su autor y fecha.</p>
+    <form method="post" action="{% url 'med:adenda' c.id %}" class="tv-formulario">{% csrf_token %}
+      <div class="tv-campo"><label for="adenda-motivo">Motivo</label><input id="adenda-motivo" name="motivo" required></div>
+      <div class="tv-campo"><label for="adenda-contenido">Contenido</label><textarea id="adenda-contenido" name="contenido" required></textarea></div>
+      <button class="tv-boton" type="submit">Agregar adenda</button></form></details>
+  {% endif %}
+  {% if puede_anular %}
+  <details class="tv-tarjeta"><summary>{% if c.estado == 'Anulada' %}Restaurar consulta{% else %}Anular consulta{% endif %}</summary>
+    <form method="post" action="{% if c.estado == 'Anulada' %}{% url 'med:restaurar' c.id %}{% else %}{% url 'med:anular' c.id %}{% endif %}" class="tv-formulario">{% csrf_token %}
+      <div class="tv-campo"><label for="anular-motivo">Motivo</label><input id="anular-motivo" name="motivo" required></div>
+      <button class="tv-boton tv-boton--peligro" type="submit">{% if c.estado == 'Anulada' %}Restaurar{% else %}Anular{% endif %}</button></form></details>
+  {% endif %}
+{% endif %}
+{% if c.estado == 'Borrador' and c.archivada and c.doctor_id == request.actor.cuenta_id %}
+  <form method="post" action="{% url 'med:papelera' c.id %}" class="tv-formulario">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton" type="submit">Recuperar borrador</button></form>
+{% endif %}
+{% endblock %}

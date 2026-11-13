@@ -1,0 +1,5 @@
+<section class="med-coleccion" aria-labelledby="col-{{ col.nombre }}">
+  <h3 id="col-{{ col.nombre }}">{{ col.rotulo }}</h3>
+  <div id="filas-{{ col.nombre }}">{% for fila in col.filas %}{% include "med/parciales/_fila.html" with quitar=True %}{% endfor %}</div>
+  <button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:fila' col.nombre %}" hx-target="#filas-{{ col.nombre }}" hx-swap="beforeend" hx-sync="this:queue all">Agregar</button>
+</section>

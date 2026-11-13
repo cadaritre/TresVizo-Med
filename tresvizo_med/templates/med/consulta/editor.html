@@ -1,0 +1,41 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Consulta · {{ p.nombre }}{% endblock %}
+{% block encabezado %}
+<div class="med-cabecera-paciente">
+  <p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p>
+  <h1>Consulta · {{ p.nombre }}</h1>
+  <p class="tv-tenue">{{ p.folio }} · {{ edad }} · <span class="tv-insignia med-estado med-estado--borrador">Borrador privado</span></p>
+  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {{ alergias|join:", " }}</p>{% else %}<p class="tv-tenue">Alergias: {{ estado_alergias|lower }}.</p>{% endif %}
+</div>
+{% endblock %}
+{% block contenido %}
+<div id="editor" class="med-editor" data-abrir-url="{{ abrir_url }}">
+  <form id="soap" class="med-soap" method="post" action="{% url 'med:guardar' c.id %}" data-autoguardar
+        hx-post="{% url 'med:guardar' c.id %}" hx-trigger="input changed delay:900ms, change, guardar" hx-swap="none" hx-sync="#editor:queue all">
+    {% csrf_token %}
+    <input type="hidden" id="f-revision" name="revision" value="{{ c.revision }}">
+    <input type="hidden" id="f-base" name="base" value="{{ base }}">
+    <fieldset class="med-encabezado"><legend class="tv-solo-lectores">Fecha, hora y tipo</legend>
+      {% for c in encabezado %}{% include "med/parciales/_campo.html" %}{% endfor %}</fieldset>
+    {% with c=textos.reason %}<div id="campo-reason">{% include "med/parciales/_campo.html" %}</div>{% endwith %}
+    <section class="med-diagnosticos" id="campo-diagnosis">
+      <h2>Diagnóstico o impresión</h2>
+      <div id="diagnosticos" data-resumen="diagnosticos">{% include "med/consulta/_diagnosticos.html" %}</div>
+    </section>
+    {% with c=textos.plan %}<div id="campo-plan">{% include "med/parciales/_campo.html" %}</div>{% endwith %}
+    <details class="med-colapsable"><summary>Síntomas y evolución</summary>{% with c=textos.subjective %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
+    <details class="med-colapsable"><summary>Exploración física</summary>{% with c=textos.objective %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
+    <details class="med-colapsable"><summary>Notas de valoración</summary>{% with c=textos.assessment_notes %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
+    <div class="tv-barra-inferior med-barra">
+      <span id="indicador" class="med-indicador" aria-live="polite">Borrador guardado</span>
+      <button type="submit" class="tv-boton tv-boton--secundario" id="boton-guardar">Guardar</button>
+      <button type="submit" class="tv-boton" name="ir" value="revisar" id="boton-revisar">Revisar y finalizar</button>
+    </div>
+  </form>
+  {% include "med/consulta/_resumenes.html" %}
+  <div id="panel" class="med-panel" aria-live="polite"></div>
+</div>
+<form method="post" action="{% url 'med:papelera' c.id %}" class="med-descartar">{% csrf_token %}
+  <input type="hidden" name="motivo" value="Retirado por el responsable">
+  <button type="submit" class="tv-boton tv-boton--secundario">Retirar borrador a la papelera</button></form>
+{% endblock %}

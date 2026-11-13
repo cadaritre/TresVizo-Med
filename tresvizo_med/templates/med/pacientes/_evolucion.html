@@ -1,0 +1,19 @@
+{% load tv %}
+<section id="evolucion" class="tv-tarjeta">
+  <h2>Evolución del paciente</h2>
+  <form method="get" action="{% url 'med:evolucion' p.id %}" class="med-filtros" hx-get="{% url 'med:evolucion' p.id %}" hx-target="#evolucion" hx-select="#evolucion" hx-swap="outerHTML" hx-trigger="change">
+    <div class="tv-campo"><label for="medicion">Medición</label><select id="medicion" name="medicion">{% for k, t in mediciones %}<option value="{{ k }}"{% if k == medicion %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div class="tv-campo"><label for="periodo">Periodo</label><select id="periodo" name="periodo">{% for k, t in periodos %}<option value="{{ k }}"{% if k == periodo %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <noscript><button class="tv-boton" type="submit">Actualizar</button></noscript>
+  </form>
+  {% if grafica %}
+    <div class="med-grafica-caja">{{ grafica }}</div>
+    <p class="tv-tenue med-leyenda"><span class="med-leyenda__lleno"></span> Consulta finalizada <span class="med-leyenda__hueco"></span> Borrador</p>
+  {% else %}<p class="tv-tenue">No hay mediciones en este periodo.</p>{% endif %}
+  {% if tabla_evolucion %}
+  <div class="tv-tabla-envoltura"><table class="tv-tabla">
+    <thead><tr><th scope="col">Fecha</th><th scope="col">Medición</th><th scope="col" class="tv-num">Valor</th><th scope="col">Contexto</th><th scope="col">Origen</th></tr></thead>
+    <tbody>{% for f in tabla_evolucion %}<tr><td data-etiqueta="Fecha">{{ f.at|slice:":10" }} {{ f.at|slice:"11:16" }}</td><td data-etiqueta="Medición">{{ f.medicion }}</td>
+      <td class="tv-num" data-etiqueta="Valor">{{ f.valor|floatformat:"-2" }} {{ f.unidad }}</td><td data-etiqueta="Contexto">{{ f.contexto }}</td><td data-etiqueta="Origen">{{ f.estado }}{% if f.doctor %} · {{ f.doctor }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>{% endif %}
+</section>

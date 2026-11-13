@@ -1,0 +1,15 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}Revisar y finalizar{% endblock %}
+{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:consulta' c.id %}">‹ Volver a la consulta</a></p><h1>Revisar y finalizar</h1><p class="tv-tenue">{{ p.nombre }} · {{ p.folio }}</p></div>{% endblock %}
+{% block contenido %}
+{% if pendientes %}
+  {% alerta tipo="aviso" titulo="Falta resolver" %}<ul>{% for x in pendientes %}<li><a href="{{ x.enlace }}">{{ x.texto }}</a></li>{% endfor %}</ul>{% endalerta %}
+{% else %}
+  {% alerta tipo="exito" %}Todo está completo. Al finalizar, la consulta ya no cambia: solo admitirá adendas.{% endalerta %}
+{% endif %}
+<article class="med-lectura">{% for titulo, texto in secciones %}{% if texto %}<section class="tv-tarjeta"><h2>{{ titulo }}</h2><p>{{ texto|linebreaksbr }}</p></section>{% endif %}{% endfor %}</article>
+<form method="post" action="{% url 'med:finalizar' c.id %}" class="tv-barra-inferior med-barra" data-tv-una-vez>{% csrf_token %}
+  <a class="tv-boton tv-boton--secundario" href="{% url 'med:consulta' c.id %}">Seguir editando</a>
+  <button class="tv-boton" type="submit"{% if pendientes %} disabled{% endif %}>Finalizar consulta</button>
+</form>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "med/base.html" %}{% load tv %}
+{% block titulo %}{{ p.nombre }}{% endblock %}
+{% block encabezado %}
+<div class="med-cabecera-paciente">
+  <h1>{{ p.nombre }}</h1>
+  <p class="tv-tenue">{{ p.folio }} · {{ edad }}{% if p.sexo %} · {{ p.sexo }}{% endif %}{% if p.archivado %} · <span class="tv-insignia">Archivado</span>{% endif %}</p>
+  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {% for a in alergias %}{{ a.substance }}{% if a.severity and a.severity != 'No documentada' %} ({{ a.severity }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  {% elif estado_alergias == 'Sin alergias conocidas' %}<p class="tv-tenue">Sin alergias conocidas.</p>
+  {% else %}<p class="tv-tenue">Alergias: {{ estado_alergias|lower }}.</p>{% endif %}
+</div>
+{% endblock %}
+{% block contenido %}
+<nav class="med-subnav" aria-label="Expediente">
+  <a href="{% url 'med:pacientes' %}">‹ Pacientes</a>
+  {% tiene_rol "med" "medico" as es_medico %}{% tiene_rol "med" "admin" as es_admin %}
+  {% if es_medico and not p.archivado %}<form method="post" action="{% url 'med:atender' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton" type="submit">Atender</button></form>{% endif %}
+  <form method="post" action="{% url 'med:editar' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Editar</button></form>
+  {% if es_admin %}
+  <details class="med-archivar"><summary class="tv-boton tv-boton--secundario">{% if p.archivado %}Restaurar{% else %}Archivar{% endif %}</summary>
+    <form method="post" action="{% url 'med:archivar' p.id %}" class="tv-formulario">{% csrf_token %}
+      <input type="hidden" name="accion" value="{% if p.archivado %}restaurar{% else %}archivar{% endif %}">
+      <div class="tv-campo"><label for="motivo-archivo">Motivo</label><input id="motivo-archivo" name="motivo" required></div>
+      <button class="tv-boton tv-boton--peligro" type="submit">Confirmar</button></form></details>
+  {% endif %}
+</nav>
+<div class="med-pestanas" role="tablist">
+  {% for clave, titulo in pestanas %}<a role="tab" href="?pestana={{ clave }}" {% if clave == pestana %}aria-selected="true" aria-current="page"{% endif %}>{{ titulo }}</a>{% endfor %}
+</div>
+<div class="med-panel-pestana">
+{% if pestana == 'resumen' %}
+  <section class="tv-tarjeta"><h2>Datos</h2>
+    <dl class="med-datos">
+      {% if d.preferred_name %}<dt>Nombre preferido</dt><dd>{{ d.preferred_name }}</dd>{% endif %}
+      <dt>Nacimiento</dt><dd>{% if p.nacimiento %}{{ p.nacimiento|date:"d/m/Y" }}{% else %}{{ edad }}{% endif %}</dd>
+      {% for t in d.phones %}<dt>Teléfono ({{ t.type }})</dt><dd><a href="tel:{{ t.number }}">{{ t.number }}</a></dd>{% empty %}{% if p.telefono %}<dt>Teléfono</dt><dd>{{ p.telefono }}</dd>{% endif %}{% endfor %}
+      {% if d.email %}<dt>Correo</dt><dd>{{ d.email }}</dd>{% endif %}
+      {% if d.address %}<dt>Dirección</dt><dd>{{ d.address|linebreaksbr }}</dd>{% endif %}
+      {% if d.emergency_contact.name %}<dt>Emergencia</dt><dd>{{ d.emergency_contact.name }} {{ d.emergency_contact.relationship }} {{ d.emergency_contact.phone }}</dd>{% endif %}
+      {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }} {{ d.emergency_contact.guardian_relation }}</dd>{% endif %}
+    </dl>
+  </section>
+  {% if d.problem_records %}<section class="tv-tarjeta"><h2>Problemas activos</h2><ul>{% for r in d.problem_records %}<li>{{ r.name }} · {{ r.status }}{% if r.notes %} — {{ r.notes }}{% endif %}</li>{% endfor %}</ul></section>{% endif %}
+  {% if historias %}<section class="tv-tarjeta"><h2>Antecedentes</h2>{% for titulo, h in historias %}<h3>{{ titulo }}</h3><p>{{ h.status }}{% if h.notes %}: {{ h.notes|linebreaksbr }}{% endif %}</p>{% endfor %}</section>{% endif %}
+  {% if d.medication_records %}<section class="tv-tarjeta"><h2>Medicación habitual</h2><ul>{% for m in d.medication_records %}<li>{{ m.name }} {{ m.strength }} {{ m.dose }} {{ m.dose_unit }} {{ m.route }} · {{ m.status }}</li>{% endfor %}</ul></section>{% endif %}
+  {% if d.administrative or d.clinical_notes %}<section class="tv-tarjeta"><h2>Notas</h2>{% if d.clinical_notes %}<p>{{ d.clinical_notes|linebreaksbr }}</p>{% endif %}{% if d.administrative %}<p class="tv-tenue">{{ d.administrative|linebreaksbr }}</p>{% endif %}</section>{% endif %}
+  {% if heredado %}<section class="tv-tarjeta"><h2>Información heredada · pendiente de revisión</h2>{% for k, v in heredado.items %}<p><strong>{{ k }}:</strong> {{ v|linebreaksbr }}</p>{% endfor %}</section>{% endif %}
+{% elif pestana == 'consultas' %}
+  {% if borrador %}{% alerta tipo="info" %}Tienes un borrador de consulta de este paciente. <a href="{% url 'med:consulta' borrador.id %}">Retomar</a>{% endalerta %}{% endif %}
+  <ul class="med-lista-consultas">
+  {% for k in consultas %}
+    <li><a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.c.id %}">
+      <strong>{{ k.c.atendida_iso|slice:":10" }}</strong> · {{ k.c.tipo|default:"General" }} <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{{ k.c.estado }}</span><br>
+      {{ k.c.motivo|default:"Sin motivo"|truncatechars:140 }}<br><span class="tv-tenue">{{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:80 }}{% endif %}</span></a></li>
+  {% empty %}<li class="tv-tenue">Todavía no hay consultas.</li>{% endfor %}
+  </ul>
+{% elif pestana == 'documentos' %}
+  <ul class="med-lista-documentos">
+  {% for x in documentos %}
+    <li class="tv-tarjeta"><strong>{{ x.titulo }}</strong> <span class="tv-insignia">{{ x.categoria }}</span><br>
+      <span class="tv-tenue">{% if x.fecha_documento %}{{ x.fecha_documento|date:"d/m/Y" }}{% else %}{{ x.created_at|date:"d/m/Y" }}{% endif %} · {{ x.mime }} · {{ x.tamano|filesizeformat }}</span>
+      <a class="tv-boton tv-boton--secundario" href="{% url 'med:documento_archivo' x.id %}">Descargar</a></li>
+  {% empty %}<li class="tv-tenue">No hay documentos en este expediente.</li>{% endfor %}
+  </ul>
+{% else %}
+  {% include "med/pacientes/_evolucion.html" %}
+{% endif %}
+</div>
+{% endblock %}

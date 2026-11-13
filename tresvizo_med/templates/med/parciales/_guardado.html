@@ -1,0 +1,2 @@
+<span id="indicador" class="med-indicador{% if error %} med-indicador--error{% endif %}" hx-swap-oob="true">{% if error %}No se pudo guardar: {{ error }}{% else %}Guardado {{ hora|time:"H:i:s" }}{% endif %}</span>
+{% if estado_editor %}<input type="hidden" id="f-revision" name="revision" value="{{ estado_editor.revision }}" hx-swap-oob="true"><input type="hidden" id="f-base" name="base" value="{{ estado_editor.base }}" hx-swap-oob="true">{% endif %}

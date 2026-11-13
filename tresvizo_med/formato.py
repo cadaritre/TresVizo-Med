@@ -60,8 +60,15 @@ def paciente_columnas(d):
     }
 
 
+def alergias_texto(datos):
+    """Sustancias de las alergias registradas, o el estado declarado cuando no hay ninguna."""
+    sustancias = [r.get('substance', '') for r in datos.get('allergy_records', []) if r.get('substance')]
+    return ', '.join(sustancias) or datos.get('allergies', '')
+
+
 def paciente_resumen(p):
-    d = {'id': str(p.id), 'name': p.nombre, 'file_number': p.folio, 'archived': p.archivado}
+    d = {'id': str(p.id), 'name': p.nombre, 'file_number': p.folio, 'archived': p.archivado,
+         'allergies': alergias_texto(p.datos)}
     if p.nacimiento:
         d['birth_date'] = p.nacimiento.isoformat()
     if p.edad_aproximada:

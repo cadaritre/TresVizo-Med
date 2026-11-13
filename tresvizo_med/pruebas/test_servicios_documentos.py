@@ -196,3 +196,13 @@ def test_evolucion_solo_finalizadas_no_archivadas(medico, paciente):
     consultas.guardar(medico, datos_consulta(paciente, vitals=toma('2026-09-03T10:00:00', '999')))
     puntos = borradores.evolucion(medico, paciente.id, 'systolic')
     assert [p['value'] for p in puntos] == [120, 130]
+
+
+def test_puntos_provisionales_solo_de_borradores_propios(medico, otro_medico, paciente):
+    def toma(momento, valor):
+        return [{'at': momento, 'values': {'systolic': {'value': valor, 'unit': 'mmHg'}}}]
+    consultas.guardar(medico, datos_consulta(paciente, vitals=toma('2026-09-03T10:00:00', '135')))
+    consultas.guardar(otro_medico, datos_consulta(paciente, vitals=toma('2026-09-04T10:00:00', '999')))
+    consultas.guardar(medico, datos_consulta(paciente, 'Finalizada', vitals=toma('2026-09-01T10:00:00', '120')))
+    assert [p['value'] for p in borradores.puntos_provisionales(medico, paciente.id, 'systolic')] == [135]
+    assert [p['value'] for p in borradores.evolucion(medico, paciente.id, 'systolic')] == [120]

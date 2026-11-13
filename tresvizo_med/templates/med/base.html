@@ -1,0 +1,12 @@
+{% extends "tvplataforma/base.html" %}{% load static tv %}
+{% block cabeza %}
+<link rel="stylesheet" href="{% url 'med:tema' %}">
+<link rel="stylesheet" href="{% static 'med/med.css' %}">
+{% endblock %}
+{% block acciones %}
+{% if not bloqueado %}
+<form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario" title="Oculta el contenido hasta escribir tu contraseña">Bloquear</button></form>
+{% endif %}
+{% endblock %}
+{% block pie %}{% endblock %}
+{% block scripts %}<script src="{% static 'med/med.js' %}" defer></script>{% endblock %}

@@ -99,3 +99,13 @@ def test_secuencia_de_folios_tras_importar(medico):
 def test_modo_invalido(medico):
     with pytest.raises(DataError):
         pacientes.buscar(medico, '', 'Nada')
+
+
+def test_posibles_duplicados_por_nombre_o_telefono_sin_fusionar(medico):
+    ana = pacientes.guardar(medico, datos_paciente('Ana Muñoz', phone='555 1234'))
+    luis = pacientes.guardar(medico, datos_paciente('Luis Pérez', phone='555 9999'))
+    assert [p.id for p in pacientes.posibles_duplicados({'name': 'ANA MUNOZ'})] == [ana.id]
+    assert [p.id for p in pacientes.posibles_duplicados({'name': 'Otra', 'phone': '555 9999'})] == [luis.id]
+    assert pacientes.posibles_duplicados({'name': 'Ana Muñoz'}, excluir=ana.id) == []
+    assert pacientes.posibles_duplicados({'name': 'Nadie', 'phone': ''}) == []
+    assert Paciente.objects.count() == 2

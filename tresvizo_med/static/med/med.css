@@ -1,0 +1,91 @@
+/* TresVizo Med. Solo tokens --tv-*; sin estilos en línea. Móvil primero (360 px) y objetivos táctiles de 44 px. */
+.med-subnav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-2); margin-bottom: var(--tv-espacio-4); }
+.med-subnav a:not(.tv-boton) { padding: var(--tv-espacio-2) var(--tv-espacio-3); min-height: var(--tv-tactil-min); display: inline-flex; align-items: center; color: var(--tv-texto); }
+.med-subnav a[aria-current="page"] { font-weight: 700; border-bottom: 2px solid var(--tv-primario); }
+.med-en-linea { display: inline; }
+.med-bloquear { display: inline; }
+
+/* Búsqueda y resultados en tarjetas */
+.med-busqueda { display: grid; gap: var(--tv-espacio-3); grid-template-columns: 1fr; margin-bottom: var(--tv-espacio-4); }
+.med-busqueda__boton { justify-self: start; }
+@media (min-width: 700px) { .med-busqueda { grid-template-columns: 1fr 200px auto; align-items: end; } }
+.med-resultados { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--tv-espacio-3); }
+.med-paciente { display: grid; gap: var(--tv-espacio-1); margin: 0; }
+.med-paciente__nombre { font-weight: 700; font-size: 1.0625rem; }
+.med-paciente__datos { color: var(--tv-tenue); }
+.med-paciente__alergias { color: var(--tv-estado-error-texto); font-weight: 600; }
+.med-paciente[data-seleccionado] { outline: 2px solid var(--tv-foco); }
+.med-conteo { margin: 0 0 var(--tv-espacio-3); }
+.med-paginas { display: flex; align-items: center; justify-content: center; gap: var(--tv-espacio-4); margin-top: var(--tv-espacio-4); }
+
+/* Expediente */
+.med-cabecera-paciente h1 { margin-bottom: var(--tv-espacio-1); }
+.med-alerta-alergias { background: var(--tv-estado-error-fondo); color: var(--tv-estado-error-texto); border-radius: var(--tv-radio); padding: var(--tv-espacio-2) var(--tv-espacio-3); margin: var(--tv-espacio-2) 0 0; }
+.med-pestanas { display: flex; gap: var(--tv-espacio-1); overflow-x: auto; border-bottom: 1px solid var(--tv-separador); margin-bottom: var(--tv-espacio-4); scroll-snap-type: x proximity; }
+.med-pestanas a { flex: 0 0 auto; min-height: var(--tv-tactil-min); display: inline-flex; align-items: center; padding: 0 var(--tv-espacio-4); color: var(--tv-texto); text-decoration: none; border-bottom: 3px solid transparent; scroll-snap-align: start; }
+.med-pestanas a[aria-selected="true"] { border-bottom-color: var(--tv-primario); font-weight: 700; }
+.med-datos { display: grid; grid-template-columns: minmax(110px, 30%) 1fr; gap: var(--tv-espacio-2) var(--tv-espacio-4); margin: 0; }
+.med-datos dt { color: var(--tv-tenue); } .med-datos dd { margin: 0; overflow-wrap: anywhere; }
+.med-lista-consultas, .med-lista-documentos { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--tv-espacio-3); }
+.med-estado--borrador { background: var(--tv-estado-aviso-fondo); color: var(--tv-estado-aviso-texto); }
+.med-estado--anulada { background: var(--tv-estado-error-fondo); color: var(--tv-estado-error-texto); }
+.med-estado--finalizada { background: var(--tv-estado-exito-fondo); color: var(--tv-estado-exito-texto); }
+.med-archivar summary { list-style: none; cursor: pointer; }
+.med-lectura { display: grid; gap: var(--tv-espacio-3); }
+.med-lectura .tv-tarjeta { margin: 0; }
+
+/* Alta de paciente */
+.med-alta { max-width: 860px; }
+.med-seccion > summary, .med-colapsable > summary, .med-historia > summary { cursor: pointer; min-height: var(--tv-tactil-min); display: flex; align-items: center; font-weight: 700; }
+.med-coleccion { margin: var(--tv-espacio-3) 0; }
+.med-fila { border: 1px solid var(--tv-separador); border-radius: var(--tv-radio); padding: var(--tv-espacio-3); margin: 0 0 var(--tv-espacio-3); display: grid; gap: var(--tv-espacio-3); }
+.med-fila__quitar { justify-self: start; }
+.med-barra { align-items: center; flex-wrap: wrap; }
+.med-barra .med-indicador { flex: 1 1 100%; }
+@media (min-width: 600px) { .med-barra .med-indicador { flex: 1 1 auto; } }
+.med-indicador { color: var(--tv-sobre-cabecera); font-size: .875rem; }
+.med-indicador--error { font-weight: 700; text-decoration: underline; }
+.med-descartar { margin-top: var(--tv-espacio-4); }
+
+/* Consulta: columna principal y laterales; en pantallas estrechas las capturas pasan abajo y se abren como hoja */
+.med-editor { display: grid; gap: var(--tv-espacio-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) { .med-editor { grid-template-columns: minmax(0, 1fr) 340px; } .med-editor .med-panel { grid-column: 1 / -1; } }
+.med-soap { display: grid; gap: var(--tv-espacio-4); }
+.med-encabezado { border: 0; padding: 0; margin: 0; display: grid; gap: var(--tv-espacio-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.med-resumenes { display: grid; gap: var(--tv-espacio-3); }
+.med-resumen { margin: 0; } .med-resumen header { display: flex; justify-content: space-between; align-items: center; gap: var(--tv-espacio-2); margin-bottom: var(--tv-espacio-2); }
+.med-resumen h2 { font-size: 1rem; margin: 0; }
+.med-item { display: flex; gap: var(--tv-espacio-2); align-items: stretch; border-top: 1px solid var(--tv-separador); }
+.med-item__texto, .med-chip { flex: 1; text-align: left; background: none; border: 0; font: inherit; color: var(--tv-texto); padding: var(--tv-espacio-2) 0; min-height: var(--tv-tactil-min); cursor: pointer; }
+.med-item__quitar { background: none; border: 0; min-width: var(--tv-tactil-min); min-height: var(--tv-tactil-min); color: var(--tv-tenue); cursor: pointer; font-size: 1rem; }
+.med-chips { list-style: none; padding: 0; margin: 0 0 var(--tv-espacio-3); display: flex; flex-wrap: wrap; gap: var(--tv-espacio-2); }
+.med-chips li { display: inline-flex; align-items: center; border: 1px solid var(--tv-borde); border-radius: 999px; padding-left: var(--tv-espacio-3); background: var(--tv-superficie); }
+.med-chips .med-chip { padding: 0; min-height: var(--tv-tactil-min); }
+.med-panel:empty { display: none; }
+.med-hoja { background: var(--tv-superficie); border: 1px solid var(--tv-borde); border-radius: var(--tv-radio); padding: var(--tv-espacio-4); }
+.med-hoja__cabecera { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--tv-espacio-3); }
+.med-hoja__cabecera h2 { margin: 0; }
+@media (max-width: 999px) {
+  .med-panel:not(:empty) { position: fixed; inset: auto 0 0 0; z-index: 40; max-height: 88dvh; overflow: auto; background: var(--tv-superficie); border-top: 2px solid var(--tv-borde); border-radius: calc(var(--tv-radio) * 2) calc(var(--tv-radio) * 2) 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .med-panel .med-hoja { border: 0; }
+}
+.med-vital__fila { display: grid; grid-template-columns: 1fr minmax(88px, auto); gap: var(--tv-espacio-2); align-items: center; }
+.med-vital__unidad { color: var(--tv-tenue); }
+.med-favoritos { display: flex; flex-wrap: wrap; gap: var(--tv-espacio-2); align-items: center; }
+.med-conflicto { display: grid; gap: var(--tv-espacio-3); }
+.med-opcion { display: flex; gap: var(--tv-espacio-3); align-items: flex-start; padding: var(--tv-espacio-2); border-radius: var(--tv-radio); }
+.med-opcion input { width: 24px; height: 24px; margin-top: 2px; }
+.med-bloqueo { max-width: 420px; }
+
+/* Evolución */
+.med-filtros { display: grid; gap: var(--tv-espacio-3); grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: var(--tv-espacio-3); }
+.med-grafica-caja { width: 100%; overflow: hidden; }
+.med-grafica { width: 100%; height: auto; display: block; }
+.med-grafica__rejilla { stroke: var(--tv-separador); stroke-width: 1; }
+.med-grafica__eje { fill: var(--tv-tenue); font-size: 11px; font-family: var(--tv-fuente); }
+.med-grafica__linea { fill: none; stroke-width: 2; } .med-grafica__punto { stroke-width: 2; }
+.med-serie-1 { stroke: var(--tv-grafica-1); fill: var(--tv-grafica-1); } .med-serie-2 { stroke: var(--tv-grafica-2); fill: var(--tv-grafica-2); }
+.med-grafica__linea.med-serie-1, .med-grafica__linea.med-serie-2 { fill: none; }
+.med-grafica__punto--hueco { fill: var(--tv-superficie); }
+.med-leyenda__lleno, .med-leyenda__hueco { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--tv-grafica-1); vertical-align: middle; margin-inline: var(--tv-espacio-2) var(--tv-espacio-1); }
+.med-leyenda__lleno { background: var(--tv-grafica-1); } .med-leyenda__hueco { background: var(--tv-superficie); }

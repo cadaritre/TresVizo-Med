@@ -1,0 +1,6 @@
+<ul class="med-chips">
+  {% for r in resumenes.diagnosticos %}<li><button type="button" class="med-chip" hx-get="{% url 'med:captura_item' c.id 'diagnosis' r.id %}" hx-target="#panel">{{ r.texto }}</button>
+    <button type="button" class="med-item__quitar" aria-label="Quitar {{ r.texto }}" hx-post="{% url 'med:quitar' c.id 'diagnosis' r.id %}" hx-target="#panel">✕</button></li>
+  {% empty %}<li class="tv-tenue">Sin diagnósticos.</li>{% endfor %}
+</ul>
+<button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'diagnosis' %}" hx-target="#panel" hx-sync="#editor:queue all">Agregar diagnóstico</button>

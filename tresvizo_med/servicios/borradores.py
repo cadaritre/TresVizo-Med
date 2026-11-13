@@ -62,7 +62,9 @@ def registrar(actor, identificador, contenido):
             raise DataError('El borrador fue descartado.')
         destino = borrador.paciente or borrador.objetivo or uuid.uuid4()
         foto = contenido.get('photo_attachment_id')
-        datos = {k: v for k, v in contenido.items() if k != 'photo_attachment_id'}
+        del_borrador = {str(i) for i in Documento.objects.filter(borrador=borrador).values_list('id', flat=True)}
+        # La foto de un documento del borrador se asigna después de moverlo; una ya incorporada se conserva.
+        datos = {k: v for k, v in contenido.items() if k != 'photo_attachment_id' or str(foto) not in del_borrador}
         paciente = pacientes.guardar(actor, {**datos, 'id': str(destino), 'registration_draft': str(borrador.id)},
                                      borrador.revision_origen)
         movidos = list(Documento.objects.filter(borrador=borrador))
@@ -70,7 +72,7 @@ def registrar(actor, identificador, contenido):
             documento.paciente, documento.borrador = paciente, None
             documento.updated_at = timezone.now()
             documento.save(update_fields=['paciente', 'borrador', 'updated_at'])
-        if foto and any(str(d.id) == str(foto) and d.mime.startswith('image/') for d in movidos):
+        if foto and str(foto) in del_borrador and any(str(d.id) == str(foto) and d.mime.startswith('image/') for d in movidos):
             paciente.foto_documento = uuid.UUID(str(foto))
             paciente.save(update_fields=['foto_documento'])
         borrador.estado, borrador.paciente, borrador.objetivo = BorradorAlta.Estado.REGISTRADO, paciente.id, paciente.id
@@ -120,4 +122,16 @@ def evolucion(actor, paciente_id, clave):
     from ..formato import consulta_a_dict
     filas = [consulta_a_dict(c, adendas=False) for c in Consulta.objects.filter(
         paciente_id=paciente_id, estado=Consulta.Estado.FINALIZADA, archivada=False)]
+    return dominio_care.evolution_points(filas, str(paciente_id), clave)
+
+
+def puntos_provisionales(actor, paciente_id, clave):
+    """Mediciones de los borradores propios del paciente: se dibujan huecas hasta que se finalice la consulta."""
+    from ..formato import consulta_a_dict
+    filas = []
+    for c in Consulta.objects.filter(paciente_id=paciente_id, estado=Consulta.Estado.BORRADOR,
+                                     doctor_id=actor.cuenta_id, archivada=False):
+        d = consulta_a_dict(c, adendas=False)
+        d['status'] = 'Finalizada'
+        filas.append(d)
     return dominio_care.evolution_points(filas, str(paciente_id), clave)

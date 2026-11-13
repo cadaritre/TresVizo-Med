@@ -1,0 +1,20 @@
+{% if c.tipo == 'casilla' %}
+<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="id_{{ c.nombre }}" name="{{ c.nombre }}"{% if c.valor %} checked{% endif %}><label for="id_{{ c.nombre }}">{{ c.etiqueta }}</label></div>
+{% elif c.vital %}
+<div class="tv-campo med-vital{% if c.error %} tv-campo--error{% endif %}"><label for="id_{{ c.nombre }}">{{ c.etiqueta }}</label>
+  <div class="med-vital__fila">
+    <input id="id_{{ c.nombre }}" name="{{ c.nombre }}" type="text" inputmode="decimal" autocomplete="off" value="{{ c.valor }}">
+    {% if c.unidades|length > 1 %}<select name="{{ c.unidad_nombre }}" aria-label="Unidad de {{ c.etiqueta }}">{% for u in c.unidades %}<option value="{{ u }}"{% if u == c.unidad %} selected{% endif %}>{{ u }}</option>{% endfor %}</select>
+    {% else %}<span class="med-vital__unidad">{{ c.unidades.0 }}</span><input type="hidden" name="{{ c.unidad_nombre }}" value="{{ c.unidades.0 }}">{% endif %}
+  </div>
+  {% if c.error %}<ul class="tv-campo__error"><li>{{ c.error }}</li></ul>{% endif %}
+</div>
+{% else %}
+<div class="tv-campo{% if c.error %} tv-campo--error{% endif %}"><label for="id_{{ c.nombre }}">{{ c.etiqueta }}{% if c.requerido %} <span class="tv-campo__requerido" aria-hidden="true">*</span>{% endif %}</label>
+  {% if c.tipo == 'area' %}<textarea id="id_{{ c.nombre }}" name="{{ c.nombre }}" rows="3"{% if c.error %} aria-invalid="true"{% endif %}>{{ c.valor }}</textarea>
+  {% elif c.tipo == 'seleccion' %}<select id="id_{{ c.nombre }}" name="{{ c.nombre }}"><option value=""{% if not c.valor %} selected{% endif %}>—</option>{% for o in c.opciones %}<option value="{{ o }}"{% if o == c.valor %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+  {% else %}<input id="id_{{ c.nombre }}" name="{{ c.nombre }}" type="{{ c.html }}" value="{{ c.valor }}"{% if c.tipo == 'numero' %} inputmode="decimal"{% endif %}{% if c.lista %} list="catalogo-med"{% endif %}{% if c.autofoco %} autofocus{% endif %}{% if c.error %} aria-invalid="true" aria-describedby="id_{{ c.nombre }}_error"{% endif %} autocomplete="off">{% endif %}
+  {% if c.ayuda %}<div class="tv-campo__ayuda">{{ c.ayuda }}</div>{% endif %}
+  {% if c.error %}<ul class="tv-campo__error" id="id_{{ c.nombre }}_error"><li>{{ c.error }}</li></ul>{% endif %}
+</div>
+{% endif %}

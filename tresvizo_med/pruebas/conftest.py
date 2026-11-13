@@ -101,3 +101,31 @@ def _folios_desde_uno(request):
 def _archivos_aislados(settings, tmp_path_factory):
     """Cada prueba escribe en su propia carpeta de archivos de Med."""
     settings.TV_MED_ARCHIVOS = tmp_path_factory.mktemp('med')
+
+
+def reverse_med(nombre, args=None, kwargs=None):
+    """``reverse`` con las URLs del host de Med (fuera de una petición se usa el «portal» de las pruebas)."""
+    from django.urls import reverse
+    from tvplataforma.middleware import urlconf_de
+    return reverse(nombre, args=args, kwargs=kwargs, urlconf=urlconf_de('med'))
+
+
+@pytest.fixture
+def cliente_med(crear_usuario, roles):
+    """Fábrica de clientes independientes (cada uno con su sesión) en el host de Med: ``cliente_med('medico', username='ana')``."""
+    from django.test import Client
+    from tvplataforma import hosts
+    from tvplataforma.modulos import modulo
+
+    contador = {'n': 0}
+
+    def fabrica(*concedidos, username=None, superusuario=False):
+        contador['n'] += 1
+        usuario = crear_usuario(username or f'med{contador["n"]}', superusuario=superusuario)
+        if concedidos:
+            roles.conceder(usuario, 'med', *concedidos)
+        cliente = Client(HTTP_HOST=hosts.host_de(modulo('med')))
+        cliente.force_login(usuario)
+        cliente.usuario = usuario
+        return cliente
+    return fabrica
