@@ -10,6 +10,8 @@ requires-python = ">=3.13"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
+    "Django>=5.2,<5.3",
+    "tvplataforma>=1,<2",
     "Pillow==12.2.0",
     "reportlab>=4.4,<5",
     "pypdf>=6.0,<7",
@@ -18,7 +20,11 @@ dependencies = [
 [project.optional-dependencies]
 pruebas = [
     "pytest>=8.4,<10",
+    "pytest-django>=4.9",
 ]
+
+[tool.uv.sources]
+tvplataforma = { path = "../TresVizo-Portal/plataforma", editable = true }
 
 [tool.setuptools.packages.find]
 include = ["tresvizo_med*"]
@@ -31,6 +37,7 @@ tresvizo_med = [
 ]
 
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tresvizo_med.pruebas.ajustes"
 testpaths = ["tresvizo_med/pruebas"]
 python_files = ["test_*.py"]
-addopts = "-q"
+addopts = "-q -p no:cacheprovider"

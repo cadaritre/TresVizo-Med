@@ -65,7 +65,11 @@ def _validate(path):
 
 def operation_identifier(actor_id, target, operation_id):
     """Identificador determinista: reintentar la misma operación no duplica el documento."""
-    return str(uuid.uuid5(uuid.UUID(str(actor_id)), '|'.join(str(target.get(k) or '') for k in ('patient_id', 'encounter_id', 'draft_id'))+'|'+operation_id))
+    try:
+        namespace = uuid.UUID(str(actor_id))
+    except ValueError:  # cuentas del portal: identificador entero
+        namespace = uuid.uuid5(uuid.NAMESPACE_OID, 'tresvizo-med:cuenta:'+str(actor_id))
+    return str(uuid.uuid5(namespace, '|'.join(str(target.get(k) or '') for k in ('patient_id', 'encounter_id', 'draft_id'))+'|'+operation_id))
 
 
 def clean_update(values):
