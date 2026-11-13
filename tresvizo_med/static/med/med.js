@@ -21,6 +21,20 @@
     el.classList.toggle("med-indicador--error", !!error);
   }
 
+  // Preferencia del perfil: reducir el movimiento (también se respeta la del sistema operativo con prefers-reduced-motion).
+  document.addEventListener("DOMContentLoaded", function () {
+    if (document.querySelector("[data-reducir-movimiento]")) document.documentElement.classList.add("med-sin-movimiento");
+  });
+
+  // Sin señal: Med no guarda nada en el dispositivo (sin service worker ni almacenamiento local); solo avisa.
+  function red() {
+    var aviso = document.getElementById("sin-conexion");
+    if (aviso) aviso.hidden = navigator.onLine !== false;
+  }
+  window.addEventListener("offline", red);
+  window.addEventListener("online", red);
+  document.addEventListener("DOMContentLoaded", red);
+
   // Indicador «Guardado» real: si la red o el servidor fallan, lo dice.
   document.addEventListener("htmx:sendError", function () { avisar("No se pudo guardar: sin conexión. Se reintentará al seguir escribiendo.", true); });
   document.addEventListener("htmx:responseError", function (e) {

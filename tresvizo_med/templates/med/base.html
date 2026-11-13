@@ -5,9 +5,9 @@
 {% endblock %}
 {% block acciones %}
 {% if not bloqueado %}
-{% yo as persona %}{% if persona %}<a class="med-yo" href="{% url 'med:perfil' %}" aria-label="Mi perfil: {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales">{{ persona.iniciales }}</span>{% endif %}<span class="med-yo__nombre">{{ persona.nombre }}</span></a>{% endif %}
+{% yo as persona %}{% if persona %}<a class="med-yo"{% if persona.reducir %} data-reducir-movimiento{% endif %} href="{% url 'med:perfil' %}" aria-label="Mi perfil: {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales">{{ persona.iniciales }}</span>{% endif %}<span class="med-yo__nombre">{{ persona.nombre }}</span></a>{% endif %}
 <form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario" title="Oculta el contenido hasta escribir tu contraseña">Bloquear</button></form>
 {% endif %}
 {% endblock %}
-{% block pie %}{% endblock %}
+{% block pie %}<div id="sin-conexion" class="med-sin-conexion" role="status" hidden>Sin conexión. Med no guarda nada en este dispositivo: lo que escribiste vuelve a guardarse cuando regrese la señal.</div>{% endblock %}
 {% block scripts %}<script src="{% static 'tvplataforma/js/subida.js' %}" defer></script><script src="{% static 'med/med.js' %}" defer></script>{% endblock %}

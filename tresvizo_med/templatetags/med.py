@@ -29,4 +29,4 @@ def yo(context):
     nombre = (perfil.nombre_visible if perfil and perfil.nombre_visible else '') or cuentas.nombre(usuario.pk)
     avatar = perfil.avatar if perfil and perfil.avatar else 'initials'
     return {'nombre': nombre, 'iniciales': ''.join(p[0] for p in nombre.split()[:2]).upper() or '?',
-            'avatar': avatar, 'url': reverse('med:perfil_foto', args=[usuario.pk]) if avatar in ('photo',) or avatar in servicio_clinica.AVATARES else ''}
+            'avatar': avatar, 'reducir': bool(perfil and perfil.reducir_movimiento), 'url': reverse('med:perfil_foto', args=[usuario.pk]) if avatar in ('photo',) or avatar in servicio_clinica.AVATARES else ''}

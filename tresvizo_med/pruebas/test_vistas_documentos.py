@@ -171,7 +171,7 @@ def test_editar_archivar_versiones_y_foto(web, paciente, tmp_path, imagen):
 def test_documentos_en_una_consulta_borrador_y_finalizada(web, paciente, tmp_path, imagen):
     borrador = consultas.guardar(web.actor, datos_consulta(paciente))
     panel = web.get(reverse('med:panel_documentos', args=[borrador.id]), **HTMX).content.decode()
-    assert 'Documentos de la consulta' in panel and 'tv-subida' in panel and 'data-asociar' in panel
+    assert 'Documentos de la consulta' in panel and 'tv-subida' in panel and 'data-asociar' in panel and 'capture="environment"' in panel
     assert 'Documentos' in web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
     fila = subir(web, tmp_path, imagen)['subido_id']
     web.post(reverse('med:asociar', args=['consulta', borrador.id]), {'subido': fila}, **HTMX)
