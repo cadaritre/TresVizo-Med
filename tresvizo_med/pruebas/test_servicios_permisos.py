@@ -58,10 +58,11 @@ def test_suspender_a_un_medico_lo_saca_en_la_siguiente_peticion(fabrica_actor, r
 
 
 def test_el_prefijo_de_med_responde_404_sin_rol_y_redirige_sin_sesion(client, cliente_con_rol):
-    assert client.get('/med/pacientes/').status_code == 302
-    assert 'entrar' in client.get('/med/pacientes/')['Location']
+    ruta = MODULO.url+'pacientes/'  # el prefijo sale de la declaración del módulo, no se repite aquí
+    assert client.get(ruta).status_code == 302
+    assert 'entrar' in client.get(ruta)['Location']
     sin_med = cliente_con_rol()
-    assert sin_med.get('/med/pacientes/').status_code == 404
+    assert sin_med.get(ruta).status_code == 404
 
 
 def test_tablas_de_med_solo_en_la_base_med():
