@@ -1,5 +1,11 @@
 # TresVizo Med · Registro Clínico
 
+> **Rama `web`.** Esta rama reconstruye TresVizo Med como app Django (`tresvizo_med`, paquete `tresvizo-med-web`) para el
+> Portal TresVizo. La lógica clínica pura está en `tresvizo_med/dominio/`; las pruebas en `tresvizo_med/pruebas/` (`pytest`)
+> y la paridad contra el escritorio en `paridad/` (`pytest paridad`, extrae `main` con `git archive`). El resto de este
+> documento y `docs/` describen el escritorio 1.0.3 de `main` y se actualizan con cada paquete de la web.
+
+
 Aplicación local para Windows, Python 3.13, Tkinter y ttk. El trabajo se guarda en la carpeta real de Documentos, resuelta con la API de carpetas conocidas de Windows. La instalación inicia sin pacientes ni contraseñas predeterminadas.
 
 ## Ejecución

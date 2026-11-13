@@ -1,6 +1,6 @@
 # Reglas permanentes
 
-- Mantener Python, Tkinter y ttk como base tecnológica.
+- Rama `main`: mantener Python, Tkinter y ttk como base tecnológica. Rama `web`: app Django `tresvizo_med` para el Portal TresVizo (`tvplataforma`); la lógica clínica pura vive en `tresvizo_med/dominio/` sin Django ni Tk.
 - Reutilizar componentes y tokens del sistema visual documentado.
 - Separar presentación, lógica de negocio y persistencia JSON.
 - No introducir datos clínicos reales, credenciales, imágenes privadas ni respaldos en Git.

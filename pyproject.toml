@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tresvizo-med-web"
+version = "0.1.0"
+description = "TresVizo Med: expediente clínico como app Django para el Portal TresVizo"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "Pillow==12.2.0",
+    "reportlab>=4.4,<5",
+    "pypdf>=6.0,<7",
+]
+
+[project.optional-dependencies]
+pruebas = [
+    "pytest>=8.4,<10",
+]
+
+[tool.setuptools.packages.find]
+include = ["tresvizo_med*"]
+
+[tool.setuptools.package-data]
+tresvizo_med = [
+    "dominio/fuentes/*",
+    "static/**/*",
+    "templates/**/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tresvizo_med/pruebas"]
+python_files = ["test_*.py"]
+addopts = "-q"
