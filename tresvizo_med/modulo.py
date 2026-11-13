@@ -4,7 +4,8 @@ from tvplataforma.modulos import Modulo, Rol
 MODULO = Modulo(
     clave="med",
     nombre="TresVizo Med",
-    url="/med/",
+    host="med.tresvizo.com",      # el módulo vive en la raíz de su host
+    urlconf="tresvizo_med.urls",  # sus URLs, activas solo para ese host
     icono="med/icono.svg",
     orden=10,
     roles=[

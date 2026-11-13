@@ -4,5 +4,5 @@ from tvplataforma.pruebas.ajustes import *  # noqa: F403
 INSTALLED_APPS += ["tresvizo_med"]  # noqa: F405
 DATABASES = bases_de_prueba(med=True)  # noqa: F405
 DATABASE_ROUTERS = ["tvplataforma.pruebas.EnrutadorMed"]
-ROOT_URLCONF = "tresvizo_med.pruebas.urls"
+# ROOT_URLCONF ya es el «portal» mínimo de tvplataforma; las URLs de Med las activa el host med.tresvizo.com
 TV_MED_ARCHIVOS = carpeta_temporal()  # noqa: F405
