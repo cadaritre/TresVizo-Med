@@ -22,6 +22,9 @@ pruebas = [
     "pytest>=8.4,<10",
     "pytest-django>=4.9",
 ]
+e2e = [
+    "playwright>=1.50",
+]
 
 [tool.uv.sources]
 tvplataforma = { path = "../TresVizo-Portal/plataforma", editable = true }
@@ -41,3 +44,4 @@ DJANGO_SETTINGS_MODULE = "tresvizo_med.pruebas.ajustes"
 testpaths = ["tresvizo_med/pruebas"]
 python_files = ["test_*.py"]
 addopts = "-q -p no:cacheprovider"
+markers = ["carga: carga de 10 000 pacientes (e2e/test_carga.py)"]

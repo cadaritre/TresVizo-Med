@@ -20,3 +20,4 @@ dist/
 *.egg-info/
 artifacts/
 .wix/
+e2e/resultados-carga.json
