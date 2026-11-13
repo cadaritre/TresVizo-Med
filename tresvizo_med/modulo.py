@@ -8,6 +8,7 @@ MODULO = Modulo(
     urlconf="tresvizo_med.urls",  # sus URLs, activas solo para ese host
     icono="med/icono.svg",
     orden=10,
+    limpiezas=("tresvizo_med.limpieza.subidas_huerfanas", "tresvizo_med.limpieza.temporales"),
     roles=[
         Rol("admin", "Administrador de la clínica"),
         Rol("medico", "Médico"),
