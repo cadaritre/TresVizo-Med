@@ -209,3 +209,20 @@ def test_configuracion_muestra_cada_opcion_segun_el_rol(web, admin):
     assert 'Mi perfil' in medico and 'Apariencia' in medico and 'Clínica e identidad' not in medico
     jefe = admin.get(reverse('med:configuracion')).content.decode()
     assert 'Clínica e identidad' in jefe and 'Doctores' in jefe and 'Exportación completa' in jefe
+
+
+def test_los_formularios_con_autoguardado_no_se_bloquean_por_validacion_del_navegador(web):
+    """HTMX valida los formularios antes de enviar: un correo a medio escribir no debe frenar el autoguardado."""
+    from tresvizo_med.models import BorradorAlta
+    from tresvizo_med.servicios import borradores, consultas, pacientes
+    from .conftest import datos_consulta, datos_paciente
+    borrador = borradores.guardar_borrador(web.actor, {})
+    assert 'id="alta" novalidate' in web.get(reverse('med:alta', args=[borrador.id])).content.decode()
+    paciente = pacientes.guardar(web.actor, datos_paciente('Ana'))
+    c = consultas.guardar(web.actor, datos_consulta(paciente))
+    html = web.get(reverse('med:consulta', args=[c.id])).content.decode()
+    assert 'id="soap" novalidate' in html
+    assert 'id="captura" novalidate' in web.get(reverse('med:captura', args=[c.id, 'study']), **HTMX).content.decode()
+    # El verificador de contraste va en un elemento aparte: el formulario conserva la validación nativa al guardar.
+    editor = web.get(reverse('med:apariencia'), {'base': 'Clínico'}).content.decode()
+    assert 'closest form' in editor and 'hx-post="/configuracion/apariencia/verificar/"' in editor

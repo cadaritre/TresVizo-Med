@@ -10,7 +10,7 @@
 {% endblock %}
 {% block contenido %}
 <div id="editor" class="med-editor" data-abrir-url="{{ abrir_url }}">
-  <form id="soap" class="med-soap" method="post" action="{% url 'med:guardar' c.id %}" data-autoguardar
+  <form id="soap" novalidate class="med-soap" method="post" action="{% url 'med:guardar' c.id %}" data-autoguardar
         hx-post="{% url 'med:guardar' c.id %}" hx-trigger="input changed delay:900ms, change, guardar" hx-swap="none" hx-sync="#editor:queue all">
     {% csrf_token %}
     <input type="hidden" id="f-revision" name="revision" value="{{ c.revision }}">

@@ -3,7 +3,7 @@
     <button type="button" class="tv-boton tv-boton--secundario" data-cerrar-panel aria-label="Cerrar panel">✕</button></header>
   {% if pendiente %}<p class="tv-tenue">Retomas una captura sin aplicar.</p>{% endif %}
   {% if error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
-  <form id="captura" method="post" action="{% url 'med:captura_item' c.id tipo item %}"
+  <form id="captura" novalidate method="post" action="{% url 'med:captura_item' c.id tipo item %}"
         hx-post="{% url 'med:captura_item' c.id tipo item %}" hx-target="#panel" hx-swap="innerHTML" hx-sync="#editor:queue all"
         hx-trigger="submit, input changed delay:900ms" class="tv-formulario tv-formulario--ancho">
     {% csrf_token %}

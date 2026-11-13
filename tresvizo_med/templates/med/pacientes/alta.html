@@ -13,7 +13,7 @@
   <p>Si es una persona distinta, confirma abajo. Nunca se fusionan expedientes.</p>
 {% endalerta %}
 {% endif %}
-<form id="alta" method="post" action="{% url 'med:alta_registrar' borrador.id %}" class="tv-formulario tv-formulario--ancho med-alta" data-autoguardar
+<form id="alta" novalidate method="post" action="{% url 'med:alta_registrar' borrador.id %}" class="tv-formulario tv-formulario--ancho med-alta" data-autoguardar
       hx-post="{% url 'med:alta_guardar' borrador.id %}" hx-trigger="input changed delay:900ms, change, guardar" hx-swap="none" hx-sync="this:replace">
   {% csrf_token %}
   <section class="tv-tarjeta">
