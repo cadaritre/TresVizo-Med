@@ -1,7 +1,7 @@
 """Rutas de Med en la raíz de su host (``med.tresvizo.com``). Todas se resuelven con ``reverse('med:…')``."""
 from django.urls import path
 
-from .vistas import consulta, pacientes, sistema
+from .vistas import consulta, documentos, pacientes, sistema
 
 app_name = 'med'
 
@@ -20,7 +20,17 @@ urlpatterns = [
     path('pacientes/<uuid:paciente>/archivar/', pacientes.archivar, name='archivar'),
     path('pacientes/<uuid:paciente>/atender/', pacientes.atender, name='atender'),
     path('pacientes/<uuid:paciente>/evolucion/', pacientes.evolucion, name='evolucion'),
-    path('documentos/<uuid:documento>/archivo/', pacientes.documento_archivo, name='documento_archivo'),
+    path('documentos/gestor/<str:tipo>/<uuid:identificador>/', documentos.gestor, name='gestor'),
+    path('documentos/lista/<str:tipo>/<uuid:identificador>/', documentos.lista, name='lista_documentos'),
+    path('documentos/asociar/<str:tipo>/<uuid:identificador>/', documentos.asociar, name='asociar'),
+    path('documentos/cola/<str:tipo>/<uuid:identificador>/<uuid:fila>/incorporar/', documentos.incorporar, name='incorporar'),
+    path('documentos/cola/<str:tipo>/<uuid:identificador>/<uuid:fila>/retirar/', documentos.retirar, name='retirar'),
+    path('documentos/<uuid:documento>/', documentos.visor, name='visor'),
+    path('documentos/<uuid:documento>/archivo/', documentos.archivo, name='archivo'),
+    path('documentos/<uuid:documento>/miniatura/', documentos.miniatura, name='miniatura'),
+    path('documentos/<uuid:documento>/editar/', documentos.editar, name='editar_documento'),
+    path('documentos/<uuid:documento>/foto/', documentos.foto, name='foto_paciente'),
+    path('consultas/<uuid:consulta>/documentos/', documentos.panel_consulta, name='panel_documentos'),
     path('consultas/<uuid:consulta>/', consulta.consulta, name='consulta'),
     path('consultas/<uuid:consulta>/guardar/', consulta.guardar, name='guardar'),
     path('consultas/<uuid:consulta>/conflicto/', consulta.conflicto, name='conflicto'),

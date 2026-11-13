@@ -1,0 +1,21 @@
+<div id="lista-docs" class="med-lista-docs"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <form class="med-filtros" method="get" action="{% url 'med:lista_documentos' tipo identificador %}" hx-get="{% url 'med:lista_documentos' tipo identificador %}" hx-target="#lista-docs" hx-swap="outerHTML" hx-trigger="input changed delay:300ms, change">
+    <div class="tv-campo"><label for="q-docs">Buscar en los documentos</label><input id="q-docs" name="q" type="search" value="{{ filtros.q }}" autocomplete="off"></div>
+    <div class="tv-campo"><label for="cat-docs">Categoría</label><select id="cat-docs" name="categoria"><option value="">Todas</option>{% for c in categorias %}<option value="{{ c }}"{% if c == filtros.categoria %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="arch-docs" name="archivados" value="1"{% if filtros.archivados %} checked{% endif %}><label for="arch-docs">Incluir archivados</label></div>
+  </form>
+  <ul class="med-docs">
+  {% for x in lista %}
+    <li class="tv-tarjeta med-doc">
+      {% if x.mime|slice:":6" == "image/" %}<a href="{% url 'med:visor' x.id %}"><img class="med-doc__mini" src="{% url 'med:miniatura' x.id %}" alt="Vista previa de {{ x.titulo }}" width="96" height="96" loading="lazy"></a>
+      {% else %}<a class="med-doc__tipo" href="{% url 'med:visor' x.id %}" aria-label="Abrir {{ x.titulo }}">{% if x.mime == 'application/pdf' %}PDF{% else %}DOCX{% endif %}</a>{% endif %}
+      <div class="med-doc__datos">
+        <a href="{% url 'med:visor' x.id %}"><strong>{{ x.titulo }}</strong></a>
+        <span class="tv-tenue">{{ x.categoria }} · {% if x.fecha_documento %}{{ x.fecha_documento|date:"d/m/Y" }}{% else %}{{ x.created_at|date:"d/m/Y" }}{% endif %} · {{ x.tamano|filesizeformat }}</span>
+        {% if x.version_de_id %}<span class="tv-insignia">Versión nueva</span>{% endif %}{% if x.archivado %}<span class="tv-insignia">Archivado</span>{% endif %}
+      </div>
+      <a class="tv-boton tv-boton--secundario" href="{% url 'med:archivo' x.id %}">Descargar</a>
+    </li>
+  {% empty %}<li class="tv-tenue">No hay documentos{% if filtros.q or filtros.categoria %} con esos filtros{% endif %}.</li>{% endfor %}
+  </ul>
+</div>

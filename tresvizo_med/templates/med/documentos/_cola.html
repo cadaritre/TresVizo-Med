@@ -1,0 +1,21 @@
+<div id="cola-docs" class="med-cola" aria-live="polite">
+  {% if error and not fila_error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
+  {% for f in cola %}
+  <form class="tv-tarjeta med-cola-item" hx-post="{% url 'med:incorporar' tipo identificador f.id %}" hx-target="#cola-docs" hx-swap="outerHTML">
+    <p><strong>{{ f.name }}</strong> · {{ f.size|filesizeformat }} <span class="tv-insignia">{{ f.status }}</span>{% if f.replaces %} <span class="tv-insignia">Nueva versión</span>{% endif %}</p>
+    {% if fila_error == f.id and error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
+    <div class="tv-rejilla">
+      <div class="tv-campo"><label for="cat-{{ f.id }}">Categoría</label><select id="cat-{{ f.id }}" name="categoria">{% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div>
+      <div class="tv-campo"><label for="tit-{{ f.id }}">Título</label><input id="tit-{{ f.id }}" name="titulo" value="{{ f.name }}"></div>
+      <div class="tv-campo"><label for="fec-{{ f.id }}">Fecha del documento</label><input id="fec-{{ f.id }}" name="fecha" type="date"></div>
+    </div>
+    <div class="tv-campo"><label for="not-{{ f.id }}">Notas</label><textarea id="not-{{ f.id }}" name="notas" rows="2"></textarea></div>
+    {% if finalizada %}<div class="tv-campo"><label for="mot-{{ f.id }}">Motivo (la consulta está finalizada; se registrará una adenda)</label><input id="mot-{{ f.id }}" name="motivo" required></div>{% endif %}
+    {% if fila_error == f.id and 'idéntico' in error %}<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="dup-{{ f.id }}" name="permitir_duplicado"><label for="dup-{{ f.id }}">Incorporarlo de todos modos</label></div>{% endif %}
+    <div class="tv-formulario__acciones">
+      <button type="submit" class="tv-boton">Incorporar al expediente</button>
+      <button type="button" class="tv-boton tv-boton--secundario" hx-post="{% url 'med:retirar' tipo identificador f.id %}" hx-target="#cola-docs" hx-swap="outerHTML" hx-confirm="¿Quitar este archivo sin incorporarlo?">Quitar</button>
+    </div>
+  </form>
+  {% endfor %}
+</div>

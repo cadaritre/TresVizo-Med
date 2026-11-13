@@ -14,7 +14,7 @@
 <article class="med-lectura">
   {% for titulo, texto in secciones %}{% if texto %}<section class="tv-tarjeta"><h2>{{ titulo }}</h2><p>{{ texto|linebreaksbr }}</p></section>{% endif %}{% endfor %}
 </article>
-{% if documentos %}<section class="tv-tarjeta"><h2>Documentos de la consulta</h2><ul>{% for x in documentos %}<li><a href="{% url 'med:documento_archivo' x.id %}">{{ x.titulo }}</a> · {{ x.categoria }}</li>{% endfor %}</ul></section>{% endif %}
+{% if documentos %}<section class="tv-tarjeta"><h2>Documentos de la consulta</h2><ul>{% for x in documentos %}<li><a href="{% url 'med:archivo' x.id %}">{{ x.titulo }}</a> · {{ x.categoria }}</li>{% endfor %}</ul></section>{% endif %}
 {% if c.estado == 'Finalizada' or c.estado == 'Anulada' %}
   {% if puede_adenda %}
   <details class="tv-tarjeta"><summary>Agregar adenda</summary>

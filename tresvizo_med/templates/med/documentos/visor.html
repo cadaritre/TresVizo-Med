@@ -1,0 +1,50 @@
+{% extends "med/base.html" %}{% load tv static %}
+{% block titulo %}{{ x.titulo }}{% endblock %}
+{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}?pestana=documentos">‹ {{ p.nombre }} · Documentos</a></p><h1>{{ x.titulo }}</h1>
+<p class="tv-tenue">{{ x.categoria }} · {{ x.mime }} · {{ x.tamano|filesizeformat }} · {{ autor }}{% if x.archivado %} · <span class="tv-insignia">Archivado</span>{% endif %}</p></div>{% endblock %}
+{% block contenido %}
+<section class="tv-tarjeta med-visor" aria-label="Visor del documento">
+{% if es_imagen %}
+  <div class="med-zoom" data-zoom data-src="{% url 'med:archivo' x.id %}?en_linea=1">
+    <div class="med-zoom__barra" role="toolbar" aria-label="Zoom"><button type="button" class="tv-boton tv-boton--secundario" data-zoom-menos aria-label="Alejar">−</button><button type="button" class="tv-boton tv-boton--secundario" data-zoom-reiniciar>Ajustar</button><button type="button" class="tv-boton tv-boton--secundario" data-zoom-mas aria-label="Acercar">+</button></div>
+    <div class="med-zoom__lienzo" data-zoom-lienzo tabindex="0"><img data-zoom-imagen src="{% url 'med:archivo' x.id %}?en_linea=1" alt="{{ x.titulo }}" draggable="false"></div>
+  </div>
+{% elif es_pdf %}
+  <div class="med-pdf" data-pdf data-src="{% url 'med:archivo' x.id %}?en_linea=1" data-lib="{% static 'med/vendor/pdfjs/pdf.min.mjs' %}" data-worker="{% static 'med/vendor/pdfjs/pdf.worker.min.mjs' %}">
+    <p class="tv-tenue" data-pdf-estado>Cargando el documento…</p><div data-pdf-paginas></div>
+  </div>
+  <script type="module" src="{% static 'med/med-pdf.js' %}" nonce="{{ csp_nonce }}"></script>
+{% else %}
+  <p>Este formato se abre en una aplicación local: descárgalo.</p>
+{% endif %}
+  <p><a class="tv-boton" href="{% url 'med:archivo' x.id %}">Descargar el original</a></p>
+</section>
+{% if puede_editar %}
+<details class="tv-tarjeta"><summary>Detalles y estado</summary>
+  <form method="post" action="{% url 'med:editar_documento' x.id %}" class="tv-formulario">{% csrf_token %}
+    <input type="hidden" name="revision" value="{{ x.revision }}">
+    <div class="tv-campo"><label for="d-titulo">Título</label><input id="d-titulo" name="titulo" value="{{ x.titulo }}" required></div>
+    <div class="tv-campo"><label for="d-cat">Categoría</label><select id="d-cat" name="categoria">{% for c in categorias %}<option value="{{ c }}"{% if c == x.categoria %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="tv-campo"><label for="d-fecha">Fecha del documento</label><input id="d-fecha" name="fecha" type="date" value="{{ x.fecha_documento|date:'Y-m-d' }}"></div>
+    <div class="tv-campo"><label for="d-notas">Notas</label><textarea id="d-notas" name="notas">{{ x.descripcion }}</textarea></div>
+    {% if finalizada %}<div class="tv-campo"><label for="d-motivo">Motivo del cambio (consulta finalizada)</label><input id="d-motivo" name="motivo" required></div>{% endif %}
+    <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Guardar</button></div>
+  </form>
+  <form method="post" action="{% url 'med:editar_documento' x.id %}" class="tv-formulario">{% csrf_token %}
+    <input type="hidden" name="revision" value="{{ x.revision }}"><input type="hidden" name="accion" value="{% if x.archivado %}restaurar{% else %}archivar{% endif %}">
+    {% if finalizada %}<div class="tv-campo"><label for="a-motivo">Motivo</label><input id="a-motivo" name="motivo" required></div>{% endif %}
+    <button class="tv-boton tv-boton--secundario" type="submit">{% if x.archivado %}Restaurar{% else %}Archivar{% endif %}</button>
+  </form>
+  {% if es_imagen and x.paciente_id and not es_foto %}
+  <form method="post" action="{% url 'med:foto_paciente' x.id %}" class="tv-formulario">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Usar como foto del paciente</button></form>{% elif es_foto %}<p class="tv-tenue">Es la foto del paciente.</p>{% endif %}
+</details>
+{% endif %}
+<section class="tv-tarjeta"><h2>Versiones</h2>
+  <ul>{% for v in versiones %}<li>{% if v.id == x.id %}<strong>{{ v.created_at|date:"d/m/Y H:i" }} · {{ v.nombre_original }} (esta)</strong>{% else %}<a href="{% url 'med:visor' v.id %}">{{ v.created_at|date:"d/m/Y H:i" }} · {{ v.nombre_original }}</a>{% endif %}</li>{% endfor %}</ul>
+  {% if puede_editar and x.paciente_id %}<details><summary class="tv-boton tv-boton--secundario">Subir una nueva versión</summary>
+    <div class="med-subida" data-asociar="{% url 'med:asociar' gestor_destino.0 gestor_destino.1 %}" data-reemplaza="{{ x.id }}" data-destino-pagina="{% url 'med:gestor' gestor_destino.0 gestor_destino.1 %}">
+      {% subida destino="med.documento" accept=".jpg,.jpeg,.png,.pdf,.docx" etiqueta="Elige la nueva versión" %}</div>
+    <div id="cola-docs"></div><div id="lista-docs"></div></details>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script src="{% static 'med/med-visor.js' %}" defer></script>{% endblock %}

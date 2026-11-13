@@ -89,3 +89,20 @@
 .med-grafica__punto--hueco { fill: var(--tv-superficie); }
 .med-leyenda__lleno, .med-leyenda__hueco { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--tv-grafica-1); vertical-align: middle; margin-inline: var(--tv-espacio-2) var(--tv-espacio-1); }
 .med-leyenda__lleno { background: var(--tv-grafica-1); } .med-leyenda__hueco { background: var(--tv-superficie); }
+
+/* Documentos */
+.med-gestor { display: grid; gap: var(--tv-espacio-4); }
+.med-cola-item { margin: 0; display: grid; gap: var(--tv-espacio-3); }
+.med-docs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--tv-espacio-3); }
+.med-doc { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--tv-espacio-3); align-items: center; margin: 0; }
+.med-doc > .tv-boton { grid-column: 1 / -1; }
+@media (min-width: 700px) { .med-doc { grid-template-columns: 96px minmax(0, 1fr) auto; } .med-doc > .tv-boton { grid-column: auto; } }
+.med-doc__mini { width: 96px; height: 96px; object-fit: cover; border-radius: var(--tv-radio); border: 1px solid var(--tv-separador); display: block; }
+.med-doc__tipo { width: 96px; height: 96px; display: grid; place-items: center; border-radius: var(--tv-radio); background: var(--tv-secundario); color: var(--tv-sobre-secundario); font-weight: 700; text-decoration: none; }
+.med-doc__datos { display: grid; gap: var(--tv-espacio-1); min-width: 0; overflow-wrap: anywhere; }
+.med-visor { display: grid; gap: var(--tv-espacio-3); }
+.med-zoom__barra { display: flex; gap: var(--tv-espacio-2); margin-bottom: var(--tv-espacio-2); }
+.med-zoom__lienzo { overflow: hidden; touch-action: none; border: 1px solid var(--tv-separador); border-radius: var(--tv-radio); background: var(--tv-fondo); max-height: 75dvh; cursor: grab; }
+.med-zoom__lienzo img { display: block; width: 100%; height: auto; max-height: 75dvh; object-fit: contain; transform-origin: 0 0; user-select: none; }
+.med-pdf [data-pdf-paginas] { display: grid; gap: var(--tv-espacio-3); }
+.med-pdf__pagina { width: 100%; height: auto; background: var(--tv-superficie); border: 1px solid var(--tv-separador); min-height: 240px; }

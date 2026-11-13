@@ -16,7 +16,7 @@ from ..formato import consulta_a_dict
 from ..formularios import consulta as form_consulta
 from ..formularios.consulta import TIPOS_CAPTURA, campos_captura, leer_captura, leer_soap, solo_soap
 from ..formularios.paciente import edad_texto
-from ..models import Consulta
+from ..models import Consulta, Documento
 from ..servicios import NoEncontrado, PermisoDenegado, VersionConflict, borradores, consultas, documentos
 from .comun import es_htmx, redirigir, vista_med
 
@@ -41,7 +41,9 @@ def _guardar_borrador(actor, draft, revision):
 
 def _resumenes(draft):
     datos = draft.data
+    identificador = draft.record['id']
     return {
+        'documentos': Documento.objects.filter(consulta_id=identificador).count(),
         'diagnosticos': [{'id': r['id'], 'texto': r['name']} for r in datos['diagnoses']],
         'signos': [{'id': r['id'], 'texto': measurement_summary(r)} for r in sorted(datos['vitals'], key=lambda g: g.get('at', ''))],
         'medicamentos': [{'id': r['id'], 'texto': medication_text(r), 'revisar': bool(r.get('needs_review'))} for r in datos['prescriptions']],

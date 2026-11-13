@@ -3,7 +3,7 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.http import FileResponse, Http404, HttpResponse, JsonResponse
+from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -18,6 +18,7 @@ from ..graficas import serie_para
 from ..models import BorradorAlta, Consulta, Documento
 from ..servicios import VersionConflict, borradores, consultas, documentos, pacientes
 from .comun import TODOS, es_htmx, redirigir, vista_med
+from .documentos import contexto_gestor
 
 MEDICIONES = [('blood_pressure', 'Presión arterial'), *[(k, v[0]) for k, v in VITALS.items() if k not in ('systolic', 'diastolic')], ('bmi', 'IMC')]
 PERIODOS = [('30', '30 días'), ('90', '90 días'), ('365', 'Un año'), ('todo', 'Todo')]
@@ -94,7 +95,7 @@ def _contexto_alta(request, b, datos=None, errores=None, duplicados=None, confli
     persona = None
     if b.paciente:
         persona = pacientes.Paciente.objects.filter(pk=b.paciente).first()
-    return {'borrador': b, 'edicion': persona, 'campos': form_paciente.campos_personales(datos, errores),
+    return {**contexto_gestor(request, 'borrador', b.id), 'borrador': b, 'edicion': persona, 'campos': form_paciente.campos_personales(datos, errores),
             'colecciones': form_paciente.colecciones(datos), 'errores': errores or {}, 'duplicados': duplicados or [],
             'conflicto': conflicto, 'foto': datos.get('photo_attachment_id', ''), 'puede_atender': request.actor.es_medico}
 
@@ -197,7 +198,7 @@ def expediente(request, paciente):
         borrador = next((c for c in filas if c.estado == Consulta.Estado.BORRADOR and c.doctor_id == request.actor.cuenta_id), None)
         contexto.update(consultas=[{'c': c, 'doctor': nombres.get(c.doctor_id, '')} for c in filas], borrador=borrador)
     elif pestana == 'documentos':
-        contexto['documentos'] = documentos.listar(request.actor, persona.id)
+        contexto.update(contexto_gestor(request, 'paciente', persona.id))
     else:
         contexto.update(_contexto_evolucion(request, persona))
     return render(request, 'med/pacientes/expediente.html', contexto)
@@ -215,16 +216,6 @@ def archivar(request, paciente):
 def atender(request, paciente):
     consulta, _ = consultas.iniciar(request.actor, paciente)
     return redirect('med:consulta', consulta=consulta.id)
-
-
-@vista_med(*TODOS)
-def documento_archivo(request, documento):
-    """Descarga el original tras verificar su integridad."""
-    fila = documentos.obtener(request.actor, documento)
-    ruta = documentos.ruta_verificada(request.actor, documento)
-    respuesta = FileResponse(ruta.open('rb'), as_attachment=True, filename=fila.nombre_original, content_type=fila.mime)
-    respuesta['X-Content-Type-Options'] = 'nosniff'
-    return respuesta
 
 
 # --- Evolución --------------------------------------------------------------------------------------------------

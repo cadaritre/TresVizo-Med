@@ -96,6 +96,14 @@
     }
   });
 
+  // Una subida terminada pasa a la cola de su destino (el contrato de subidas no lleva el expediente en los metadatos).
+  document.addEventListener("tv-subida:listo", function (e) {
+    var zona = e.target.closest && e.target.closest("[data-asociar]");
+    var id = e.detail && e.detail.resultado && e.detail.resultado.subido_id;
+    if (!zona || !id || !window.htmx) return;
+    htmx.ajax("POST", zona.dataset.asociar, { target: "#cola-docs", swap: "outerHTML", values: { subido: id, reemplaza: zona.dataset.reemplaza || "" } });
+  });
+
   // «Revisar y finalizar» vuelve a abrir la captura que falta (?abrir=…).
   document.addEventListener("DOMContentLoaded", function () {
     var editor = document.getElementById("editor");

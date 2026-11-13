@@ -54,13 +54,7 @@
   {% empty %}<li class="tv-tenue">Todavía no hay consultas.</li>{% endfor %}
   </ul>
 {% elif pestana == 'documentos' %}
-  <ul class="med-lista-documentos">
-  {% for x in documentos %}
-    <li class="tv-tarjeta"><strong>{{ x.titulo }}</strong> <span class="tv-insignia">{{ x.categoria }}</span><br>
-      <span class="tv-tenue">{% if x.fecha_documento %}{{ x.fecha_documento|date:"d/m/Y" }}{% else %}{{ x.created_at|date:"d/m/Y" }}{% endif %} · {{ x.mime }} · {{ x.tamano|filesizeformat }}</span>
-      <a class="tv-boton tv-boton--secundario" href="{% url 'med:documento_archivo' x.id %}">Descargar</a></li>
-  {% empty %}<li class="tv-tenue">No hay documentos en este expediente.</li>{% endfor %}
-  </ul>
+  {% include "med/documentos/_gestor.html" %}
 {% else %}
   {% include "med/pacientes/_evolucion.html" %}
 {% endif %}

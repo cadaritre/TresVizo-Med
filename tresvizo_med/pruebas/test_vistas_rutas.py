@@ -69,7 +69,7 @@ def test_identificadores_inexistentes_son_404_para_quien_tiene_rol(cliente_med):
     for nombre in ('consulta', 'revisar'):
         assert medico.get(reverse(f'med:{nombre}', args=[uuid.uuid4()])).status_code == 404
     assert medico.get(reverse('med:alta', args=[uuid.uuid4()])).status_code == 404
-    assert medico.get(reverse('med:documento_archivo', args=[uuid.uuid4()])).status_code == 404
+    assert medico.get(reverse('med:archivo', args=[uuid.uuid4()])).status_code == 404
 
 
 def test_el_superadministrador_ve_todo(cliente_med):

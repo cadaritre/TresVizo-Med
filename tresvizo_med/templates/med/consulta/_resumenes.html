@@ -17,6 +17,10 @@
       <button type="button" class="med-item__quitar" aria-label="Quitar estudio" hx-post="{% url 'med:quitar' c.id 'study' r.id %}" hx-target="#panel" hx-confirm="¿Quitar este estudio?">✕</button></div>
     {% empty %}<p class="tv-tenue">Sin estudios.</p>{% endfor %}
   </section>
+  <section class="tv-tarjeta med-resumen">
+    <header><h2>Documentos</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:panel_documentos' c.id %}" hx-target="#panel">Abrir{% if resumenes.documentos %} ({{ resumenes.documentos }}){% endif %}</button></header>
+    <p class="tv-tenue">{% if resumenes.documentos %}{{ resumenes.documentos }} documento{{ resumenes.documentos|pluralize }} en esta consulta.{% else %}JPEG, PNG, PDF y DOCX.{% endif %}</p>
+  </section>
   {% if resumenes.pendientes %}
   <section class="tv-tarjeta med-resumen med-resumen--pendiente"><h2>Capturas sin aplicar</h2>
     {% for p in resumenes.pendientes %}<button type="button" class="tv-boton tv-boton--secundario" hx-get="{% if p.tipo in 'vitals medication study diagnosis' %}{% url 'med:captura_item' c.id p.tipo p.id %}{% endif %}" hx-target="#panel">{{ p.nombre }} pendiente</button>{% endfor %}

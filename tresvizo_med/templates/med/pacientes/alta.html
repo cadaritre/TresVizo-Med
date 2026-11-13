@@ -57,13 +57,13 @@
     {% with c=campos.administrativas %}{% include "med/parciales/_campo.html" %}{% endwith %}
     {% with c=campos.clinicas %}{% include "med/parciales/_campo.html" %}{% endwith %}
   </details>
-  <p class="tv-tenue">Los documentos del expediente se agregan desde la pestaña Documentos cuando el paciente ya está registrado.</p>
-  {% if duplicados %}<input type="hidden" name="confirmar_duplicado" value="1">{% endif %}
+    {% if duplicados %}<input type="hidden" name="confirmar_duplicado" value="1">{% endif %}
   <div class="tv-barra-inferior med-barra">
     <span id="indicador" class="med-indicador" aria-live="polite">Borrador privado guardado</span>
     <button type="submit" class="tv-boton" name="comenzar" value="{% if puede_atender %}1{% else %}0{% endif %}">{% if puede_atender %}Guardar y comenzar consulta{% else %}Guardar paciente{% endif %}</button>
     {% if puede_atender %}<button type="submit" class="tv-boton tv-boton--secundario" name="comenzar" value="0">Guardar solo paciente</button>{% endif %}
   </div>
 </form>
+<section class="med-docs-alta"><h2>Documentos e imágenes</h2><p class="tv-tenue">Archivos para el expediente general del paciente; pasan al expediente al guardar.</p>{% include "med/documentos/_gestor.html" %}</section>
 <form method="post" action="{% url 'med:alta_descartar' borrador.id %}" class="med-descartar">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario">Descartar borrador</button></form>
 {% endblock %}

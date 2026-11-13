@@ -17,7 +17,7 @@ from ..db import atomico
 from ..dominio import attachments as dominio
 from ..dominio.errores import DataError
 from ..formato import documento_a_dict
-from ..models import BorradorAlta, Consulta, Documento, Paciente
+from ..models import BorradorAlta, ColaDocumentos, Consulta, Documento, Paciente
 from . import consultas as servicio_consultas
 from .errores import NoEncontrado, VersionConflict
 
@@ -102,7 +102,7 @@ def ruta_verificada(actor, identificador):
 
 def agregar(actor, origen, paciente=None, consulta=None, borrador=None, categoria='Otro documento', notas='',
             motivo='', permitir_duplicado=False, reemplaza=None, progreso=lambda fraccion: None, operacion=None,
-            nombre_original=None):
+            nombre_original=None, titulo=None, fecha=None):
     """Incorpora un archivo. Con ``operacion`` es idempotente: repetirlo devuelve el documento ya guardado.
 
     A una consulta finalizada solo se agrega con motivo, y deja una adenda.
@@ -156,7 +156,8 @@ def agregar(actor, origen, paciente=None, consulta=None, borrador=None, categori
             documento = Documento(
                 id=identificador, paciente=persona, consulta=fila, borrador=alta, doctor_id=actor.cuenta_id,
                 categoria=categoria, mime=mime, tamano=total, sha256=sha.hexdigest(), version_de=anterior,
-                titulo=Path(nombre).stem, descripcion=notas, nombre_original=nombre, ruta=relativa,
+                titulo=(titulo or Path(nombre).stem).strip() or Path(nombre).stem, descripcion=notas,
+                fecha_documento=date.fromisoformat(fecha) if fecha else None, nombre_original=nombre, ruta=relativa,
                 created_at=ahora, created_by=actor.cuenta_id, updated_at=ahora, updated_by=actor.cuenta_id)
             documento.save()
             if fila and fila.estado == Consulta.Estado.ANULADA:
@@ -234,3 +235,166 @@ def informe_integridad(actor):
     preparacion = raiz()/'preparacion'
     pendientes = [p.name for p in preparacion.glob('*') if p.is_file()] if preparacion.exists() else []
     return {'documents': len(filas), 'missing': ausentes, 'unreferenced': huerfanos, 'pending': pendientes}
+
+
+# --- Subida, cola y asociación ------------------------------------------------------------------------------------
+#
+# El contrato de subidas (tus) solo envía ``destino``, ``name``, ``type`` y ``sha256`` como metadatos: el destino no
+# sabe a qué expediente va el archivo. Por eso la subida deja el archivo, ya validado, en la lista «subidos» de la
+# persona; la página lo asocia a su destino (paciente, consulta o borrador de alta) y ahí se le ponen categoría,
+# título y notas antes de incorporarlo. Es la misma cola de «archivos elegidos y aún no incorporados» del escritorio.
+
+SUBIDOS = 'subidos'
+PENDIENTE = 'Pendiente de copia / reintento'
+
+
+def _cola(profesional_id, destino, bloquear=False):
+    consulta = ColaDocumentos.objects.select_for_update() if bloquear else ColaDocumentos.objects
+    fila = consulta.filter(profesional_id=profesional_id, destino=destino).first()
+    if fila is None:
+        fila = ColaDocumentos(profesional_id=profesional_id, destino=destino, filas=[], ediciones={}, actualizado=timezone.now())
+    return fila
+
+
+def _guardar_cola(cola):
+    cola.actualizado = timezone.now()
+    cola.save()
+
+
+def clave_destino(paciente=None, consulta=None, borrador=None):
+    for nombre, valor in (('consulta', consulta), ('borrador', borrador), ('paciente', paciente)):
+        if valor:
+            return f'{nombre}:{valor}'
+    raise DataError('Destino de documentos inválido.')
+
+
+def registrar_subida(actor, archivo):
+    """Llamada por el destino ``med.documento``: mueve el archivo recibido a la carpeta de la persona, valida su
+    contenido real y lo anota en «subidos». Devuelve la fila."""
+    actor.exigir_medico()
+    identificador = str(uuid.uuid4())
+    sufijo = Path(archivo.nombre).suffix.lower()
+    destino = raiz()/'subidos'/str(actor.cuenta_id)/(identificador+sufijo)
+    archivo.mover_a(destino)
+    try:
+        mime = dominio.validate(destino)
+    except DataError:
+        destino.unlink(missing_ok=True)
+        raise
+    fila = {'id': identificador, 'name': archivo.nombre, 'path': str(destino), 'mime': mime, 'size': archivo.tamano,
+            'sha256': archivo.sha256, 'status': PENDIENTE}
+    with atomico():
+        cola = _cola(actor.cuenta_id, SUBIDOS, True)
+        cola.filas = [*cola.filas, fila]
+        _guardar_cola(cola)
+    return fila
+
+
+def subidos(actor):
+    cola = ColaDocumentos.objects.filter(profesional_id=actor.cuenta_id, destino=SUBIDOS).first()
+    return list(cola.filas) if cola else []
+
+
+def asociar(actor, fila_id, paciente=None, consulta=None, borrador=None, reemplaza=None):
+    """Pasa un archivo subido a la cola de su destino (queda pendiente de incorporar)."""
+    actor.exigir_medico()
+    autorizar(actor, paciente, consulta, borrador)
+    if reemplaza:
+        obtener(actor, reemplaza)
+    with atomico():
+        origen = _cola(actor.cuenta_id, SUBIDOS, True)
+        fila = next((f for f in origen.filas if f['id'] == str(fila_id)), None)
+        if fila is None:
+            raise NoEncontrado('No existe el archivo subido.')
+        origen.filas = [f for f in origen.filas if f['id'] != fila['id']]
+        _guardar_cola(origen)
+        destino = _cola(actor.cuenta_id, clave_destino(paciente, consulta, borrador), True)
+        nueva = {**fila, **({'replaces': str(reemplaza)} if reemplaza else {})}
+        destino.filas = [*destino.filas, nueva]
+        _guardar_cola(destino)
+        return nueva
+
+
+def cola(actor, paciente=None, consulta=None, borrador=None):
+    autorizar(actor, paciente, consulta, borrador)
+    fila = ColaDocumentos.objects.filter(profesional_id=actor.cuenta_id, destino=clave_destino(paciente, consulta, borrador)).first()
+    resultado = []
+    for item in (fila.filas if fila else []):
+        item = dict(item)
+        if not Path(item['path']).is_file():
+            item['status'] = 'Original no disponible · vuelve a elegir el archivo'
+        resultado.append(item)
+    return resultado
+
+
+def _quitar_de_cola(actor, clave, fila_id):
+    cola = _cola(actor.cuenta_id, clave, True)
+    fila = next((f for f in cola.filas if f['id'] == str(fila_id)), None)
+    if fila is None:
+        raise NoEncontrado('No existe el archivo en la cola.')
+    cola.filas = [f for f in cola.filas if f['id'] != fila['id']]
+    _guardar_cola(cola)
+    return fila
+
+
+def retirar(actor, fila_id, paciente=None, consulta=None, borrador=None):
+    """Quita un archivo de la cola sin incorporarlo y borra su copia."""
+    with atomico():
+        fila = _quitar_de_cola(actor, clave_destino(paciente, consulta, borrador), fila_id)
+    Path(fila['path']).unlink(missing_ok=True)
+
+
+def incorporar(actor, fila_id, paciente=None, consulta=None, borrador=None, categoria='Otro documento', titulo='', notas='',
+               fecha='', motivo='', permitir_duplicado=False):
+    """Convierte un archivo de la cola en documento del expediente. Idempotente por archivo."""
+    clave = clave_destino(paciente, consulta, borrador)
+    fila = next((f for f in cola(actor, paciente, consulta, borrador) if f['id'] == str(fila_id)), None)
+    if fila is None:
+        raise NoEncontrado('No existe el archivo en la cola.')
+    if not Path(fila['path']).is_file():
+        raise DataError('El archivo ya no está disponible. Vuelve a subirlo.')
+    documento = agregar(actor, fila['path'], paciente=paciente, consulta=consulta, borrador=borrador, categoria=categoria,
+                        notas=notas, motivo=motivo, permitir_duplicado=permitir_duplicado, reemplaza=fila.get('replaces'),
+                        operacion=fila['id'], nombre_original=fila['name'], titulo=titulo or None, fecha=fecha or None)
+    with atomico():
+        try:
+            _quitar_de_cola(actor, clave, fila_id)
+        except NoEncontrado:
+            pass
+    Path(fila['path']).unlink(missing_ok=True)
+    return documento
+
+
+def foto_de_paciente(actor, paciente_id, documento_id):
+    """Usa una imagen del expediente como foto del paciente."""
+    with atomico():
+        persona = Paciente.objects.select_for_update().filter(pk=paciente_id).first()
+        documento = obtener(actor, documento_id)
+        if not persona or documento.paciente_id != persona.id or documento.borrador_id or not documento.mime.startswith('image/'):
+            raise DataError('La foto debe ser una imagen incorporada al expediente de este paciente.')
+        persona.foto_documento = documento.id
+        persona.revision += 1
+        persona.updated_at, persona.updated_by = timezone.now(), actor.cuenta_id
+        persona.save(update_fields=['foto_documento', 'revision', 'updated_at', 'updated_by'])
+        return persona
+
+
+def filtrar(documentos, texto='', categoria=''):
+    from ..dominio.texto import normalized
+    aguja = normalized(texto)
+    return [d for d in documentos if (not categoria or d.categoria == categoria)
+            and (not aguja or aguja in normalized(' '.join([d.titulo, d.descripcion, d.nombre_original])))]
+
+
+def versiones(actor, documento):
+    """Cadena de versiones de un documento, de la más reciente a la original."""
+    obtenido = obtener(actor, documento.id if hasattr(documento, 'id') else documento)
+    raiz_id = obtenido
+    while raiz_id.version_de_id:
+        raiz_id = Documento.objects.get(pk=raiz_id.version_de_id)
+    cadena, pendientes = [raiz_id], [raiz_id.id]
+    while pendientes:
+        hijos = list(Documento.objects.filter(version_de_id__in=pendientes).order_by('created_at'))
+        cadena += hijos
+        pendientes = [h.id for h in hijos]
+    return sorted(cadena, key=lambda d: d.created_at, reverse=True)
