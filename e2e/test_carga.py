@@ -37,8 +37,10 @@ def medir(funcion, veces):
     tiempos = []
     for i in range(veces):
         inicio = time.perf_counter()
-        funcion(i)
+        respuesta = funcion(i)
         tiempos.append((time.perf_counter()-inicio)*1000)
+        # Una página que redirige o falla es rápida pero no cuenta: cada medición debe ser una respuesta correcta.
+        assert respuesta is None or respuesta.status_code == 200, (respuesta.status_code, respuesta.get('Location'))
     return {'n': veces, 'mediana_ms': round(statistics.median(tiempos), 1), 'p95_ms': round(p95(tiempos), 1), 'max_ms': round(max(tiempos), 1)}
 
 
@@ -114,10 +116,13 @@ def test_rendimiento_con_10000_pacientes_y_15000_consultas(clinica, crear_usuari
     terminos = ['garcia', 'nunez munoz', 'maria', 'ana lopez', 'RC-0042', 'RC-009999', '5551', '5587', 'zzzz', 'luis perez torres', 'carmen', 'sofia']
     resultados['busqueda'] = medir(lambda i: cliente.get('/pacientes/', {'q': terminos[i % len(terminos)]}, HTTP_HX_REQUEST='true', HTTP_HX_TARGET='resultados'), 60)
     resultados['busqueda_pagina_completa'] = medir(lambda i: cliente.get('/pacientes/', {'q': terminos[i % len(terminos)]}), 24)
-    assert cliente.get('/pacientes/', {'q': 'garcia'}).status_code == 200
+    muestra_busqueda = cliente.get('/pacientes/', {'q': 'garcia'}, HTTP_HX_REQUEST='true', HTTP_HX_TARGET='resultados').content.decode()
+    assert 'García' in muestra_busqueda and 'med-paciente' in muestra_busqueda and '<html' not in muestra_busqueda
 
     # Apertura de expediente: típico, con consultas y el de mayor número de consultas.
     muestra = azar.sample(pacientes, 40)
+    pagina = cliente.get(f'/pacientes/{muestra[0].id}/').content.decode()
+    assert muestra[0].nombre in pagina and muestra[0].folio in pagina and '<html' in pagina
     resultados['expediente_resumen'] = medir(lambda i: cliente.get(f'/pacientes/{muestra[i].id}/'), 40)
     resultados['expediente_consultas'] = medir(lambda i: cliente.get(f'/pacientes/{muestra[i].id}/', {'pestana': 'consultas'}), 40)
     pesado = max(pacientes, key=lambda p: Consulta.objects.filter(paciente=p).count())
@@ -138,7 +143,8 @@ def test_rendimiento_con_10000_pacientes_y_15000_consultas(clinica, crear_usuari
         respuesta = cliente.post(f'/consultas/{c.id}/guardar/', {'date': d[:10], 'time': d[11:16], 'type': 'General', 'reason': f'Motivo {i}', 'plan': 'Reposo',
                                                               'subjective': 'Nota', 'objective': '', 'assessment_notes': '', 'revision': c.revision,
                                                               'base': json.dumps({})}, HTTP_HX_REQUEST='true')
-        assert respuesta.status_code in (200, 204), respuesta.status_code
+        assert respuesta.status_code == 200 and 'Guardado' in respuesta.content.decode(), (respuesta.status_code, respuesta.content[:200])
+        return respuesta
     resultados['autoguardado'] = medir(guardar, 60)
     jefe = crear_usuario('jefa')
     roles.conceder(jefe, 'med', 'admin')
