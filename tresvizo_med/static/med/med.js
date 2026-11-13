@@ -26,6 +26,20 @@
     if (document.querySelector("[data-reducir-movimiento]")) document.documentElement.classList.add("med-sin-movimiento");
   });
 
+  // Estadísticas: si cambian los filtros, el resultado mostrado ya no corresponde a ellos y no se puede exportar.
+  document.addEventListener("input", function (e) {
+    if (e.target.closest && e.target.closest("form[data-estadisticas]")) {
+      var resultado = document.querySelector(".med-resultado");
+      if (resultado) resultado.setAttribute("data-obsoleto", "");
+    }
+  });
+
+  // htmx guarda la ruta actual en sessionStorage; Med no guarda nada en el dispositivo, así que se borra.
+  function sinAlmacenamiento() { try { sessionStorage.clear(); } catch (e) { /* sin acceso: nada que borrar */ } }
+  document.addEventListener("DOMContentLoaded", sinAlmacenamiento);
+  document.addEventListener("htmx:afterSettle", sinAlmacenamiento);
+  window.addEventListener("pagehide", sinAlmacenamiento);
+
   // Sin señal: Med no guarda nada en el dispositivo (sin service worker ni almacenamiento local); solo avisa.
   function red() {
     var aviso = document.getElementById("sin-conexion");

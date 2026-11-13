@@ -327,3 +327,11 @@ def test_tema_css_con_los_tokens_del_tema_activo(web):
     r = web.get(reverse('med:tema'))
     assert r['Content-Type'].startswith('text/css') and '--tv-primario' in r.content.decode()
     assert 'no-store' in r['Cache-Control']
+
+
+def test_los_botones_dentro_del_formulario_no_heredan_el_swap_none(web, borrador):
+    """htmx hereda hx-swap del formulario SOAP: los botones que abren un panel deben fijar el suyo."""
+    html = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
+    formulario = html.split('<form id="soap"')[1].split('</form>')[0]
+    for boton in [b for b in formulario.split('<button') if 'hx-get' in b or 'hx-post' in b]:
+        assert 'hx-swap=' in boton, boton[:120]
