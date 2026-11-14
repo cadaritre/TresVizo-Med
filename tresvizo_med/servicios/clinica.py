@@ -53,7 +53,13 @@ def guardar_perfil(actor, cuenta_id, **valores):
     return perfil
 
 
-AVATARES = sorted(p.stem for p in (Path(__file__).resolve().parents[1]/'static'/'med'/'img'/'avatares').glob('*.png'))
+def _avatares(carpeta: Path) -> list[str]:
+    """Los avatares de fábrica: cada .png de la carpeta, sin archivos ocultos (un «._arbol.png» de metadatos de macOS que llegue
+    al servidor no es un avatar y su URL estática no existe: «Mi perfil» respondía 500)."""
+    return sorted(p.stem for p in carpeta.glob('*.png') if not p.name.startswith('.'))
+
+
+AVATARES = _avatares(Path(__file__).resolve().parents[1]/'static'/'med'/'img'/'avatares')
 LIMITE_LOGO = 10_000_000
 LIMITE_FOTO = 8_000_000
 

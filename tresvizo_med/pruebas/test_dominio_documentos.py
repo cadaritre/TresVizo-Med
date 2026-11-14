@@ -121,6 +121,16 @@ def test_avatars_and_icons_ship_with_the_package():
     assert (STATIC.parent/'iconos'/'LICENSE.txt').is_file() and list((STATIC.parent/'iconos').glob('*.svg'))
 
 
+def test_los_avatares_no_toman_archivos_ocultos(tmp_path):
+    # El paquete armado en la Mac llevaba «._arbol.png» (metadatos AppleDouble); se listaba como avatar, su URL estática no
+    # existía con el almacén de producción y «Mi perfil» respondía 500.
+    from tresvizo_med.servicios.clinica import AVATARES, _avatares
+    for n in ('arbol.png', 'buho.png', '._arbol.png', '.oculto.png', 'nota.txt'):
+        (tmp_path/n).write_bytes(b'x')
+    assert _avatares(tmp_path) == ['arbol', 'buho']
+    assert len(AVATARES) == 16 and not [a for a in AVATARES if a.startswith('.')]
+
+
 # --- Receta y resumen (UX-MED-05) ------------------------------------------------------------------------------
 
 def _datos_receta(**extra):
