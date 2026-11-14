@@ -229,3 +229,11 @@ def test_los_formularios_con_autoguardado_no_se_bloquean_por_validacion_del_nave
     # El verificador de contraste va en un elemento aparte: el formulario conserva la validación nativa al guardar.
     editor = web.get(reverse('med:apariencia'), {'base': 'Clínico'}).content.decode()
     assert 'closest form' in editor and 'hx-post="/configuracion/apariencia/verificar/"' in editor
+
+
+def test_apariencia_una_opcion_de_clinica_arriba_un_boton_principal_por_tema_y_menu_mas(web):
+    web.post(reverse('med:apariencia_aplicar'), {'clave': 'Neutro', 'ambito': 'personal'})
+    html = web.get(reverse('med:apariencia')).content.decode()
+    assert html.count('Usar el tema de la clínica') == 1 and html.count('Usar siempre el tema de la clínica') == 0
+    assert html.count('med-vista__barra') == html.count('Usar este tema') + html.count('>En uso</button>') and 'aria-label="Más opciones del tema Clínico"' in html
+    assert 'Copiar y editar' in html and 'Exportar' in html

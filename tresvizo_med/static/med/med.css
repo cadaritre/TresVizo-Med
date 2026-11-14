@@ -338,3 +338,20 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
   .med-paciente__datos > span:empty, .med-paciente__alergias-celda:empty { display: block; }
   .med-paciente__alergias-rotulo { display: none; }
 }
+
+/* Apariencia: miniatura del tema y menú «Más» */
+.med-hereda { margin-bottom: var(--tv-espacio-4); }
+.med-vista { border: 1px solid var(--tv-borde); border-radius: var(--tv-radio); background: var(--tv-fondo); overflow: hidden; margin-bottom: var(--tv-espacio-3); }
+.med-vista__barra { height: 16px; background: var(--tv-cabecera); border-bottom: 1px solid var(--tv-borde); }
+.med-vista__cuerpo { padding: var(--tv-espacio-2); }
+.med-vista__tarjeta { display: grid; gap: 6px; padding: var(--tv-espacio-2); background: var(--tv-superficie); border: 1px solid var(--tv-borde); border-radius: var(--tv-radio); }
+.med-vista__linea { display: block; height: 6px; width: 75%; border-radius: 3px; background: var(--tv-texto); }
+.med-vista__linea--corta { width: 45%; background: var(--tv-tenue); }
+.med-vista__botones { display: flex; gap: 6px; }
+.med-vista__boton { width: 48px; height: 14px; border-radius: 4px; background: var(--tv-boton); }
+.med-vista__boton--secundario { background: var(--tv-secundario); border: 1px solid var(--tv-borde); }
+.med-tema__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-2); }
+.med-tema__acciones form { margin: 0; }
+.med-mas .tv-menu__panel { left: 0; right: auto; min-width: 220px; }
+.med-renombrar { margin-top: var(--tv-espacio-3); }
+.med-renombrar > summary { cursor: pointer; min-height: var(--tv-tactil-min); display: flex; align-items: center; color: var(--tv-tenue); }

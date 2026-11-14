@@ -36,8 +36,8 @@ def _contexto_apariencia(request, editor=None):
     activo = apariencia.clave_activa(actor)
     perfil = Profesional.para(actor.cuenta_id)
     return {'temas': [{'clave': k, 'nombre': v['name'], 'tokens': v['tokens'], 'personalizado': 'owner' in v,
-                       'mio': v.get('owner') == actor.cuenta_id, 'puede_editar': 'owner' in v and (actor.es_admin or v.get('owner') == actor.cuenta_id)}
-                      for k, v in lista.items()],
+                       'mio': v.get('owner') == actor.cuenta_id, 'dlg': f'dlg-eliminar-{i}', 'puede_editar': 'owner' in v and (actor.es_admin or v.get('owner') == actor.cuenta_id)}
+                      for i, (k, v) in enumerate(lista.items())],
             'activo': activo, 'hereda': perfil.hereda_tema, 'clinica': Clinica.obtener().tema_clinica, 'editor': editor,
             'etiquetas': ETIQUETAS_TOKENS}
 

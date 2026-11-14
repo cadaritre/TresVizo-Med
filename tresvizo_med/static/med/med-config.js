@@ -7,6 +7,10 @@
     sidebar: "--tv-lateral", text: "--tv-texto", muted: "--tv-tenue", border: "--tv-borde", button: "--tv-boton", secondary: "--tv-secundario",
     selection: "--tv-seleccion", focus: "--tv-foco" };
   document.querySelectorAll(".med-muestra").forEach(function (m) { m.style.background = m.dataset.color; });
+  // Vista previa de cada tema en su tarjeta: los colores del tema van como variables solo dentro de la miniatura.
+  document.querySelectorAll(".med-vista").forEach(function (v) {
+    Object.keys(VARIABLES).forEach(function (k) { if (v.dataset[k]) v.style.setProperty(VARIABLES[k], v.dataset[k]); });
+  });
   var editor = document.querySelector("[data-editor-tema]");
   if (editor) {
     var previa = editor.querySelector("[data-vista-previa]");
