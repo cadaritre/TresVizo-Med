@@ -249,7 +249,8 @@ def _contexto_evolucion(request, persona):
                'estado': 'Borrador', 'doctor': ''} for s in series for p in s['provisionales']]
     tabla.sort(key=lambda f: f['at'], reverse=True)
     return {'mediciones': MEDICIONES, 'medicion': medicion, 'periodos': PERIODOS, 'periodo': periodo,
-            'grafica': serie_para(series), 'tabla_evolucion': tabla}
+            'grafica': serie_para(series), 'tabla_evolucion': tabla,
+            'leyenda_series': [{'n': i, 'etiqueta': s['etiqueta']} for i, s in enumerate(series, 1)] if len(series) > 1 else []}
 
 
 @vista_med(*TODOS)

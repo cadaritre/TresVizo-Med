@@ -193,6 +193,10 @@ def test_evolucion_grafica_tabla_y_puntos_huecos(web):
     html = r.content.decode()
     assert '<svg' in html and 'med-grafica__punto--hueco' in html and 'Consulta finalizada' in html and 'Borrador' in html
     assert '120' in html and '140' in html
+    # Leyenda de series, versión estrecha para teléfono, marcas distintas por serie y fechas dd/mm/aaaa
+    assert 'Presión sistólica' in html and 'Presión diastólica' in html and 'med-marca--2' in html
+    assert 'med-grafica--amplia' in html and 'med-grafica--estrecha' in html and '<rect class="med-grafica__punto med-serie-2' in html
+    assert '01/11/2026' in html and '2026-11-01' not in html.split('<tbody>')[1]
     parcial = web.get(reverse('med:evolucion', args=[paciente.id]), {'medicion': 'weight'}, **htmx()).content.decode()
     assert '<html' not in parcial and 'No hay mediciones' in parcial
     assert web.get(reverse('med:evolucion', args=[paciente.id]), {'medicion': 'x', 'periodo': 'y'}).status_code == 200
