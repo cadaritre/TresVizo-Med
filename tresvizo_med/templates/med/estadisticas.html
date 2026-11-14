@@ -40,7 +40,7 @@
       <input type="hidden" name="tipo" value="{{ filtros.tipo }}"><input type="hidden" name="diagnostico" value="{{ filtros.diagnostico }}"><input type="hidden" name="grupo" value="{{ filtros.grupo }}">
       <button class="tv-boton" type="submit">Generar PDF</button></form>
   </div>
-  <div id="tarea-pdf"></div>
+  <div id="tarea-pdf" data-abrir-al-terminar></div>
   <p class="tv-tenue">Calculado con los filtros mostrados arriba; las exportaciones usan exactamente esos filtros.</p>
 </section>
 {% endif %}

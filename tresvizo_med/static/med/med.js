@@ -79,6 +79,19 @@
     if (t) { window.clearTimeout(t); pendientes.delete(form); }
   });
 
+  // Al terminar un PDF se abre su vista previa sin un clic de más (el enlace queda como respaldo).
+  function abrirResultado(raiz) {
+    var contenedor = raiz.closest ? raiz.closest("[data-abrir-al-terminar]") : null;
+    var ok = contenedor && contenedor.querySelector('.tv-progreso[data-estado="completada"] a[href]');
+    if (ok && !contenedor.dataset.abierto) { contenedor.dataset.abierto = "1"; window.location.assign(ok.getAttribute("href")); }
+  }
+  document.addEventListener("htmx:afterSwap", function (e) { abrirResultado(e.target); });
+  document.addEventListener("htmx:afterSettle", function (e) { abrirResultado(e.target); });
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-volver]")) { e.preventDefault(); if (history.length > 1) history.back(); else window.location.assign("/"); }
+  });
+
   // Sección plegada de la consulta: su primera línea se actualiza al escribir para que, plegada, no parezca vacía.
   document.addEventListener("input", function (e) {
     var area = e.target.closest(".med-colapsable textarea");

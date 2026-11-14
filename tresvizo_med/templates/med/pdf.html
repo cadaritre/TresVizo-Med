@@ -7,6 +7,6 @@
     <p class="tv-tenue" data-pdf-estado>Cargando el documento…</p><div data-pdf-paginas></div>
   </div>
   <script type="module" src="{% static 'med/med-pdf.js' %}" nonce="{{ csp_nonce }}"></script>
-  <p><a class="tv-boton" href="{% url 'med:pdf_archivo' pdf_id %}" download="documento.pdf">Descargar el PDF</a> <span class="tv-tenue">Disponible 24 horas.</span></p>
+  <p><a class="tv-boton" href="{% url 'med:pdf_archivo' pdf_id %}" download="documento.pdf">Descargar el PDF</a> <button type="button" class="tv-boton tv-boton--secundario" data-volver>Volver</button> <span class="tv-tenue">Disponible 24 horas.</span></p>
 </section>
 {% endblock %}

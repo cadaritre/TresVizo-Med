@@ -20,7 +20,7 @@
 <section class="tv-tarjeta med-pdf-acciones"><h2>PDF</h2>
   <form method="post" action="{% url 'med:pdf_consulta' c.id 'receta' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'receta' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Receta e indicaciones</button></form>
   <form method="post" action="{% url 'med:pdf_consulta' c.id 'resumen' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'resumen' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Resumen de consulta</button></form>
-  <div id="tarea-pdf"></div></section>
+  <div id="tarea-pdf" data-abrir-al-terminar></div></section>
 {% if documentos %}<section class="tv-tarjeta"><h2>Documentos de la consulta</h2><ul>{% for x in documentos %}<li><a href="{% url 'med:archivo' x.id %}">{{ x.titulo }}</a> · {{ x.categoria }}</li>{% endfor %}</ul></section>{% endif %}
 {% if c.estado == 'Finalizada' or c.estado == 'Anulada' %}
   {% if puede_adenda %}

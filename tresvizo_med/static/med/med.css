@@ -313,3 +313,5 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
 
 /* La zona de subida dice «o suéltalo aquí» / «o toma una foto»: en pantallas táctiles no se arrastra nada y la cámara ya es el botón de abajo */
 @media (hover: none) and (pointer: coarse) { .med-subida .tv-subida__zona > .tv-tenue { display: none; } }
+
+[data-abrir-al-terminar] .tv-alerta a { display: inline-flex; align-items: center; min-height: var(--tv-tactil-min); padding-inline: var(--tv-espacio-2); font-weight: 700; }
