@@ -79,6 +79,8 @@ details.tv-tarjeta[open] > summary { margin-bottom: var(--tv-espacio-2); }
 details.tv-tarjeta > form + form, details.tv-tarjeta > form + p { margin-top: var(--tv-espacio-4); }
 .med-colapsable { border-top: 1px solid var(--tv-separador); }
 .med-colapsable[open] { padding-bottom: var(--tv-espacio-2); }
+.med-colapsable__vista { flex: 1; min-width: 0; font-weight: 400; color: var(--tv-tenue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.med-colapsable[open] .med-colapsable__vista { display: none; }
 /* El título del desplegable ya nombra el campo: su etiqueta queda solo para lectores de pantalla */
 .med-colapsable .tv-campo > label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* Campos apilados dentro de tarjetas y desplegables: mismo ritmo vertical que el formulario */

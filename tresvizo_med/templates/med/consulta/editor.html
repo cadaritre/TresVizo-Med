@@ -1,4 +1,4 @@
-{% extends "med/base.html" %}{% load tv %}
+{% extends "med/base.html" %}{% load tv med %}
 {% block titulo %}Consulta · {{ p.nombre }}{% endblock %}
 {% block encabezado %}
 <div class="med-cabecera-paciente">
@@ -23,9 +23,9 @@
       <div id="diagnosticos" data-resumen="diagnosticos">{% include "med/consulta/_diagnosticos.html" %}</div>
     </section>
     {% with c=textos.plan %}<div id="campo-plan">{% include "med/parciales/_campo.html" %}</div>{% endwith %}
-    <details class="med-colapsable"><summary>Síntomas y evolución</summary>{% with c=textos.subjective %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
-    <details class="med-colapsable"><summary>Exploración física</summary>{% with c=textos.objective %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
-    <details class="med-colapsable"><summary>Notas de valoración</summary>{% with c=textos.assessment_notes %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>
+    {% with c=textos.subjective %}<details class="med-colapsable"{% if c.valor %} open{% endif %}><summary>Síntomas y evolución<span class="med-colapsable__vista" data-vista-de="{{ c.idh }}">{{ c.valor|primera_linea }}</span></summary>{% include "med/parciales/_campo.html" %}</details>{% endwith %}
+    {% with c=textos.objective %}<details class="med-colapsable"{% if c.valor %} open{% endif %}><summary>Exploración física<span class="med-colapsable__vista" data-vista-de="{{ c.idh }}">{{ c.valor|primera_linea }}</span></summary>{% include "med/parciales/_campo.html" %}</details>{% endwith %}
+    {% with c=textos.assessment_notes %}<details class="med-colapsable"{% if c.valor %} open{% endif %}><summary>Notas de valoración<span class="med-colapsable__vista" data-vista-de="{{ c.idh }}">{{ c.valor|primera_linea }}</span></summary>{% include "med/parciales/_campo.html" %}</details>{% endwith %}
     <div class="tv-barra-inferior med-barra">
       <span id="indicador" class="med-indicador" aria-live="polite">Borrador guardado</span>
       <button type="submit" class="tv-boton tv-boton--secundario" id="boton-guardar">Guardar</button>

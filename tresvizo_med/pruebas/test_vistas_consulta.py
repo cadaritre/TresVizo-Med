@@ -137,6 +137,13 @@ def test_paneles_de_captura_se_abren(web, borrador):
     assert web.get(reverse('med:captura', args=[borrador.id, 'inventada'])).status_code == 404
 
 
+def test_las_secciones_con_texto_abren_y_las_vacias_quedan_plegadas_con_vista_previa(web, paciente):
+    c = consultas.guardar(web.actor, datos_consulta(paciente, subjective='Dolor de cabeza desde hace tres días.\nSin fiebre.'))
+    html = web.get(reverse('med:consulta', args=[c.id])).content.decode()
+    assert '<details class="med-colapsable" open><summary>Síntomas y evolución<span class="med-colapsable__vista" data-vista-de="id_subjective">Dolor de cabeza desde hace tres días.</span>' in html
+    assert '<details class="med-colapsable"><summary>Exploración física' in html
+
+
 def test_el_panel_de_signos_no_repite_los_id_de_la_consulta(web, borrador):
     import re
     pagina = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()

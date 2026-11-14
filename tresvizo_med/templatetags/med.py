@@ -16,6 +16,13 @@ def get(diccionario, clave):
         return ''
 
 
+@register.filter
+def primera_linea(texto, largo=110):
+    """Primera línea con contenido de un texto, recortada (vista previa de una sección plegada)."""
+    linea = next((x.strip() for x in str(texto or '').splitlines() if x.strip()), '')
+    return linea if len(linea) <= largo else linea[:largo-1].rstrip()+'…'
+
+
 @register.simple_tag(takes_context=True)
 def yo(context):
     """«Quién soy» de la cabecera: nombre visible y avatar de la persona con sesión."""

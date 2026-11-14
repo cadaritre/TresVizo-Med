@@ -79,6 +79,16 @@
     if (t) { window.clearTimeout(t); pendientes.delete(form); }
   });
 
+  // Sección plegada de la consulta: su primera línea se actualiza al escribir para que, plegada, no parezca vacía.
+  document.addEventListener("input", function (e) {
+    var area = e.target.closest(".med-colapsable textarea");
+    if (!area) return;
+    var vista = area.closest(".med-colapsable").querySelector("[data-vista-de]");
+    if (!vista) return;
+    var linea = area.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean)[0] || "";
+    vista.textContent = linea.length > 110 ? linea.slice(0, 109).trim() + "…" : linea;
+  });
+
   // Quitar una fila de una colección repetible.
   document.addEventListener("click", function (e) {
     var quitar = e.target.closest("[data-quitar-fila]");
