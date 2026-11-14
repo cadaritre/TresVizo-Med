@@ -4,7 +4,7 @@
 {% block cuerpo %}
 
 {% if error %}{% alerta tipo="error" %}{{ error }}{% endalerta %}{% endif %}
-<form method="post" action="{% url 'med:identidad' %}" enctype="multipart/form-data" class="med-pagina med-pagina--angosta">{% csrf_token %}
+<form method="post" action="{% url 'med:identidad' %}" enctype="multipart/form-data" class="med-pagina tv-lectura">{% csrf_token %}
   <input type="hidden" name="revision" value="{{ fila.revision }}">
   <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "building-2" %}Datos de la clínica</h2>
   <div class="tv-campo"><label for="clinic_name">Nombre de la clínica</label><input id="clinic_name" name="clinic_name" value="{{ v.clinic_name }}" required maxlength="120"></div>

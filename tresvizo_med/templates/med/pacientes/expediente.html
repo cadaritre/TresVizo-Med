@@ -60,13 +60,13 @@
   {% if heredado %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "inbox" %}Información heredada por revisar</h2>{% for k, v in heredado.items %}<p><strong>{{ k }}:</strong> {{ v|linebreaksbr }}</p>{% endfor %}</section>{% endif %}
   </div>
 {% elif pestana == 'consultas' %}
-  {% if consultas %}<ul class="med-filas med-historial">
+  {% if consultas %}<ul class="tv-filas med-historial">
   {% for k in consultas %}
-    <li><a class="med-fila-enlace" href="{% url 'med:consulta' k.c.id %}">
+    <li><a class="med-fila" href="{% url 'med:consulta' k.c.id %}">
       <span class="med-historial__fecha"><span class="med-historial__dia tv-cifra">{{ k.c.atendida_en|date:"d" }}</span><span class="med-historial__mes">{{ k.c.atendida_en|date:"M Y" }}</span></span>
-      <span class="med-fila-enlace__texto"><strong>{{ k.c.motivo|default:"Sin motivo"|truncatechars:110 }}</strong><span class="tv-tenue">{{ k.c.tipo|default:"General" }} · {{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:70 }}{% endif %}</span></span>
+      <span class="tv-filas__principal"><strong>{{ k.c.motivo|default:"Sin motivo"|truncatechars:110 }}</strong><span class="tv-tenue">{{ k.c.tipo|default:"General" }} · {{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:70 }}{% endif %}</span></span>
       <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{% if k.c.estado == 'Borrador' %}{% icono "file-pen-line" %}{% elif k.c.estado == 'Anulada' %}{% icono "ban" %}{% else %}{% icono "circle-check" %}{% endif %}{{ k.c.estado }}</span>
-      {% icono "chevron-right" clase="med-fila-enlace__flecha" %}</a></li>
+      {% icono "chevron-right" clase="tv-filas__ir" %}</a></li>
   {% endfor %}
   </ul>
   {% else %}{% include "med/parciales/_vacio.html" with icono="stethoscope" titulo="Todavía no hay consultas." %}{% endif %}

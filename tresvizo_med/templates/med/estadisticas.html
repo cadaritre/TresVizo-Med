@@ -21,16 +21,16 @@
 {% if datos %}
 <section class="med-resultado" id="resultado" aria-live="polite" aria-label="Resultado">
   <p class="med-obsoleto-aviso tv-alerta tv-alerta--aviso">Cambiaste los filtros: pulsa Calcular para actualizar.</p>
-  <div class="med-numeros">
-    <div class="med-numero med-numero--principal"><span class="med-numero__rotulo">{% icono "stethoscope" clase="tv-icono--sm" %}Consultas</span><strong>{{ datos.consultations }}</strong>
-      <span class="med-numero__nota">{% if datos.variation != None %}{% if datos.difference >= 0 %}{% icono "trending-up" clase="tv-icono--sm" %}{% else %}{% icono "trending-down" clase="tv-icono--sm" %}{% endif %}<span class="tv-cifra">{{ datos.variation|floatformat:1 }} %</span> vs. periodo previo ({{ datos.previous }}){% else %}Sin periodo previo para comparar{% endif %}</span></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "users" clase="tv-icono--sm" %}Pacientes</span><strong>{{ datos.patients }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "user-plus" clase="tv-icono--sm" %}Nuevos</span><strong>{{ datos.new }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "repeat" clase="tv-icono--sm" %}Recurrentes</span><strong>{{ datos.recurrent }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "calendar-days" clase="tv-icono--sm" %}Días con actividad</span><strong>{{ datos.days }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "gauge" clase="tv-icono--sm" %}Promedio por día</span><strong>{{ datos.average|floatformat:1 }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "file-pen-line" clase="tv-icono--sm" %}Borradores</span><strong>{{ datos.drafts }}</strong></div>
-    <div class="med-numero"><span class="med-numero__rotulo">{% icono "circle-help" clase="tv-icono--sm" %}Sin diagnóstico</span><strong>{{ datos.no_diagnosis }}</strong></div>
+  <div class="tv-rejilla tv-cifras med-cifras">
+    <div class="tv-tarjeta tv-cifra-tarjeta med-cifra-principal"><span class="tv-tenue">{% icono "stethoscope" clase="tv-icono--sm" %}Consultas</span><strong>{{ datos.consultations }}</strong>
+      <span class="tv-tenue med-cifra-nota">{% if datos.variation != None %}{% if datos.difference >= 0 %}{% icono "trending-up" clase="tv-icono--sm" %}{% else %}{% icono "trending-down" clase="tv-icono--sm" %}{% endif %}<span class="tv-cifra">{{ datos.variation|floatformat:1 }} %</span> vs. periodo previo ({{ datos.previous }}){% else %}Sin periodo previo para comparar{% endif %}</span></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "users" clase="tv-icono--sm" %}Pacientes</span><strong>{{ datos.patients }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "user-plus" clase="tv-icono--sm" %}Nuevos</span><strong>{{ datos.new }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "repeat" clase="tv-icono--sm" %}Recurrentes</span><strong>{{ datos.recurrent }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "calendar-days" clase="tv-icono--sm" %}Días con actividad</span><strong>{{ datos.days }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "gauge" clase="tv-icono--sm" %}Promedio por día</span><strong>{{ datos.average|floatformat:1 }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "file-pen-line" clase="tv-icono--sm" %}Borradores</span><strong>{{ datos.drafts }}</strong></div>
+    <div class="tv-tarjeta tv-cifra-tarjeta"><span class="tv-tenue">{% icono "circle-help" clase="tv-icono--sm" %}Sin diagnóstico</span><strong>{{ datos.no_diagnosis }}</strong></div>
   </div>
   <p class="tv-tenue med-comparacion">Periodo previo <span class="tv-cifra">{{ datos.previous_start|fecha_iso }} – {{ datos.previous_end|fecha_iso }}</span>: <strong class="tv-cifra">{{ datos.previous }}</strong> consultas · diferencia <strong class="tv-cifra">{{ datos.difference }}</strong></p>
   {% if grafica %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "chart-column" %}Consultas por día</h2><div class="med-grafica-caja">{{ grafica }}</div></section>{% endif %}

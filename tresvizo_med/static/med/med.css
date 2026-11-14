@@ -4,7 +4,6 @@
 /* --- Armazón de página -------------------------------------------------------------------------------------- */
 .med-en-linea { display: inline; margin: 0; }
 .med-pagina { display: grid; gap: var(--tv-espacio-4); }
-.med-pagina--angosta { max-width: 760px; width: 100%; }
 .med-pie-formulario { display: flex; justify-content: flex-end; gap: var(--tv-espacio-2); }
 @media (max-width: 599px) { .med-pie-formulario > .tv-boton { flex: 1 1 auto; } }
 .med-nota { display: flex; align-items: center; gap: var(--tv-espacio-2); margin: var(--tv-espacio-3) 0 0; font-size: var(--tv-texto-sm, .875rem); }
@@ -25,17 +24,8 @@ fieldset.tv-tarjeta { min-width: 0; margin-inline: 0; }
 .med-iniciales { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--tv-seleccion); color: var(--tv-sobre-seleccion); font-weight: 650; font-size: .875rem; letter-spacing: .02em; }
 .med-iniciales--grande { width: 56px; height: 56px; font-size: 1.125rem; }
 
-/* Filas enlazadas (borradores, historial, doctores) */
-.med-filas { list-style: none; margin: 0; padding: 0; background: var(--tv-superficie); border: 1px solid var(--tv-separador); border-radius: var(--tv-radio-grande, var(--tv-radio)); overflow: hidden; }
-.med-filas > li + li { border-top: 1px solid var(--tv-separador); }
-.med-fila-enlace { display: flex; align-items: center; gap: var(--tv-espacio-3); min-height: 64px; padding: var(--tv-espacio-3) var(--tv-espacio-4); color: var(--tv-texto); text-decoration: none; transition: background-color .15s ease; }
-.med-fila-enlace:hover { background: var(--tv-seleccion); }
-.med-fila-enlace__texto { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
-.med-fila-enlace__texto > * { overflow: hidden; text-overflow: ellipsis; }
-.med-fila-enlace__texto > .tv-tenue { font-size: .875rem; }
-.med-fila-enlace__meta { flex: none; font-size: .875rem; }
-.med-fila-enlace__flecha, .med-paciente__flecha, .med-continuar__flecha, .med-opcion-enlace__flecha { flex: none; color: var(--tv-tenue); }
-@media (max-width: 599px) { .med-fila-enlace__meta { display: none; } .med-fila-enlace { padding-inline: var(--tv-espacio-3); } }
+/* Listas: .tv-filas del armazón; la fecha o el dato de la derecha se oculta en teléfono */
+@media (max-width: 599px) { .med-ancho { display: none; } }
 
 /* Periodos de estadísticas: segmentado con enlaces (el .tv-segmentado del armazón es de radios) */
 .med-segmentado { display: inline-flex; padding: 3px; gap: 2px; background: var(--tv-secundario); border-radius: 10px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
@@ -45,30 +35,24 @@ fieldset.tv-tarjeta { min-width: 0; margin-inline: 0; }
 
 /* --- Pacientes ----------------------------------------------------------------------------------------------- */
 .med-busqueda { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-3); margin-bottom: var(--tv-espacio-4); }
-.med-buscador { position: relative; flex: 1 1 320px; min-width: 0; }
-.med-buscador__icono { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--tv-tenue); pointer-events: none; }
-.med-buscador input { width: 100%; min-height: 48px; padding: 0 44px 0 44px; font: inherit; font-size: 1.0625rem; color: var(--tv-texto); background: var(--tv-superficie); border: 1px solid var(--tv-borde); border-radius: var(--tv-radio-grande, var(--tv-radio)); box-shadow: var(--tv-sombra-1, none); }
-.med-buscador input:focus { outline: 3px solid var(--tv-foco); outline-offset: 1px; border-color: var(--tv-foco); }
-.med-buscando { position: absolute; right: 14px; top: 50%; width: 16px; height: 16px; margin-top: -8px; display: none; }
+.med-buscador { flex: 1 1 320px; max-width: none; margin: 0; }
+.med-buscador input { min-height: 46px; font-size: 1.0625rem; }
+.med-buscando { display: none; width: 16px; height: 16px; flex: none; margin-right: var(--tv-espacio-2); }
 .med-buscando.htmx-request { display: block; border: 2px solid var(--tv-separador); border-top-color: var(--tv-primario); border-radius: 50%; animation: med-giro .8s linear infinite; }
 @keyframes med-giro { to { transform: rotate(360deg); } }
 .med-conteo { margin: 0 0 var(--tv-espacio-2); font-size: .875rem; }
-.med-resultados { list-style: none; margin: 0; padding: 0; background: var(--tv-superficie); border: 1px solid var(--tv-separador); border-radius: var(--tv-radio-grande, var(--tv-radio)); overflow: hidden; }
-.med-resultados > li + li { border-top: 1px solid var(--tv-separador); }
-.med-paciente { display: flex; align-items: center; gap: var(--tv-espacio-3); min-height: 64px; padding: var(--tv-espacio-3) var(--tv-espacio-4); color: var(--tv-texto); text-decoration: none; transition: background-color .15s ease; }
-.med-paciente:hover, .med-paciente[data-seleccionado] { background: var(--tv-seleccion); }
+.med-resultados .med-paciente:hover, .med-resultados .med-paciente[data-seleccionado] { background: var(--tv-seleccion); }
 .med-paciente[data-seleccionado] { box-shadow: inset 3px 0 0 var(--tv-primario); }
-.med-paciente__principal { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
-.med-paciente__nombre { font-weight: 650; overflow-wrap: anywhere; }
-.med-paciente__datos { display: flex; flex-wrap: wrap; gap: 0 var(--tv-espacio-2); color: var(--tv-tenue); font-size: .875rem; }
+.med-paciente__nombre { overflow-wrap: anywhere; }
+.med-paciente__datos { display: flex; flex-wrap: wrap; gap: 0 var(--tv-espacio-2); white-space: normal !important; }
 .med-paciente__datos > span + span::before { content: "·"; margin-right: var(--tv-espacio-2); }
-.med-paciente__insignias { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--tv-espacio-1); max-width: 45%; }
+.med-paciente__insignias { justify-content: flex-end; max-width: 45%; }
 .med-paciente__alergias { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 599px) {
   .med-paciente__datos { column-gap: var(--tv-espacio-3); }
   .med-paciente__datos > span + span::before { content: none; }
-  .med-paciente { flex-wrap: wrap; padding-inline: var(--tv-espacio-3); }
-  .med-paciente__principal { flex-basis: calc(100% - 96px); }
+  .med-resultados .med-paciente { flex-wrap: wrap; padding-inline: var(--tv-espacio-3); }
+  .med-resultados .tv-filas__principal { flex-basis: calc(100% - 96px); }
   .med-paciente__insignias { order: 3; max-width: none; justify-content: flex-start; padding-left: 52px; width: 100%; }
   .med-paciente__insignias:empty { display: none; }
 }
@@ -334,14 +318,9 @@ details.tv-tarjeta > form + form, details.tv-tarjeta > form + p { margin-top: va
 .med-plegable > summary::-webkit-details-marker { display: none; }
 .med-plegable[open] > summary { margin-bottom: var(--tv-espacio-3); }
 @media (min-width: 700px) { .med-plegable { flex: 0 1 auto; } .med-plegable[open] { flex: 1 1 100%; } }
-.med-numeros { display: grid; gap: var(--tv-espacio-3); grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: var(--tv-espacio-4); }
-@media (min-width: 700px) { .med-numeros { grid-template-columns: repeat(4, minmax(0, 1fr)); } .med-numeros--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.med-numero { display: grid; gap: var(--tv-espacio-1); align-content: start; background: var(--tv-superficie); border: 1px solid var(--tv-separador); border-radius: var(--tv-radio-grande, var(--tv-radio)); padding: var(--tv-espacio-3) var(--tv-espacio-4); }
-.med-numero__rotulo { display: flex; align-items: center; gap: var(--tv-espacio-1); color: var(--tv-tenue); font-size: .8125rem; font-weight: 550; }
-.med-numero strong { font-size: 1.75rem; line-height: 1.15; font-weight: 650; font-variant-numeric: tabular-nums; }
-.med-numero__nota { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-1); color: var(--tv-tenue); font-size: .8125rem; }
-.med-numero--principal { grid-column: 1 / -1; }
-@media (min-width: 700px) { .med-numero--principal { grid-column: span 2; grid-row: span 2; align-content: center; } .med-numero--principal strong { font-size: 2.75rem; } }
+.med-cifras { margin-bottom: var(--tv-espacio-4); }
+.med-cifra-nota { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-1); }
+@media (min-width: 700px) { .med-cifras { grid-template-columns: repeat(4, minmax(0, 1fr)); } .med-cifra-principal { grid-column: span 2; grid-row: span 2; align-content: center; } .med-cifra-principal strong { font-size: 2.75rem; } }
 .med-comparacion { margin: 0 0 var(--tv-espacio-4); font-size: .875rem; }
 .med-tablas { margin-top: var(--tv-espacio-4); }
 .med-tablas > .tv-tarjeta { margin: 0; }

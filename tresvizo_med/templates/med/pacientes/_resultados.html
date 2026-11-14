@@ -1,12 +1,12 @@
 {% load tv med %}{% if filas %}<p class="med-conteo tv-tenue">{{ total }} paciente{{ total|pluralize }}{% if q %} para «{{ q }}»{% endif %}</p>
-<ul class="med-resultados">
+<ul class="tv-filas med-resultados">
   {% for f in filas %}
   <li><a class="med-paciente" href="{% url 'med:expediente' f.id %}" data-resultado>
     <span class="med-iniciales" aria-hidden="true">{{ f.name|iniciales_med }}</span>
-    <span class="med-paciente__principal"><span class="med-paciente__nombre">{{ f.name }}</span>
-      <span class="med-paciente__datos"><span class="tv-cifra">{{ f.file_number }}</span>{% if f.edad %}<span>{{ f.edad }}</span>{% endif %}{% if f.phone %}<span class="tv-cifra">{{ f.phone }}</span>{% endif %}</span></span>
-    <span class="med-paciente__insignias">{% if f.allergies %}<span class="tv-insignia tv-insignia--error" title="Alergias: {{ f.allergies }}">{% icono "triangle-alert" %}<span class="med-paciente__alergias">{{ f.allergies }}</span></span>{% endif %}{% if f.archived %}<span class="tv-insignia tv-insignia--neutra">{% icono "archive" %}Archivado</span>{% endif %}</span>
-    {% icono "chevron-right" clase="med-paciente__flecha" %}
+    <span class="tv-filas__principal"><strong class="med-paciente__nombre">{{ f.name }}</strong>
+      <span class="med-paciente__datos tv-tenue"><span class="tv-cifra">{{ f.file_number }}</span>{% if f.edad %}<span>{{ f.edad }}</span>{% endif %}{% if f.phone %}<span class="tv-cifra">{{ f.phone }}</span>{% endif %}</span></span>
+    <span class="tv-filas__insignias med-paciente__insignias">{% if f.allergies %}<span class="tv-insignia tv-insignia--error" title="Alergias: {{ f.allergies }}">{% icono "triangle-alert" %}<span class="med-paciente__alergias">{{ f.allergies }}</span></span>{% endif %}{% if f.archived %}<span class="tv-insignia tv-insignia--neutra">{% icono "archive" %}Archivado</span>{% endif %}</span>
+    {% icono "chevron-right" clase="tv-filas__ir" %}
   </a></li>
   {% endfor %}
 </ul>

@@ -212,7 +212,7 @@ def test_estadisticas_y_exportaciones_con_descargas(medico, actor, tmp_path):
     pagina.fill('#desde', '2026-09-01')
     pagina.fill('#hasta', '2026-09-30')
     pagina.click('text=Calcular')
-    expect(pagina.locator('.med-numero').first).to_contain_text('1')
+    expect(pagina.locator('.tv-cifra-tarjeta').first).to_contain_text('1')
     expect(pagina.locator('svg.med-grafica:visible')).to_be_visible()
     with pagina.expect_download() as descarga:
         pagina.click('text=Descargar CSV')

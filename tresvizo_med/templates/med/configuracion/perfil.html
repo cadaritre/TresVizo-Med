@@ -3,7 +3,7 @@
 {% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>{% if propio %}Mi perfil{% else %}{{ nombre_portal }}{% endif %}</h1>{% endblock %}
 {% block cuerpo %}
 {% tiene_rol "med" "admin" as es_admin %}
-<form method="post" action="{% if propio %}{% url 'med:perfil' %}{% else %}{% url 'med:perfil_de' cuenta %}{% endif %}" enctype="multipart/form-data" class="med-pagina med-pagina--angosta" data-perfil>{% csrf_token %}
+<form method="post" action="{% if propio %}{% url 'med:perfil' %}{% else %}{% url 'med:perfil_de' cuenta %}{% endif %}" enctype="multipart/form-data" class="med-pagina tv-lectura" data-perfil>{% csrf_token %}
   <fieldset class="tv-tarjeta med-seccion-tarjeta" data-recorte>
     <legend class="med-seccion-tarjeta__titulo">{% icono "circle-user-round" %}Imagen de perfil</legend>
     <div class="med-avatares" role="radiogroup" aria-label="Imagen de perfil">

@@ -4,7 +4,7 @@ from tvplataforma.navegacion import Accion, Busqueda, Entrada
 
 MENU = (
     Entrada('Pacientes', 'users', 'med:pacientes', atajo='g p', clave='pacientes'),
-    Entrada('Borradores', 'file-pen-line', 'med:en_curso', atajo='g b', clave='borradores'),
+    Entrada('Borradores', 'file-pen-line', 'med:en_curso', atajo='g b', clave='borradores', contador='tresvizo_med.navegacion.borradores_abiertos'),
     Entrada('Estadísticas', 'chart-column', 'med:estadisticas', atajo='g e', clave='estadisticas'),
     Entrada('Exportar', 'download', 'med:exportar', clave='exportar'),
     Entrada('Configuración', 'settings', 'med:configuracion', atajo='g s', clave='configuracion'),
@@ -32,3 +32,14 @@ SECCION_DE_VISTA = {
 def seccion(request):
     coincidencia = getattr(request, 'resolver_match', None)
     return SECCION_DE_VISTA.get(coincidencia.url_name if coincidencia else '', '')
+
+
+def borradores_abiertos(request):
+    """Número de borradores propios abiertos (altas, ediciones y consultas) para el contador del menú. Solo un número."""
+    from .models import Consulta
+    from .servicios import Actor, borradores, consultas
+    actor = getattr(request, 'actor', None) or Actor.de(request.user)
+    total = borradores.propios(actor).count()
+    if actor.es_medico:
+        total += consultas.visibles(actor).filter(estado=Consulta.Estado.BORRADOR, doctor_id=actor.cuenta_id).count()
+    return total or None

@@ -234,3 +234,22 @@ def test_la_navegacion_marca_la_seccion_en_todas_las_paginas(web):
         assert 'Borradores' in html and 'Configuración' in html
         assert re.search(r'aria-current="page"[^>]*>(?:(?!</a>).)*' + actual, html, re.S)
     assert '<title>Expediente' in expediente and 'Ana Muñoz</title>' not in expediente  # el nombre no va en la pestaña del navegador
+
+
+def test_contador_de_borradores_en_el_menu_solo_numero(web):
+    p = pacientes.guardar(web.actor, datos_paciente('Ana Muñoz'))
+    sin = web.get(reverse('med:pacientes')).content.decode()
+    assert 'tv-lateral__contador' not in sin
+    consultas.iniciar(web.actor, p.id)
+    borradores.guardar_borrador(web.actor, {'name': 'Luis'})
+    html = web.get(reverse('med:pacientes')).content.decode()
+    contador = re.search(r'data-etiqueta="Borradores".*?</a>', html, re.S).group(0)
+    assert 'tv-lateral__contador' in contador and '>2</span>' in contador and 'Ana' not in contador and 'Luis' not in contador
+
+
+def test_med_bloqueado_sin_navegacion_y_la_paleta_no_encuentra_nada(web):
+    pacientes.guardar(web.actor, datos_paciente('Ana Muñoz'))
+    web.post(reverse('med:bloquear'))
+    assert web.get(reverse('med:buscar_paleta'), {'q': 'ana'}).json() == {'resultados': []}
+    pagina = web.get(reverse('med:desbloquear')).content.decode()
+    assert 'Med está bloqueado' in pagina and 'tv-lateral' not in pagina and 'Buscar pacientes' not in pagina

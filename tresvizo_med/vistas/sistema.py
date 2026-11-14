@@ -44,6 +44,7 @@ def desbloquear(request):
             logout(request)  # demasiados intentos: la sesión se cierra y hay que entrar de nuevo por el portal
             return redirect(reverse('med:inicio'))
         error = 'La contraseña no coincide.'
+    request.tv_sin_navegacion = True  # bloqueado: sin lateral, cajón ni paleta (nada que buscar ni abrir)
     respuesta = render(request, 'med/bloqueo.html', {'siguiente': siguiente, 'error': error, 'bloqueado': True},
                        status=401 if error else 200)
     return respuesta

@@ -19,7 +19,7 @@ from ..formularios.campos import fila_nueva
 from ..graficas import serie_para
 from ..models import BorradorAlta, Clinica, Consulta, Documento
 from ..servicios import VersionConflict, borradores, consultas, documentos, pacientes, profesionales
-from .comun import TODOS, es_htmx, redirigir, vista_med
+from .comun import CLAVE_BLOQUEO, TODOS, es_htmx, redirigir, vista_med
 from .documentos import contexto_gestor
 
 MEDICIONES = [('blood_pressure', 'Presión arterial'), *[(k, v[0]) for k, v in VITALS.items() if k not in ('systolic', 'diastolic')], ('bmi', 'IMC')]
@@ -62,12 +62,12 @@ def buscar(request):
     return render(request, 'med/pacientes/_resultados.html' if parcial else 'med/pacientes/buscar.html', contexto)
 
 
-@vista_med(*TODOS)
+@vista_med(*TODOS, bloqueable=False)
 def buscar_paleta(request):
     """Pacientes para la paleta de comandos (contrato tvplataforma §12.1): JSON con hasta 20 resultados y solo rutas internas.
     El subtítulo lleva folio y edad, nunca teléfono ni alergias (la paleta puede verse por encima del hombro)."""
     texto = request.GET.get('q', '').strip()
-    if len(texto) < navegacion.BUSQUEDA.minimo:
+    if request.session.get(CLAVE_BLOQUEO) or len(texto) < navegacion.BUSQUEDA.minimo:  # Med bloqueado: la paleta no encuentra nada
         return JsonResponse({'resultados': []})
     filas, _, _ = pacientes.buscar(request.actor, texto[:100], 'Activos', 0, tamano=20)
     return JsonResponse({'resultados': [

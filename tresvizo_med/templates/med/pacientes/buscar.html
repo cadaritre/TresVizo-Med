@@ -13,7 +13,7 @@
 </section>{% endif %}
 <form method="get" action="{% url 'med:pacientes' %}" class="med-busqueda" role="search"
       hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:.tv-segmentado, submit" hx-push-url="true" hx-sync="this:replace" hx-indicator="#buscando">
-  <div class="med-buscador"><label for="q" class="tv-solo-lectores">Buscar paciente</label>{% icono "search" clase="med-buscador__icono" %}
+  <div class="tv-buscador med-buscador"><label for="q" class="tv-solo-lectores">Buscar paciente</label>{% icono "search" %}
     <input id="q" name="q" type="search" value="{{ q }}" placeholder="Nombre, folio o teléfono" autocomplete="off" autofocus data-atajo-buscar>
     <span id="buscando" class="med-buscando" role="status"><span class="tv-solo-lectores">Buscando…</span></span></div>
   <div class="tv-segmentado" role="radiogroup" aria-label="Mostrar">{% for m in modos %}

@@ -2,7 +2,7 @@
 {% block titulo %}Importar pacientes{% endblock %}
 {% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>Importar pacientes</h1><p class="tv-subtitulo">Paso 1 de 3 · Elige el archivo</p>{% endblock %}
 {% block cuerpo %}
-<form method="post" action="{% url 'med:importar' %}" enctype="multipart/form-data" class="tv-formulario tv-tarjeta med-pagina--angosta">{% csrf_token %}
+<form method="post" action="{% url 'med:importar' %}" enctype="multipart/form-data" class="tv-formulario tv-tarjeta tv-lectura">{% csrf_token %}
   <div class="tv-campo"><label for="archivo">Archivo CSV</label><input id="archivo" name="archivo" type="file" accept=".csv,text/csv" required><div class="tv-campo__ayuda">Hasta 10 MB y 10 000 filas. Nada se guarda hasta que confirmes.</div></div>
   <div class="tv-campo"><label for="delimitador">Separador</label><select id="delimitador" name="delimitador"><option value=",">Coma (,)</option><option value=";">Punto y coma (;)</option><option value="&#9;">Tabulador</option></select></div>
   <button class="tv-boton" type="submit">{% icono "arrow-right" %}Continuar</button></form>
