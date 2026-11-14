@@ -90,10 +90,11 @@ def barras(valores, ancho=ANCHO, alto=200):
     grueso = min(28, sitio*.7)
     partes = [f'<svg class="med-grafica" viewBox="0 0 {ancho} {alto}" role="img" aria-label="Consultas por día; el máximo es {maximo}.">']
     base = alto-MARGEN['inf']
-    for k in range(5):
-        y = base-(base-MARGEN['sup'])*k/4
+    marcas = min(5, maximo+1)  # con máximos chicos, una marca por número entero (no «1, 1, 0, 0, 0»)
+    for k in range(marcas):
+        y = base-(base-MARGEN['sup'])*k/(marcas-1)
         partes.append(f'<line class="med-grafica__rejilla" x1="{MARGEN["izq"]}" x2="{ancho-MARGEN["der"]}" y1="{y:.1f}" y2="{y:.1f}"/>')
-        partes.append(f'<text class="med-grafica__eje" x="{MARGEN["izq"]-6}" y="{y+4:.1f}" text-anchor="end">{maximo*k/4:.0f}</text>')
+        partes.append(f'<text class="med-grafica__eje" x="{MARGEN["izq"]-6}" y="{y+4:.1f}" text-anchor="end">{maximo*k/(marcas-1):.0f}</text>')
     paso = max(1, len(items)//8)
     for i, (dia, valor) in enumerate(items):
         x = MARGEN['izq']+sitio*i+(sitio-grueso)/2
