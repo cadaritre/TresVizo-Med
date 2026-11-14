@@ -1,5 +1,5 @@
 {% load tv %}<div id="lista-docs" class="med-lista-docs"{% if oob %} hx-swap-oob="true"{% endif %}>
-  <form class="med-filtros" method="get" action="{% url 'med:lista_documentos' tipo identificador %}" hx-get="{% url 'med:lista_documentos' tipo identificador %}" hx-target="#lista-docs" hx-swap="outerHTML" hx-trigger="input changed delay:300ms, change">
+  <form id="filtros-docs" hx-preserve="true" class="med-filtros" method="get" action="{% url 'med:lista_documentos' tipo identificador %}" hx-get="{% url 'med:lista_documentos' tipo identificador %}" hx-target="#lista-docs" hx-swap="outerHTML" hx-trigger="input changed delay:300ms, change">
     <div class="tv-campo"><label for="q-docs">Buscar documentos</label><input id="q-docs" name="q" type="search" value="{{ filtros.q }}" autocomplete="off"></div>
     <div class="tv-campo"><label for="cat-docs">Categoría</label><select id="cat-docs" name="categoria"><option value="">Todas</option>{% for c in categorias %}<option value="{{ c }}"{% if c == filtros.categoria %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
     <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="arch-docs" name="archivados" value="1"{% if filtros.archivados %} checked{% endif %}><label for="arch-docs">Incluir archivados</label></div>

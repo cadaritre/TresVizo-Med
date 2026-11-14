@@ -13,7 +13,7 @@
 <div class="tv-campo{% if c.error %} tv-campo--error{% endif %}"><label for="{{ c.idh }}">{{ c.etiqueta }}{% if c.requerido %} <span class="tv-campo__requerido" aria-hidden="true">*</span>{% endif %}</label>
   {% if c.tipo == 'area' %}<textarea id="{{ c.idh }}" name="{{ c.nombre }}" rows="3"{% if c.error %} aria-invalid="true"{% endif %}>{{ c.valor }}</textarea>
   {% elif c.tipo == 'seleccion' %}<select id="{{ c.idh }}" name="{{ c.nombre }}"><option value=""{% if not c.valor %} selected{% endif %}>—</option>{% for o in c.opciones %}<option value="{{ o }}"{% if o == c.valor %} selected{% endif %}>{{ o }}</option>{% endfor %}</select>
-  {% else %}<input id="{{ c.idh }}" name="{{ c.nombre }}" type="{{ c.html }}" value="{{ c.valor }}"{% if c.tipo == 'numero' %} inputmode="decimal"{% endif %}{% if c.lista %} list="catalogo-med"{% endif %}{% if c.autofoco %} autofocus{% endif %}{% if c.error %} aria-invalid="true" aria-describedby="{{ c.idh }}_error"{% endif %} autocomplete="off">{% endif %}
+  {% else %}<input id="{{ c.idh }}" name="{{ c.nombre }}" type="{{ c.html }}" value="{{ c.valor }}"{% if c.tipo == 'numero' %} inputmode="decimal"{% endif %}{% if c.lista %} list="catalogo-med"{% endif %}{% if c.autofoco %} data-autofoco{% endif %}{% if c.error %} aria-invalid="true" aria-describedby="{{ c.idh }}_error"{% endif %} autocomplete="off">{% endif %}
   {% if c.ayuda %}<div class="tv-campo__ayuda">{{ c.ayuda }}</div>{% endif %}
   {% if c.error %}<ul class="tv-campo__error" id="{{ c.idh }}_error"><li>{{ c.error }}</li></ul>{% endif %}
 </div>

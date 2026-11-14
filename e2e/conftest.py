@@ -22,10 +22,11 @@ TELEFONO = {'width': 360, 'height': 740}
 
 @pytest.fixture(scope='session')
 def navegador():
+    """Chromium; ``MOTOR=webkit`` (o ``firefox``) corre las mismas pruebas en otro motor."""
     with sync_playwright() as p:
-        cromo = p.chromium.launch()
-        yield cromo
-        cromo.close()
+        motor = getattr(p, os.environ.get('MOTOR', 'chromium')).launch()
+        yield motor
+        motor.close()
 
 
 @pytest.fixture

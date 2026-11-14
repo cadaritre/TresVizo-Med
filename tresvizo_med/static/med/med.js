@@ -11,7 +11,52 @@
       { code: "[45]..", swap: false, error: true },
       { code: "...", swap: false }
     ];
+    // Sin espera entre insertar y «settle»: el contenido nuevo queda activo (sus formularios envían por HTMX) de inmediato. Med no
+    // usa las transiciones de clase que justifican esa espera.
+    htmx.config.defaultSettleDelay = 0;
   }
+
+  // Foco tras un intercambio de HTMX (panel de captura, errores de validación). htmx enfoca los [autofocus] en la fase «settle»,
+  // un temporizador DESPUÉS de insertar: si mientras tanto la persona ya pasó a otro campo y escribe, el foco salta y lo que
+  // teclea cae en el campo equivocado (así «8» de la frecuencia terminó en el nombre: «Paracetamol8»). Aquí el foco se da en el
+  // mismo instante en que llega el contenido, antes de cualquier tecla, y nunca se mueve si ya se está escribiendo en un campo.
+  function escribiendo() {
+    var a = document.activeElement;
+    return !!(a && a !== document.body && document.contains(a) && a.matches("input:not([type=button]):not([type=submit]), textarea, select, [contenteditable]"));
+  }
+  function campoDeTexto(a) {
+    return !!(a && a.matches && a.matches("input:not([type=button]):not([type=submit]), textarea, select, [contenteditable]"));
+  }
+  function seleccion(a) {
+    try { return typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null; } catch (err) { return null; }
+  }
+  // beforeSwap guarda dónde se escribía (con el elemento aún en la página); afterSwap llega justo después de insertar el contenido,
+  // en la misma tarea y antes de cualquier tecla o temporizador (incluido el «settle» de htmx).
+  var antesDelIntercambio = null;
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    var previo = document.activeElement;
+    antesDelIntercambio = { previo: previo, id: previo && previo.id, rango: campoDeTexto(previo) ? seleccion(previo) : null,
+                            fondo: !!(e.detail.xhr && e.detail.xhr.getResponseHeader("HX-Reswap") === "none") };
+  });
+  document.addEventListener("htmx:afterSwap", function (e) {
+    var raiz = e.detail.target || e.target, antes = antesDelIntercambio || {};  // vale para todos los afterSwap de esa respuesta
+    if (!raiz || !raiz.querySelectorAll) return;
+    raiz.querySelectorAll("[autofocus]").forEach(function (x) { x.removeAttribute("autofocus"); x.setAttribute("data-autofoco", ""); });
+    if (antes.fondo) return;  // guardado de fondo: no toca el foco
+    // Se escribía en un campo que sigue en la página (o en el mismo campo vuelto a pintar): el foco y el cursor se quedan ahí.
+    var previo = antes.previo;
+    var mismo = campoDeTexto(previo) ? (previo.isConnected ? previo : (antes.id && document.getElementById(antes.id))) : null;
+    if (mismo) {
+      if (document.activeElement !== mismo) mismo.focus({ preventScroll: true });
+      if (antes.rango) { try { mismo.setSelectionRange(antes.rango[0], antes.rango[1]); } catch (err) { /* tipos sin selección */ } }
+      return;
+    }
+    if (escribiendo()) return;
+    var destino = raiz.querySelector('[aria-invalid="true"]') || raiz.querySelector("[data-autofoco]");
+    if (!destino) return;
+    destino.focus();
+    if (/^(text|search|tel|email)$/.test(destino.type)) { var n = destino.value.length; try { destino.setSelectionRange(n, n); } catch (err) { /* sin selección */ } }
+  });
 
   function indicador() { return document.getElementById("indicador"); }
   function avisar(texto, error) {

@@ -1,7 +1,7 @@
 {% load tv %}{% load med %}<div id="cola-docs" class="med-cola" aria-live="polite">
   {% if error and not fila_error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
   {% for f in cola %}
-  <form class="tv-tarjeta med-cola-item" hx-post="{% url 'med:incorporar' tipo identificador f.id %}" hx-target="#cola-docs" hx-swap="outerHTML">
+  <form id="cola-{{ f.id }}" class="tv-tarjeta med-cola-item"{% if fila_error != f.id %} hx-preserve="true"{% endif %} hx-post="{% url 'med:incorporar' tipo identificador f.id %}" hx-target="#cola-docs" hx-swap="outerHTML">
     <p class="med-cola-item__titulo">{% icono "file-up" %}<strong>{{ f.name }}</strong><span class="tv-tenue tv-cifra">{{ f.size|filesizeformat }}</span><span class="tv-insignia tv-insignia--aviso">{{ f.status|estado_cola }}</span>{% if f.replaces %}<span class="tv-insignia tv-insignia--neutra">Nueva versión</span>{% endif %}</p>
     {% if fila_error == f.id and error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
     <div class="tv-rejilla">
