@@ -169,3 +169,12 @@ def test_perfil_profesional_propio_o_de_admin(medico, otro_medico, admin):
 def test_alta_de_pacientes_la_hacen_ambos_roles(medico, admin):
     assert pacientes.guardar(admin, datos_paciente('Del admin')).created_by == admin.cuenta_id
     assert pacientes.guardar(medico, datos_paciente('Del médico')).created_by == medico.cuenta_id
+
+
+def test_los_nombres_de_medicos_usan_el_nombre_visible_del_perfil(bases, medico, otro_medico):
+    from tresvizo_med.servicios import clinica, profesionales
+    assert profesionales.nombres([medico.cuenta_id])[medico.cuenta_id] == 'Dra. Ana'  # sin perfil: el de la cuenta
+    clinica.guardar_perfil(medico, medico.cuenta_id, nombre_visible='Dra. Ana Muñoz Prieto', cedula='123', especialidad='Cardiología')
+    nombres = profesionales.nombres([medico.cuenta_id, otro_medico.cuenta_id])
+    assert nombres == {medico.cuenta_id: 'Dra. Ana Muñoz Prieto', otro_medico.cuenta_id: 'Dr. Beto'}
+    assert profesionales.firma(medico.cuenta_id) == {'name': 'Dra. Ana Muñoz Prieto', 'cedula': '123', 'specialty': 'Cardiología'}

@@ -11,7 +11,7 @@ from ..dominio.errores import DataError
 from ..formularios.consulta import TIPOS_CONSULTA
 from ..formato import fecha_corta
 from ..graficas import barras
-from ..servicios import estadisticas, exportaciones
+from ..servicios import estadisticas, exportaciones, profesionales
 from .comun import TODOS, vista_med
 from .pdf import estado_tarea
 
@@ -50,10 +50,17 @@ def _periodos(filtros):
              'activo': (a.isoformat(), b.isoformat()) == (filtros['inicio'], filtros['fin'])} for nombre, a, b in rangos]
 
 
+def _medicos():
+    """Médicos para el filtro del administrador, con su nombre visible del perfil."""
+    personas = cuentas.con_rol('med', 'medico')
+    nombres = profesionales.nombres(p.id for p in personas)
+    return sorted(({'id': p.id, 'nombre': nombres.get(p.id, p.nombre)} for p in personas), key=lambda m: m['nombre'].lower())
+
+
 def _quien(actor, doctor):
     if doctor == '*':
         return 'Toda la clínica'
-    return cuentas.nombre(doctor if doctor is not None else actor.cuenta_id)
+    return profesionales.nombre(doctor if doctor is not None else actor.cuenta_id)
 
 
 @vista_med(*TODOS)
@@ -74,7 +81,7 @@ def pagina(request):
     contexto = {'filtros': filtros, 'error': error, 'datos': datos, 'instantanea': instantanea, 'grupos': GRUPOS,
                 'tipos': [*TIPOS_CONSULTA, *([filtros['tipo']] if filtros['tipo'] and filtros['tipo'] not in TIPOS_CONSULTA else [])],
                 'periodos': _periodos(filtros),
-                'medicos': cuentas.con_rol('med', 'medico') if actor.es_admin else [], 'quien': _quien(actor, filtros['doctor'])}
+                'medicos': _medicos() if actor.es_admin else [], 'quien': _quien(actor, filtros['doctor'])}
     if datos:
         contexto.update(grafica=barras(datos['activity']), tablas=[
             ('Diagnósticos más frecuentes', list(datos['diagnoses'].items())[:15]), ('Tipos de consulta', list(datos['types'].items())),

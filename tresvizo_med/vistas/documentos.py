@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from ..dominio.errores import DataError
 from ..models import BorradorAlta, Consulta, Documento, Paciente
-from ..servicios import NoEncontrado, PermisoDenegado, VersionConflict, documentos
+from ..servicios import NoEncontrado, PermisoDenegado, VersionConflict, documentos, profesionales
 from .comun import TODOS, es_htmx, vista_med
 
 TIPOS_DESTINO = ('paciente', 'consulta', 'borrador')
@@ -106,8 +106,7 @@ def retirar(request, tipo, identificador, fila):
 def visor(request, documento):
     fila = documentos.obtener(request.actor, documento)
     cadena = documentos.versiones(request.actor, fila)
-    from tvplataforma import cuentas
-    contexto = {'x': fila, 'versiones': cadena, 'p': fila.paciente, 'autor': cuentas.nombre(fila.doctor_id),
+    contexto = {'x': fila, 'versiones': cadena, 'p': fila.paciente, 'autor': profesionales.nombre(fila.doctor_id),
                 'es_imagen': fila.mime.startswith('image/'), 'es_pdf': fila.mime == 'application/pdf', 'categorias': documentos.CATEGORIAS,
                 'es_foto': bool(fila.paciente_id and fila.paciente.foto_documento == fila.id), 'puede_editar': request.actor.es_medico or request.actor.es_admin,
                 'finalizada': bool(fila.consulta_id and fila.consulta.estado != 'Borrador'),

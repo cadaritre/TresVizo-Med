@@ -22,7 +22,7 @@ from ..dominio.errores import DataError
 from ..dominio.texto import normalized
 from ..formato import adenda_a_dict, consulta_a_dict, documento_a_dict, paciente_a_dict
 from ..models import CatalogoMedicamento, Clinica, Consulta, Documento, Paciente, Profesional, Tema
-from . import apariencia, consultas, documentos
+from . import apariencia, consultas, documentos, profesionales
 from .errores import NoEncontrado, PermisoDenegado
 
 CABECERA_BOM = 'utf-8-sig'
@@ -77,7 +77,7 @@ def exportar_consultas(actor, inicio='', fin='', doctor=None, borradores=False, 
     filas = transfer.select_consultations(filas, start=inicio, end=fin, doctor_id=doctor if doctor not in (None, '*') else '',
                                           include_drafts=borradores, identifiers=ids)
     pacientes = {str(p.id): paciente_a_dict(p) for p in Paciente.objects.filter(pk__in={f['patient_id'] for f in filas})}
-    nombres = cuentas.nombres({f['doctor_id'] for f in filas})
+    nombres = profesionales.nombres({f['doctor_id'] for f in filas})
     flujo = io.StringIO(newline='')
     transfer.write_consultation_csv(flujo, filas, pacientes, {k: {'name': v} for k, v in nombres.items()})
     return flujo.getvalue().encode(CABECERA_BOM), _nombre('consultas', 'csv'), len(filas)

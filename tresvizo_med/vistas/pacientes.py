@@ -7,7 +7,6 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from tvplataforma import cuentas
 
 from ..dominio.clinical_models import VITALS, age_label
 from ..dominio.errores import DataError
@@ -16,7 +15,7 @@ from ..formularios import paciente as form_paciente
 from ..formularios.campos import fila_nueva
 from ..graficas import serie_para
 from ..models import BorradorAlta, Clinica, Consulta, Documento
-from ..servicios import VersionConflict, borradores, consultas, documentos, pacientes
+from ..servicios import VersionConflict, borradores, consultas, documentos, pacientes, profesionales
 from .comun import TODOS, es_htmx, redirigir, vista_med
 from .documentos import contexto_gestor
 
@@ -200,7 +199,7 @@ def expediente(request, paciente):
         contexto['heredado'] = {k: v for k, v in d.get('legacy', {}).items() if v}
     elif pestana == 'consultas':
         filas = list(consultas.visibles(request.actor).filter(paciente=persona).order_by('-atendida_en'))
-        nombres = cuentas.nombres({c.doctor_id for c in filas})
+        nombres = profesionales.nombres({c.doctor_id for c in filas})
         borrador = next((c for c in filas if c.estado == Consulta.Estado.BORRADOR and c.doctor_id == request.actor.cuenta_id), None)
         contexto.update(consultas=[{'c': c, 'doctor': nombres.get(c.doctor_id, '')} for c in filas], borrador=borrador)
     elif pestana == 'documentos':
@@ -241,7 +240,7 @@ def _contexto_evolucion(request, persona):
         provisionales = [p for p in borradores.puntos_provisionales(request.actor, persona.id, clave) if p['at'][:10] >= desde]
         etiqueta = VITALS[clave][0] if clave in VITALS else 'IMC'
         series.append({'clave': clave, 'etiqueta': etiqueta, 'finales': finales, 'provisionales': provisionales})
-    nombres = cuentas.nombres({p['doctor_id'] for s in series for p in s['finales']})
+    nombres = profesionales.nombres({p['doctor_id'] for s in series for p in s['finales']})
     tabla = sorted(({'at': p['at'], 'medicion': s['etiqueta'], 'valor': p['value'], 'unidad': p['unit'], 'contexto': p['context'],
                      'estado': 'Consulta finalizada', 'doctor': nombres.get(p['doctor_id'], '')}
                     for s in series for p in s['finales']), key=lambda f: f['at'], reverse=True)
