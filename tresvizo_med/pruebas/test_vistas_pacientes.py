@@ -60,6 +60,13 @@ def test_alta_con_borrador_autoguardado_y_registro(web):
     assert borradores.propios(web.actor).count() == 0
 
 
+def test_alta_agrupa_la_edad_aproximada_para_mostrarla_solo_si_la_fecha_es_desconocida(web):
+    r = web.get(reverse('med:alta_nueva'), follow=True)
+    html = r.content.decode()
+    assert 'class="med-nacimiento"' in html and 'med-nacimiento__aprox' in html and 'med-nacimiento__fecha' in html
+    assert html.index('id="id_birth_unknown"') < html.index('id="id_approx_value"')
+
+
 def test_alta_y_comenzar_consulta(web):
     borrador = borradores.guardar_borrador(web.actor, {})
     r = web.post(reverse('med:alta_registrar', args=[borrador.id]), {'name': 'Ana', 'comenzar': '1'})

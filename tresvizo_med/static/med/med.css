@@ -306,3 +306,10 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
 .med-adenda + .med-adenda { border-top: 1px solid var(--tv-separador); margin-top: var(--tv-espacio-3); padding-top: var(--tv-espacio-3); }
 .med-adenda header { margin-bottom: var(--tv-espacio-1); }
 .med-adenda p { margin: 0 0 var(--tv-espacio-2); }
+
+/* Alta: la edad aproximada solo aparece al marcar «Fecha de nacimiento desconocida» (y entonces la fecha se oculta) */
+@supports selector(:has(*)) {
+  .med-nacimiento__aprox { display: none; }
+  .med-nacimiento:has(#id_birth_unknown:checked) .med-nacimiento__aprox { display: grid; }
+  .med-nacimiento:has(#id_birth_unknown:checked) .med-nacimiento__fecha { display: none; }
+}

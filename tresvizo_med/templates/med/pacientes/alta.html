@@ -20,15 +20,17 @@
     <h2>Datos personales</h2>
     {% with c=campos.nombre %}{% include "med/parciales/_campo.html" %}{% endwith %}
     {% with c=campos.preferido %}{% include "med/parciales/_campo.html" %}{% endwith %}
-    <div class="tv-rejilla">
-      {% with c=campos.sexo %}{% include "med/parciales/_campo.html" %}{% endwith %}
-      {% with c=campos.nacimiento %}{% include "med/parciales/_campo.html" %}{% endwith %}
-    </div>
-    {% with c=campos.desconocida %}{% include "med/parciales/_campo.html" %}{% endwith %}
-    <div class="tv-rejilla">
-      {% with c=campos.aprox_valor %}{% include "med/parciales/_campo.html" %}{% endwith %}
-      {% with c=campos.aprox_unidad %}{% include "med/parciales/_campo.html" %}{% endwith %}
-      {% with c=campos.aprox_fecha %}{% include "med/parciales/_campo.html" %}{% endwith %}
+    <div class="med-nacimiento">
+      <div class="tv-rejilla">
+        {% with c=campos.sexo %}{% include "med/parciales/_campo.html" %}{% endwith %}
+        <div class="med-nacimiento__fecha">{% with c=campos.nacimiento %}{% include "med/parciales/_campo.html" %}{% endwith %}</div>
+      </div>
+      {% with c=campos.desconocida %}{% include "med/parciales/_campo.html" %}{% endwith %}
+      <div class="tv-rejilla med-nacimiento__aprox">
+        {% with c=campos.aprox_valor %}{% include "med/parciales/_campo.html" %}{% endwith %}
+        {% with c=campos.aprox_unidad %}{% include "med/parciales/_campo.html" %}{% endwith %}
+        {% with c=campos.aprox_fecha %}{% include "med/parciales/_campo.html" %}{% endwith %}
+      </div>
     </div>
     <p class="med-edad"><strong>Edad:</strong> {{ campos.edad }}</p>
   </section>
