@@ -332,7 +332,7 @@ def _tabla_signos(grupos, e):
             continue
         celdas = [[_p(r.upper(), e.etiqueta), _p(t, e.valor)] for r, t in pares]
         filas = [celdas[i:i+4] for i in range(0, len(celdas), 4)]
-        filas = [f+[['']]*(4-len(f)) for f in filas]
+        filas = [f+['']*(4-len(f)) for f in filas]  # celda vacía de texto: una lista [''] hacía fallar a reportlab (wrapOn de un str)
         tabla = Table(filas, colWidths=[ANCHO_UTIL/4]*4)
         tabla.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LEFTPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
                                    ('TOPPADDING', (0, 0), (-1, -1), 0)]))

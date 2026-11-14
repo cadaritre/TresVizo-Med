@@ -156,6 +156,23 @@ def test_receta_marca_borrador_y_anulada(tmp_path, estado, marca):
     assert 'BORRADOR' not in texto and 'ANULADA' not in texto
 
 
+@pytest.mark.parametrize('n_signos', [1, 2, 3, 5])
+def test_resumen_con_signos_que_no_llenan_la_ultima_fila(tmp_path, n_signos):
+    # Con signos que no son múltiplo de 4, la última fila de la tabla se rellenaba con [''] y el resumen fallaba en el trabajador
+    # («'str' object has no attribute 'wrapOn'»): la doctora pulsaba «Resumen» y no salía nada. Encontrado en el ensayo por la pila real.
+    from tresvizo_med.dominio.documentos_medicos import crear_resumen
+    valores = {'systolic': {'value': '118', 'unit': 'mmHg'}, 'diastolic': {'value': '76', 'unit': 'mmHg'},
+               'heart_rate': {'value': '72', 'unit': 'lpm'}, 'oxygen': {'value': '97', 'unit': '%'},
+               'weight': {'value': '70', 'unit': 'kg'}, 'glucose': {'value': '100', 'unit': 'mg/dL'}}
+    orden = [('systolic', 'diastolic'), ('heart_rate',), ('oxygen',), ('weight',), ('glucose',)][:n_signos]
+    elegidos = {k: valores[k] for grupo in orden for k in grupo}
+    datos = {**_datos_receta(), 'secciones': [('Motivo de consulta', 'Tos seca'), ('Signos vitales', ''), ('Medicamentos', '')],
+             'signos': [{'at': '2026-09-10T10:00:00', 'values': elegidos}], 'adendas': []}
+    crear_resumen(tmp_path/'s.pdf', DEFAULT_IDENTITY, datos)
+    texto = PdfReader(tmp_path/'s.pdf').pages[0].extract_text()
+    assert 'PRESIÓN ARTERIAL' in texto and '118/76 mmHg' in texto and 'Omeprazol' in texto
+
+
 def test_posologia_en_lenguaje_de_receta():
     from tresvizo_med.dominio.presentacion import medicamento
     base = {'name': 'Paracetamol', 'strength': '500 mg', 'dose': '1', 'dose_unit': 'tableta', 'route': 'Oral'}
