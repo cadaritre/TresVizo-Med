@@ -1,8 +1,8 @@
-<div id="cola-docs" class="med-cola" aria-live="polite">
+{% load med %}<div id="cola-docs" class="med-cola" aria-live="polite">
   {% if error and not fila_error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
   {% for f in cola %}
   <form class="tv-tarjeta med-cola-item" hx-post="{% url 'med:incorporar' tipo identificador f.id %}" hx-target="#cola-docs" hx-swap="outerHTML">
-    <p><strong>{{ f.name }}</strong> · {{ f.size|filesizeformat }} <span class="tv-insignia">{{ f.status }}</span>{% if f.replaces %} <span class="tv-insignia">Nueva versión</span>{% endif %}</p>
+    <p><strong>{{ f.name }}</strong> · {{ f.size|filesizeformat }} <span class="tv-insignia">{{ f.status|estado_cola }}</span>{% if f.replaces %} <span class="tv-insignia">Nueva versión</span>{% endif %}</p>
     {% if fila_error == f.id and error %}<div class="tv-alerta tv-alerta--error" role="alert">{{ error }}</div>{% endif %}
     <div class="tv-rejilla">
       <div class="tv-campo"><label for="cat-{{ f.id }}">Categoría</label><select id="cat-{{ f.id }}" name="categoria">{% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div>

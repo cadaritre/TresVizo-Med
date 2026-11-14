@@ -210,3 +210,9 @@ def test_el_administrador_ve_documentos_pero_no_sube(cliente_med, web, paciente,
     html = admin.get(reverse('med:expediente', args=[paciente.id]), {'pestana': 'documentos'}).content.decode()
     assert 'placa' not in html and 'med-doc' in html and 'tv-subida' not in html
     assert admin.post(reverse('med:asociar', args=['paciente', paciente.id]), {'subido': 'x'}).status_code == 403
+
+
+def test_estado_de_la_cola_y_tipo_del_archivo_en_palabras_de_uso():
+    from tresvizo_med.templatetags.med import estado_cola, tipo_legible
+    assert estado_cola('Pendiente de copia / reintento') == 'Falta incorporar' and estado_cola('Otro') == 'Otro'
+    assert tipo_legible('image/jpeg') == 'Imagen JPEG' and tipo_legible('application/pdf') == 'PDF' and tipo_legible('x/y') == 'x/y'

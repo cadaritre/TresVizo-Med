@@ -310,3 +310,6 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
   .med-nacimiento:has(#id_birth_unknown:checked) .med-nacimiento__aprox { display: grid; }
   .med-nacimiento:has(#id_birth_unknown:checked) .med-nacimiento__fecha { display: none; }
 }
+
+/* La zona de subida dice «o suéltalo aquí» / «o toma una foto»: en pantallas táctiles no se arrastra nada y la cámara ya es el botón de abajo */
+@media (hover: none) and (pointer: coarse) { .med-subida .tv-subida__zona > .tv-tenue { display: none; } }

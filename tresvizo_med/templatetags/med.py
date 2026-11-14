@@ -17,6 +17,23 @@ def get(diccionario, clave):
         return ''
 
 
+ESTADOS_COLA = {'Pendiente de copia / reintento': 'Falta incorporar', 'Guardado': 'Incorporado'}
+TIPOS_LEGIBLES = {'image/jpeg': 'Imagen JPEG', 'image/png': 'Imagen PNG', 'application/pdf': 'PDF',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Documento de Word'}
+
+
+@register.filter
+def estado_cola(texto):
+    """Estado de un archivo de la cola de documentos en palabras de uso."""
+    return ESTADOS_COLA.get(texto, texto)
+
+
+@register.filter
+def tipo_legible(mime):
+    """``image/jpeg`` → «Imagen JPEG»."""
+    return TIPOS_LEGIBLES.get(mime, mime)
+
+
 @register.filter
 def fecha_iso(texto):
     """``{{ '2026-09-10'|fecha_iso }}`` → 10/09/2026."""
