@@ -252,3 +252,19 @@ def test_suspender_a_un_medico_lo_saca_en_la_siguiente_peticion(medico, actor, r
     roles.revocar(medico.usuario, 'med')
     respuesta = pagina.goto(medico.servidor+'/pacientes/')
     assert respuesta.status == 404
+
+
+def test_selector_de_avatar_elige_guarda_y_la_imagen_carga(medico):
+    pagina = medico.ir('/perfil/')
+    imagenes = pagina.locator('.med-avatares img')
+    expect(imagenes.first).to_be_visible()
+    pagina.wait_for_function("() => [...document.querySelectorAll('.med-avatares img')].every(i => i.complete && i.naturalWidth > 0)")
+    pagina.locator('.med-avatar[title="Koala"]').click()
+    expect(pagina.locator('.med-avatar[title="Koala"] .med-avatar__marca')).to_be_visible()
+    pagina.click('button:has-text("Guardar")')
+    pagina.wait_for_load_state('networkidle')
+    expect(pagina.locator('input[name=avatar][value=koala]')).to_be_checked()
+    pagina.click('summary[aria-label="Menú de la cuenta"]')
+    yo = pagina.locator('.med-yo img')
+    expect(yo).to_be_visible()
+    assert yo.evaluate('i => i.naturalWidth') > 0

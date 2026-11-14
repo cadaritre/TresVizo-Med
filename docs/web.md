@@ -43,6 +43,22 @@ e2e/             Playwright (flujos de escritorio y móvil) y carga de 10 000 pa
   requeriría un service worker.
 - **Folios** de una secuencia de PostgreSQL: un lote o alta que se revierte puede dejar huecos.
 
+## Navegación, temas e imágenes estáticas (14-11-2026)
+
+- **Navegación como datos** (`tresvizo_med/navegacion.py`, contrato tvplataforma 1.5 §12): menú (Pacientes, Borradores,
+  Estadísticas, Exportar, Configuración), acciones de la paleta y búsqueda de pacientes. El armazón pinta el lateral, el cajón del
+  teléfono y la paleta en todas las páginas. Las vistas cuya ruta no cuelga de su sección la marcan en `vista_med`
+  (`request.tv_seccion`, tabla `SECCION_DE_VISTA`).
+- **Búsqueda de la paleta**: `GET /pacientes/buscar.json?q=` (rol de Med, hasta 20, pacientes activos). El subtítulo lleva folio
+  y edad; nunca teléfono ni alergias.
+- **Temas**: el modo claro u oscuro es la preferencia de la cuenta (`<html data-tv-tema>`, claro por omisión, nunca el del
+  sistema). `/tema.css` no depende de la preferencia: un tema claro de Med pinta `:root:not([data-tv-tema="oscuro"])`; uno
+  oscuro pinta solo `:root[data-tv-tema="oscuro"]` y el claro queda en Clínico. Elegir un tema propio en Apariencia ajusta el
+  modo de la cuenta.
+- **Imágenes estáticas**: siempre `{% static %}` por archivo (nombre con hash). Caddy sirve `/static/*` con
+  `immutable` de un año también en los 404; una URL sin hash que falle una vez queda rota en ese navegador (así se rompieron los
+  avatares de «Mi perfil»).
+
 ## Criterios de aceptación (`med-web.md` §7)
 
 | # | Criterio | Estado | Evidencia |

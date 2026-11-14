@@ -90,6 +90,7 @@ fieldset.tv-tarjeta { min-width: 0; margin-inline: 0; }
 .med-persona__foto { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid var(--tv-separador); }
 .med-persona__datos { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-1) var(--tv-espacio-2); margin: var(--tv-espacio-1) 0 0; color: var(--tv-tenue); font-size: .9375rem; }
 .med-persona__datos > span:not(.tv-insignia) + span:not(.tv-insignia)::before { content: "·"; margin-right: var(--tv-espacio-2); }
+@media (max-width: 599px) { .med-persona__datos { column-gap: var(--tv-espacio-3); } .med-persona__datos > span::before { content: none !important; } }
 .med-alergias { display: flex; align-items: flex-start; gap: var(--tv-espacio-2); margin: 0 0 var(--tv-espacio-4); padding: var(--tv-espacio-3) var(--tv-espacio-4); background: var(--tv-estado-error-fondo); color: var(--tv-estado-error-texto); border-radius: var(--tv-radio); border-left: 4px solid var(--tv-estado-error-texto); }
 .med-alergias > .tv-icono { margin-top: 2px; }
 .med-alergias p { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--tv-espacio-1) var(--tv-espacio-3); }
@@ -216,7 +217,7 @@ fieldset.tv-tarjeta { min-width: 0; margin-inline: 0; }
 .med-colapsable .tv-campo > label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .med-barra { align-items: center; flex-wrap: wrap; }
 .med-barra .med-indicador { flex: 1 1 100%; }
-@media (max-width: 599px) { .med-barra > .tv-boton { padding-inline: var(--tv-espacio-3); line-height: 1.2; text-align: center; } .med-barra > .tv-boton:not(.tv-boton--secundario) { flex-grow: 1.4; } }
+@media (max-width: 599px) { .med-barra > .tv-boton { padding-inline: var(--tv-espacio-3); line-height: 1.2; text-align: center; } .med-barra > .tv-boton:not(.tv-boton--secundario) { flex-grow: 1.4; } .med-barra > .tv-boton > .tv-icono { display: none; } }
 @media (min-width: 600px) { .med-barra .med-indicador { flex: 1 1 auto; } }
 @media (min-width: 900px) { .med-barra { margin: var(--tv-espacio-4) 0 0; bottom: var(--tv-espacio-3); border: 1px solid var(--tv-separador); border-radius: var(--tv-radio-grande, var(--tv-radio)); box-shadow: var(--tv-sombra-3, 0 8px 24px rgb(0 0 0 / .1)); padding: var(--tv-espacio-3) var(--tv-espacio-4); } }
 .med-indicador { color: var(--tv-sobre-cabecera); font-size: .875rem; display: inline-flex; align-items: center; gap: var(--tv-espacio-1); }
@@ -358,7 +359,8 @@ details.tv-tarjeta > form + form, details.tv-tarjeta > form + p { margin-top: va
 /* --- Exportar e importar ------------------------------------------------------------------------------------- */
 .med-exportar-rejilla { align-items: stretch; }
 .med-exportar-rejilla .tv-formulario { align-content: start; }
-.med-rejilla-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--tv-espacio-3); }
+.med-rejilla-2 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--tv-espacio-3); }
+.med-rejilla-2 input { min-width: 0; width: 100%; }
 .med-mapeo { display: grid; gap: var(--tv-espacio-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 .med-mapeo > .tv-formulario__acciones { grid-column: 1 / -1; }
 
