@@ -2,8 +2,8 @@
 <section id="gestor-docs" class="med-gestor">
   {% if puede_subir %}
   <div class="tv-tarjeta med-subida" data-asociar="{% url 'med:asociar' tipo identificador %}" data-reemplaza="">
-    <h3>Agregar documentos</h3>
-    <p class="tv-tenue">JPEG, PNG, PDF o DOCX de hasta {{ limite|filesizeformat }}. Después de subirlos eliges categoría y título antes de incorporarlos.</p>
+    <h3 class="med-seccion-tarjeta__titulo">{% icono "upload" %}Agregar documentos</h3>
+    <p class="tv-tenue">JPEG, PNG, PDF o DOCX · hasta {{ limite|filesizeformat }}</p>
     {% subida destino="med.documento" accept=".jpg,.jpeg,.png,.pdf,.docx" multiple=True max_bytes=limite etiqueta="Elige archivos o arrástralos aquí" %}
     {% subida destino="med.documento" accept="image/*" capture="environment" max_bytes=limite etiqueta="Tomar una foto con la cámara" %}
   </div>

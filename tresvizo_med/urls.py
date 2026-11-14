@@ -8,6 +8,7 @@ app_name = 'med'
 urlpatterns = [
     path('', pacientes.inicio, name='inicio'),
     path('pacientes/', pacientes.buscar, name='pacientes'),
+    path('pacientes/buscar.json', pacientes.buscar_paleta, name='buscar_paleta'),
     path('registros/', pacientes.en_curso, name='en_curso'),
     path('pacientes/nuevo/', pacientes.alta_nueva, name='alta_nueva'),
     path('pacientes/nuevo/<uuid:borrador>/', pacientes.alta, name='alta'),

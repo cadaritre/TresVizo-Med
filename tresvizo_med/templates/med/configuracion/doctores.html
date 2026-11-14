@@ -1,10 +1,11 @@
-{% extends "med/base.html" %}{% load tv %}
+{% extends "med/base.html" %}{% load tv med %}
 {% block titulo %}Doctores{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>Doctores</h1></div>{% endblock %}
-{% block contenido %}
-{% alerta tipo="info" %}Aquí editas los perfiles profesionales. Las altas, bajas, contraseñas y roles de Med se administran en el <a href="{{ portal }}">portal</a>, solo por el propietario.{% endalerta %}
-<ul class="med-lista-consultas">
-{% for f in filas %}<li><a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:perfil_de' f.persona.id %}"><strong>{{ f.perfil.nombre_visible|default:f.persona.nombre }}</strong> · {{ f.persona.usuario }}<br><span class="tv-tenue">{{ f.perfil.especialidad|default:"Sin especialidad" }}{% if f.perfil.cedula %} · Cédula {{ f.perfil.cedula }}{% endif %}{% if f.perfil and not f.perfil.activo %} · inactivo{% endif %}</span></a></li>
-{% empty %}<li class="tv-tenue">Todavía no hay cuentas con rol en Med.</li>{% endfor %}
-</ul>
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>Doctores</h1><p class="tv-subtitulo">Las cuentas y sus roles se administran en el <a href="{{ portal }}">portal</a>.</p>{% endblock %}
+{% block cuerpo %}
+{% if filas %}<ul class="med-filas">
+{% for f in filas %}<li><a class="med-fila-enlace" href="{% url 'med:perfil_de' f.persona.id %}"><span class="med-iniciales" aria-hidden="true">{{ f.perfil.nombre_visible|default:f.persona.nombre|iniciales_med }}</span>
+  <span class="med-fila-enlace__texto"><strong>{{ f.perfil.nombre_visible|default:f.persona.nombre }}</strong><span class="tv-tenue">{{ f.persona.usuario }} · {{ f.perfil.especialidad|default:"Sin especialidad" }}{% if f.perfil.cedula %} · Cédula <span class="tv-cifra">{{ f.perfil.cedula }}</span>{% endif %}</span></span>
+  {% if f.perfil and not f.perfil.activo %}<span class="tv-insignia tv-insignia--neutra">Inactivo</span>{% endif %}{% icono "chevron-right" clase="med-fila-enlace__flecha" %}</a></li>
+{% endfor %}</ul>
+{% else %}{% include "med/parciales/_vacio.html" with icono="users-round" titulo="Todavía no hay cuentas con acceso a Med." %}{% endif %}
 {% endblock %}

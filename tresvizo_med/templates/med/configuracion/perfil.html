@@ -1,31 +1,42 @@
 {% extends "med/base.html" %}{% load tv static %}
-{% block titulo %}Perfil{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>{% if propio %}Mi perfil{% else %}Perfil de {{ nombre_portal }}{% endif %}</h1></div>{% endblock %}
-{% block contenido %}
+{% block titulo %}{% if propio %}Mi perfil{% else %}Perfil profesional{% endif %}{% endblock %}
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>{% if propio %}Mi perfil{% else %}{{ nombre_portal }}{% endif %}</h1>{% endblock %}
+{% block cuerpo %}
 {% tiene_rol "med" "admin" as es_admin %}
-<form method="post" action="{% if propio %}{% url 'med:perfil' %}{% else %}{% url 'med:perfil_de' cuenta %}{% endif %}" enctype="multipart/form-data" class="tv-formulario" data-perfil>{% csrf_token %}
-  <p class="tv-tenue">Tu nombre y usuario los administra el portal. Para cambiar tu contraseña, entra a <a href="{{ cuenta_url }}">tu cuenta</a>.</p>
-  <div class="tv-campo"><label for="nombre_visible">Nombre que aparece en Med y en los documentos</label><input id="nombre_visible" name="nombre_visible" value="{{ perfil.nombre_visible }}" placeholder="{{ nombre_portal }}" maxlength="120"></div>
-  <div class="tv-campo"><label for="cedula">Cédula profesional</label><input id="cedula" name="cedula" value="{{ perfil.cedula }}" maxlength="120"></div>
-  <div class="tv-campo"><label for="especialidad">Especialidad</label><input id="especialidad" name="especialidad" value="{{ perfil.especialidad }}" maxlength="120"></div>
-  <fieldset class="tv-tarjeta"><legend>Avatar</legend>
-    <div class="med-avatares">
-      <label class="med-avatar"><input type="radio" name="avatar" value="initials"{% if perfil.avatar == 'initials' or not perfil.avatar %} checked{% endif %}><span class="med-avatar__iniciales">Iniciales</span></label>
-      {% if perfil.foto_ruta %}<label class="med-avatar"><input type="radio" name="avatar" value="photo"{% if perfil.avatar == 'photo' %} checked{% endif %}><img src="{% url 'med:perfil_foto' cuenta %}" alt="Tu foto" width="56" height="56"></label>{% endif %}
-      {% for a in avatares %}<label class="med-avatar"><input type="radio" name="avatar" value="{{ a }}"{% if perfil.avatar == a %} checked{% endif %}><img src="{% static 'med/img/avatares/' %}{{ a }}.png" alt="Avatar {{ a }}" width="56" height="56" loading="lazy"></label>{% endfor %}
+<form method="post" action="{% if propio %}{% url 'med:perfil' %}{% else %}{% url 'med:perfil_de' cuenta %}{% endif %}" enctype="multipart/form-data" class="med-pagina med-pagina--angosta" data-perfil>{% csrf_token %}
+  <fieldset class="tv-tarjeta med-seccion-tarjeta" data-recorte>
+    <legend class="med-seccion-tarjeta__titulo">{% icono "circle-user-round" %}Imagen de perfil</legend>
+    <div class="med-avatares" role="radiogroup" aria-label="Imagen de perfil">
+      <label class="med-avatar" title="Iniciales"><input type="radio" name="avatar" value="initials"{% if perfil.avatar == 'initials' or not perfil.avatar %} checked{% endif %}><span class="med-avatar__circulo med-avatar__circulo--iniciales" aria-hidden="true">{{ iniciales }}</span><span class="tv-solo-lectores">Iniciales</span><span class="med-avatar__marca" aria-hidden="true">{% icono "check" clase="tv-icono--sm" %}</span></label>
+      {% if perfil.foto_ruta %}<label class="med-avatar" title="Tu foto"><input type="radio" name="avatar" value="photo"{% if perfil.avatar == 'photo' %} checked{% endif %}><img class="med-avatar__circulo" src="{% url 'med:perfil_foto' cuenta %}?v={{ version_foto }}" alt="Tu foto" width="64" height="64"><span class="med-avatar__marca" aria-hidden="true">{% icono "check" clase="tv-icono--sm" %}</span></label>{% endif %}
+      {% for a in avatares %}<label class="med-avatar" title="{{ a.nombre }}"><input type="radio" name="avatar" value="{{ a.clave }}"{% if perfil.avatar == a.clave %} checked{% endif %}><img class="med-avatar__circulo" src="{{ a.url }}" alt="{{ a.nombre }}" width="64" height="64" loading="lazy"><span class="med-avatar__marca" aria-hidden="true">{% icono "check" clase="tv-icono--sm" %}</span></label>{% endfor %}
+      <label class="med-avatar med-avatar--subir" for="foto-origen" title="Subir foto"><span class="med-avatar__circulo med-avatar__circulo--subir" aria-hidden="true">{% icono "camera" %}</span><span class="tv-solo-lectores">Subir una foto</span><span class="med-avatar__marca" aria-hidden="true">{% icono "check" clase="tv-icono--sm" %}</span></label>
     </div>
-    <h3>O usa una foto</h3>
-    <div class="med-recorte" data-recorte>
-      <input type="file" id="foto-origen" accept="image/png,image/jpeg" data-recorte-origen>
-      <label for="foto-origen" class="tv-tenue">Elige una imagen, arrástrala para encuadrar y ajusta el zoom.</label>
-      <div class="med-recorte__editor" hidden data-recorte-editor><canvas width="256" height="256" data-recorte-lienzo aria-label="Recorte de la foto"></canvas>
-        <label for="foto-zoom">Zoom</label><input type="range" id="foto-zoom" min="1" max="4" step="0.05" value="1" data-recorte-zoom></div>
-      <input type="file" name="foto" hidden data-recorte-resultado>
+    <input type="file" id="foto-origen" class="tv-solo-lectores" accept="image/png,image/jpeg" data-recorte-origen>
+    <div class="med-recorte__editor" hidden data-recorte-editor>
+      <canvas width="256" height="256" data-recorte-lienzo aria-label="Encuadre de la foto: arrastra para moverla"></canvas>
+      <div class="tv-campo med-recorte__zoom"><label for="foto-zoom">{% icono "zoom-in" clase="tv-icono--sm" %}Zoom</label><input type="range" id="foto-zoom" min="1" max="4" step="0.05" value="1" data-recorte-zoom></div>
     </div>
+    <input type="file" name="foto" hidden data-recorte-resultado>
   </fieldset>
-  <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="reducir_movimiento" name="reducir_movimiento"{% if perfil.reducir_movimiento %} checked{% endif %}><label for="reducir_movimiento">Reducir el movimiento en pantalla</label></div>
-  {% if es_admin and not propio %}<input type="hidden" name="campo_activo" value="1"><div class="tv-campo tv-campo--casilla"><input type="checkbox" id="activo" name="activo"{% if perfil.activo %} checked{% endif %}><label for="activo">Perfil activo</label></div>{% endif %}
-  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Guardar perfil</button></div>
+
+  <section class="tv-tarjeta med-seccion-tarjeta">
+    <h2 class="med-seccion-tarjeta__titulo">{% icono "id-card" %}Datos profesionales</h2>
+    <div class="tv-campo"><label for="nombre_visible">Nombre en Med y en recetas</label><input id="nombre_visible" name="nombre_visible" value="{{ perfil.nombre_visible }}" placeholder="{{ nombre_portal }}" maxlength="120" autocomplete="name"></div>
+    <div class="tv-rejilla">
+      <div class="tv-campo"><label for="cedula">Cédula profesional</label><input id="cedula" name="cedula" value="{{ perfil.cedula }}" maxlength="120" inputmode="numeric" autocomplete="off"></div>
+      <div class="tv-campo"><label for="especialidad">Especialidad</label><input id="especialidad" name="especialidad" value="{{ perfil.especialidad }}" maxlength="120"></div>
+    </div>
+  </section>
+
+  <section class="tv-tarjeta med-seccion-tarjeta">
+    <h2 class="med-seccion-tarjeta__titulo">{% icono "sliders-horizontal" %}Preferencias</h2>
+    <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="reducir_movimiento" name="reducir_movimiento"{% if perfil.reducir_movimiento %} checked{% endif %}><label for="reducir_movimiento">Reducir animaciones</label></div>
+    {% if es_admin and not propio %}<input type="hidden" name="campo_activo" value="1"><div class="tv-campo tv-campo--casilla"><input type="checkbox" id="activo" name="activo"{% if perfil.activo %} checked{% endif %}><label for="activo">Perfil activo</label></div>{% endif %}
+    {% if propio %}<p class="tv-tenue med-nota">{% icono "key-round" clase="tv-icono--sm" %}Correo y contraseña: <a href="{{ cuenta_url }}">Mi cuenta</a></p>{% endif %}
+  </section>
+
+  <div class="med-pie-formulario"><button class="tv-boton" type="submit">{% icono "check" %}Guardar</button></div>
 </form>
 {% endblock %}
 {% block scripts %}{{ block.super }}<script src="{% static 'med/med-config.js' %}" defer></script>{% endblock %}

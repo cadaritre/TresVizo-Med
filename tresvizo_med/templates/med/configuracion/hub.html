@@ -1,17 +1,20 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Configuración{% endblock %}
 {% block encabezado %}<h1>Configuración</h1>{% endblock %}
-{% block contenido %}
-{% include "med/parciales/_subnav.html" with seccion="configuracion" %}
+{% block cuerpo %}
 {% tiene_rol "med" "admin" as es_admin %}
-<div class="tv-rejilla">
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:perfil' %}"><h2>Mi perfil</h2><p class="tv-tenue">Nombre visible, cédula, especialidad, avatar o foto.</p></a>
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:apariencia' %}"><h2>Apariencia</h2><p class="tv-tenue">Colores de fábrica y temas propios, con contraste verificado.</p></a>
-  {% if es_admin %}
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:identidad' %}"><h2>Clínica e identidad</h2><p class="tv-tenue">Nombre, logo, contacto y preferencias de los documentos impresos.</p></a>
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:doctores' %}"><h2>Doctores</h2><p class="tv-tenue">Perfiles profesionales. Las altas, bajas y roles se hacen en el portal.</p></a>
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:importar' %}"><h2>Importar pacientes</h2><p class="tv-tenue">Desde un CSV con vista previa.</p></a>
-  <a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:exportar' %}"><h2>Exportación completa</h2><p class="tv-tenue">ZIP verificable de toda la clínica.</p></a>
-  {% endif %}
-</div>
+<section class="med-bloque" aria-labelledby="t-personal"><h2 id="t-personal" class="med-rotulo">Personal</h2>
+<div class="med-opciones">
+  <a class="med-opcion-enlace" href="{% url 'med:perfil' %}"><span class="med-opcion-enlace__icono">{% icono "circle-user-round" %}</span><span><strong>Mi perfil</strong><span class="tv-tenue">Nombre, cédula e imagen</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+  <a class="med-opcion-enlace" href="{% url 'med:apariencia' %}"><span class="med-opcion-enlace__icono">{% icono "palette" %}</span><span><strong>Apariencia</strong><span class="tv-tenue">Colores de Med</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+</div></section>
+{% if es_admin %}
+<section class="med-bloque" aria-labelledby="t-clinica"><h2 id="t-clinica" class="med-rotulo">Clínica</h2>
+<div class="med-opciones">
+  <a class="med-opcion-enlace" href="{% url 'med:identidad' %}"><span class="med-opcion-enlace__icono">{% icono "building-2" %}</span><span><strong>Clínica</strong><span class="tv-tenue">Nombre, logo y contacto de recetas</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+  <a class="med-opcion-enlace" href="{% url 'med:doctores' %}"><span class="med-opcion-enlace__icono">{% icono "users-round" %}</span><span><strong>Doctores</strong><span class="tv-tenue">Perfiles profesionales</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+  <a class="med-opcion-enlace" href="{% url 'med:importar' %}"><span class="med-opcion-enlace__icono">{% icono "file-up" %}</span><span><strong>Importar pacientes</strong><span class="tv-tenue">Desde un archivo CSV</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+  <a class="med-opcion-enlace" href="{% url 'med:exportar' %}"><span class="med-opcion-enlace__icono">{% icono "archive" %}</span><span><strong>Exportación completa</strong><span class="tv-tenue">Respaldo de toda la clínica</span></span>{% icono "chevron-right" clase="med-opcion-enlace__flecha" %}</a>
+</div></section>
+{% endif %}
 {% endblock %}

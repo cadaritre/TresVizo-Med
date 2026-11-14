@@ -1,15 +1,17 @@
 {% extends "med/base.html" %}{% load tv %}
-{% block titulo %}Sesión bloqueada{% endblock %}
-{% block encabezado %}<h1>Sesión bloqueada</h1>{% endblock %}
+{% block titulo %}Med bloqueado{% endblock %}
+{% block encabezado %}{% endblock %}
 {% block acciones %}{% endblock %}
-{% block contenido %}
-<div class="med-bloqueo">
-  <p>El contenido de Med está oculto. Tus borradores ya están guardados. Escribe tu contraseña para continuar como <strong>{{ tv_usuario.get_full_name|default:tv_usuario.get_username }}</strong>.</p>
+{% block cuerpo %}
+<div class="med-bloqueo tv-tarjeta">
+  <span class="med-bloqueo__icono">{% icono "lock-keyhole" clase="tv-icono--xl" %}</span>
+  <h1>Med está bloqueado</h1>
+  <p class="tv-tenue">Escribe tu contraseña para continuar como <strong>{{ tv_usuario.get_full_name|default:tv_usuario.get_username }}</strong>.</p>
   {% if error %}{% alerta tipo="error" %}{{ error }}{% endalerta %}{% endif %}
   <form method="post" action="{% url 'med:desbloquear' %}" class="tv-formulario">{% csrf_token %}
     <input type="hidden" name="siguiente" value="{{ siguiente }}">
     <div class="tv-campo"><label for="password">Contraseña</label><input id="password" name="password" type="password" autocomplete="current-password" autofocus required></div>
-    <div class="tv-formulario__acciones"><button type="submit" class="tv-boton">Desbloquear</button></div>
+    <button type="submit" class="tv-boton tv-boton--bloque">{% icono "lock-keyhole-open" %}Desbloquear</button>
   </form>
 </div>
 {% endblock %}

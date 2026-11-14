@@ -1,21 +1,19 @@
 {% extends "med/base.html" %}{% load tv med static %}
 {% block titulo %}Apariencia{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>Apariencia</h1></div>{% endblock %}
-{% block contenido %}
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>Apariencia</h1><p class="tv-subtitulo">No cambia las recetas ni los resúmenes.</p>{% endblock %}
+{% block cuerpo %}
 {% tiene_rol "med" "admin" as es_admin %}
-<p class="tv-tenue">La apariencia nunca cambia los documentos impresos.</p>
 <section class="tv-tarjeta med-hereda" aria-labelledby="tema-actual">
-  <h2 id="tema-actual">Tu tema: {% for t in temas %}{% if t.clave == activo %}{{ t.nombre }}{% endif %}{% endfor %}</h2>
-  {% if hereda %}<p class="tv-tenue">Sigues el tema de la clínica: si la clínica lo cambia, el tuyo cambia con él.</p>
+  <h2 id="tema-actual" class="med-seccion-tarjeta__titulo">{% icono "palette" %}Tu tema: {% for t in temas %}{% if t.clave == activo %}{{ t.nombre }}{% endif %}{% endfor %}</h2>
+  {% if hereda %}<p class="tv-tenue">Sigues el tema de la clínica.</p>
   {% else %}<form method="post" action="{% url 'med:apariencia_aplicar' %}" class="tv-formulario">{% csrf_token %}
     <input type="hidden" name="clave" value="{{ clinica }}"><input type="hidden" name="hereda" value="on"><input type="hidden" name="ambito" value="personal">
-    <p class="tv-tenue">Usas un tema propio. Si prefieres que siempre coincida con el de la clínica:</p>
-    <button class="tv-boton tv-boton--secundario" type="submit">Usar el tema de la clínica</button></form>{% endif %}
+    <button class="tv-boton tv-boton--secundario" type="submit">{% icono "building-2" %}Usar el tema de la clínica</button></form>{% endif %}
 </section>
 <div class="med-temas">
 {% for t in temas %}
   <section class="tv-tarjeta med-tema{% if t.clave == activo %} med-tema--activo{% endif %}">
-    <h2>{{ t.nombre }}{% if t.clave == clinica %} <span class="tv-insignia">Clínica</span>{% endif %}{% if t.clave == activo %} <span class="tv-insignia">En uso</span>{% endif %}</h2>
+    <h2>{{ t.nombre }}{% if t.clave == clinica %} <span class="tv-insignia">Clínica</span>{% endif %}{% if t.clave == activo %} <span class="tv-insignia">En uso</span>{% endif %}{% if t.tokens|tema_oscuro %} <span class="tv-insignia tv-insignia--neutra">{% icono "moon" %}Modo oscuro</span>{% endif %}</h2>
     <div class="med-vista" aria-hidden="true"{% for k, v in t.tokens.items %}{% if k in 'primary background surface header text muted border button secondary' %} data-{{ k }}="{{ v }}"{% endif %}{% endfor %}>
       <div class="med-vista__barra"></div>
       <div class="med-vista__cuerpo"><div class="med-vista__tarjeta"><span class="med-vista__linea"></span><span class="med-vista__linea med-vista__linea--corta"></span>
@@ -24,11 +22,11 @@
     <div class="tv-formulario__acciones med-tema__acciones">
       <form method="post" action="{% url 'med:apariencia_aplicar' %}">{% csrf_token %}<input type="hidden" name="clave" value="{{ t.clave }}"><input type="hidden" name="ambito" value="personal">
         <button class="tv-boton" type="submit"{% if t.clave == activo and not hereda %} disabled{% endif %}>{% if t.clave == activo and not hereda %}En uso{% else %}Usar este tema{% endif %}</button></form>
-      <details class="tv-menu med-mas"><summary aria-label="Más opciones del tema {{ t.nombre }}">Más</summary>
+      <details class="tv-menu med-mas"><summary class="tv-boton tv-boton--secundario tv-boton--icono" aria-label="Más opciones del tema {{ t.nombre }}" title="Más opciones">{% icono "ellipsis" %}</summary>
         <div class="tv-menu__panel">
-          {% if es_admin %}<form method="post" action="{% url 'med:apariencia_aplicar' %}">{% csrf_token %}<input type="hidden" name="clave" value="{{ t.clave }}"><button name="ambito" value="clinica" type="submit">Usar en toda la clínica</button></form>{% endif %}
-          <a href="?base={{ t.clave|urlencode }}">Copiar y editar</a>
-          <a href="{% url 'med:apariencia_exportar' t.clave %}">Exportar</a>
+          {% if es_admin %}<form method="post" action="{% url 'med:apariencia_aplicar' %}">{% csrf_token %}<input type="hidden" name="clave" value="{{ t.clave }}"><button name="ambito" value="clinica" type="submit">{% icono "building-2" clase="tv-nav__icono" %}Usar en toda la clínica</button></form>{% endif %}
+          <a href="?base={{ t.clave|urlencode }}#editor-tema">{% icono "copy" clase="tv-nav__icono" %}Copiar y editar</a>
+          <a href="{% url 'med:apariencia_exportar' t.clave %}">{% icono "download" clase="tv-nav__icono" %}Exportar</a>
         </div></details>
     </div>
     {% if t.puede_editar %}
@@ -47,12 +45,12 @@
   </section>
 {% endfor %}
 </div>
-<section class="tv-tarjeta"><h2>Importar un tema</h2>
+<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "upload" %}Importar un tema</h2>
   <form method="post" action="{% url 'med:apariencia_importar' %}" enctype="multipart/form-data" class="tv-formulario">{% csrf_token %}
     <div class="tv-campo"><label for="tema-archivo">Archivo .json (máximo 64 KB)</label><input id="tema-archivo" name="archivo" type="file" accept=".json,application/json" required></div>
     <button class="tv-boton" type="submit">Importar</button></form></section>
 {% if editor %}
-<section class="tv-tarjeta" id="editor-tema"><h2>Editor de colores</h2>
+<section class="tv-tarjeta" id="editor-tema"><h2 class="med-seccion-tarjeta__titulo">{% icono "pipette" %}Editor de colores</h2>
   <form method="post" action="{% url 'med:apariencia_guardar' %}" class="tv-formulario tv-formulario--ancho med-editor-tema" data-editor-tema>{% csrf_token %}
     <div hidden hx-post="{% url 'med:apariencia_verificar' %}" hx-include="closest form" hx-trigger="change from:closest form, input changed delay:400ms from:closest form" hx-target="#contraste" hx-swap="outerHTML" hx-sync="this:replace"></div>
     <input type="hidden" name="base" value="{{ editor.base }}">

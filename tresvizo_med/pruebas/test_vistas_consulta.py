@@ -44,7 +44,7 @@ def formulario(c, **cambios):
 
 def test_editor_con_banda_de_alergias_y_resumenes(web, borrador):
     html = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
-    for texto in ('Consulta · Ana Muñoz', 'Penicilina', 'Motivo de consulta', 'Indicaciones y plan', 'Diagnóstico o impresión',
+    for texto in ('<h1>Ana Muñoz</h1>', 'Penicilina', 'Motivo de consulta', 'Indicaciones y plan', 'Diagnóstico o impresión',
                   'Signos vitales', 'Medicamentos', 'Estudios', 'Revisar y finalizar', 'id="panel"', 'name="revision"'):
         assert texto in html
     assert 'style=' not in html and 'onclick=' not in html  # la CSP no admite estilos ni manejadores en línea
@@ -254,7 +254,7 @@ def completar(web, c):
 
 def test_finalizar_y_la_consulta_deja_de_ser_editable(web, borrador):
     completar(web, borrador)
-    assert 'Todo está completo' in web.get(reverse('med:revisar', args=[borrador.id])).content.decode()
+    assert 'Todo listo' in web.get(reverse('med:revisar', args=[borrador.id])).content.decode()
     r = web.post(reverse('med:finalizar', args=[borrador.id]))
     assert r['Location'] == reverse('med:consulta', args=[borrador.id])
     borrador.refresh_from_db()
@@ -308,7 +308,7 @@ def test_papelera_y_recuperacion_de_un_borrador(web, borrador, paciente):
     assert r['Location'] == reverse('med:expediente', args=[paciente.id])
     assert not consultas.visibles(web.actor).exists()
     lectura = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
-    assert 'en la papelera' in lectura and 'Recuperar borrador' in lectura
+    assert 'En la papelera' in lectura and 'Recuperar borrador' in lectura
     web.post(reverse('med:papelera', args=[borrador.id]), {'accion': 'restaurar', 'motivo': 'x'})
     assert consultas.visibles(web.actor).count() == 1
 
@@ -325,7 +325,7 @@ def test_bloquear_oculta_todo_y_la_contrasena_lo_reabre(web, borrador):
     borrador.refresh_from_db()
     assert borrador.motivo == ''
     pagina = web.get(reverse('med:desbloquear')).content.decode()
-    assert 'Sesión bloqueada' in pagina and 'Ana Muñoz' not in pagina
+    assert 'Med está bloqueado' in pagina and 'Ana Muñoz' not in pagina
     mala = web.post(reverse('med:desbloquear'), {'password': 'equivocada', 'siguiente': reverse('med:pacientes')})
     assert mala.status_code == 401 and 'no coincide' in mala.content.decode()
     buena = web.post(reverse('med:desbloquear'), {'password': 'clave-de-prueba', 'siguiente': 'https://malo.example/robo'})

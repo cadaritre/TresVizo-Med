@@ -81,6 +81,7 @@ def pagina(request):
     contexto = {'filtros': filtros, 'error': error, 'datos': datos, 'instantanea': instantanea, 'grupos': GRUPOS,
                 'tipos': [*TIPOS_CONSULTA, *([filtros['tipo']] if filtros['tipo'] and filtros['tipo'] not in TIPOS_CONSULTA else [])],
                 'periodos': _periodos(filtros),
+                'filtros_abiertos': bool(filtros['tipo'] or filtros['diagnostico'] or filtros['doctor'] or error or not any(p['activo'] for p in _periodos(filtros))),
                 'medicos': _medicos() if actor.es_admin else [], 'quien': _quien(actor, filtros['doctor'])}
     if datos:
         contexto.update(grafica=barras(datos['activity']), tablas=[

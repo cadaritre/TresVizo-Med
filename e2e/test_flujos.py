@@ -29,7 +29,7 @@ def test_busqueda_con_atajos_y_resultados_en_tarjetas(medico, actor):
         paciente(actor, nombre)
     pagina = medico.ir('/pacientes/')
     expect(pagina.locator('[data-resultado]')).to_have_count(3)
-    pagina.keyboard.press('Control+k')
+    pagina.locator('#q').click()  # la búsqueda de la página ya tiene el foco al entrar
     pagina.keyboard.type('nunez')
     expect(pagina.locator('[data-resultado]')).to_have_count(1)
     expect(pagina.locator('[data-resultado]')).to_contain_text('María Núñez')
@@ -38,6 +38,15 @@ def test_busqueda_con_atajos_y_resultados_en_tarjetas(medico, actor):
     pagina.keyboard.press('Enter')
     pagina.wait_for_url(re.compile(r'/pacientes/[0-9a-f-]{36}/'))
     expect(pagina.locator('h1')).to_contain_text('María Núñez')
+    # La paleta del armazón (Ctrl+K) también busca pacientes, solo de Med, y abre el expediente
+    pagina.keyboard.press('Control+k')
+    pagina.keyboard.type('luis')
+    resultado = pagina.locator('[data-tv-ir^="/pacientes/"]', has_text='Luis Pérez')
+    expect(resultado).to_be_visible()
+    expect(resultado).not_to_contain_text('55')  # sin teléfono en la paleta
+    resultado.click()
+    pagina.wait_for_url(re.compile(r'/pacientes/[0-9a-f-]{36}/'))
+    expect(pagina.locator('h1')).to_contain_text('Luis Pérez')
 
 
 def test_alta_con_borrador_que_sobrevive_a_recargar_y_comienza_la_consulta(medico, actor):
@@ -59,7 +68,8 @@ def test_alta_con_borrador_que_sobrevive_a_recargar_y_comienza_la_consulta(medic
     expect(pagina.locator('#filas-phones input[name$="__number"]')).to_have_value('5550001')
     pagina.click('button[name=comenzar][value="1"]')
     pagina.wait_for_url(re.compile(r'/consultas/[0-9a-f-]{36}/'))
-    expect(pagina.locator('h1')).to_contain_text('Consulta · Luis Pérez')
+    expect(pagina.locator('h1')).to_contain_text('Luis Pérez')
+    expect(pagina.locator('.med-estado--borrador')).to_be_visible()
     assert Paciente.objects.get().folio.startswith('RC-') and Consulta.objects.get().estado == 'Borrador'
 
 
@@ -67,7 +77,7 @@ def test_consulta_completa_hasta_finalizar_y_lectura(medico, actor):
     p = paciente(actor, allergy_records=[{'substance': 'Penicilina'}], allergy_status='Alergias registradas')
     c, _ = consultas.iniciar(actor, p.id)
     pagina = medico.ir(f'/consultas/{c.id}/')
-    expect(pagina.locator('.med-alerta-alergias')).to_contain_text('Penicilina')
+    expect(pagina.locator('.med-alergias')).to_contain_text('Penicilina')
     pagina.fill('#id_reason', 'Dolor de cabeza desde ayer')
     guardado(pagina)
     # Signos vitales en el panel lateral
@@ -96,7 +106,7 @@ def test_consulta_completa_hasta_finalizar_y_lectura(medico, actor):
     # Ctrl+Enter abre la revisión
     pagina.keyboard.press('Control+Enter')
     pagina.wait_for_url(re.compile(r'/revisar/'))
-    expect(pagina.locator('.tv-alerta--exito')).to_contain_text('Todo está completo')
+    expect(pagina.locator('.tv-alerta--exito')).to_contain_text('Todo listo')
     pagina.click('button:has-text("Finalizar consulta")')
     pagina.wait_for_url(re.compile(r'/consultas/[0-9a-f-]{36}/$'))
     expect(pagina.locator('.med-estado--finalizada')).to_be_visible()
@@ -187,7 +197,7 @@ def test_pdf_de_receta_con_vista_previa(medico, actor):
     p = paciente(actor)
     c = finalizada(actor, p, prescriptions=[MEDICAMENTO])
     pagina = medico.ir(f'/consultas/{c.id}/')
-    pagina.click('text=Receta e indicaciones')
+    pagina.click('button:has-text("Receta")')
     pagina.wait_for_url('**/pdf/**', timeout=15000)  # la vista previa se abre sola al terminar
     pagina.wait_for_selector('canvas.med-pdf__pagina--lista', timeout=15000)
     assert pagina.locator('canvas.med-pdf__pagina').count() == 1
@@ -198,23 +208,24 @@ def test_estadisticas_y_exportaciones_con_descargas(medico, actor, tmp_path):
     p = paciente(actor)
     finalizada(actor, p)
     pagina = medico.ir('/estadisticas/')
+    pagina.click('summary:has-text("Filtros")')  # los filtros avanzados se abren a pedido; el periodo rápido está siempre a la vista
     pagina.fill('#desde', '2026-09-01')
     pagina.fill('#hasta', '2026-09-30')
     pagina.click('text=Calcular')
     expect(pagina.locator('.med-numero').first).to_contain_text('1')
     expect(pagina.locator('svg.med-grafica:visible')).to_be_visible()
     with pagina.expect_download() as descarga:
-        pagina.click('text=Exportar CSV')
+        pagina.click('text=Descargar CSV')
     contenido = Path(descarga.value.path()).read_text(encoding='utf-8-sig')
     assert 'resumen,consultations,1' in contenido and 'diagnoses,Migraña,1' in contenido
     pagina.fill('#desde', '2026-08-01')  # al cambiar los filtros, las exportaciones se ocultan hasta recalcular
     expect(pagina.locator('.med-exportar')).to_be_hidden()
     pagina.goto(medico.servidor+'/exportar/')
     with pagina.expect_download() as descarga:
-        pagina.click('text=Exportar pacientes')
+        pagina.click('text=Descargar pacientes')
     assert 'Ana Muñoz' in Path(descarga.value.path()).read_text(encoding='utf-8-sig')
     with pagina.expect_download() as descarga:
-        pagina.click('text=Exportar consultas (CSV)')
+        pagina.click('text=Descargar consultas (CSV)')
     assert 'Dolor de cabeza' in Path(descarga.value.path()).read_text(encoding='utf-8-sig')
 
 

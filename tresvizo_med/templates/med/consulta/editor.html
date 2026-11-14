@@ -1,14 +1,15 @@
 {% extends "med/base.html" %}{% load tv med %}
-{% block titulo %}Consulta · {{ p.nombre }}{% endblock %}
+{% block titulo %}Consulta{% endblock %}
 {% block encabezado %}
-<div class="med-cabecera-paciente">
-  <p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p>
-  <h1>Consulta · {{ p.nombre }}</h1>
-  <p class="tv-tenue">{{ p.folio }} · {{ edad }} · <span class="tv-insignia med-estado med-estado--borrador">Borrador privado</span></p>
-  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {{ alergias|join:", " }}</p>{% else %}<p class="tv-tenue">Alergias: {{ estado_alergias|lower }}.</p>{% endif %}
+{% include "med/parciales/_migas.html" with nivel1="Expediente" url1="med:expediente" url1_args=p.id %}
+<div class="med-persona">
+  <span class="med-iniciales med-iniciales--grande" aria-hidden="true">{{ p.nombre|iniciales_med }}</span>
+  <div class="med-persona__texto"><h1>{{ p.nombre }}</h1>
+    <p class="med-persona__datos"><span class="tv-cifra">{{ p.folio }}</span><span>{{ edad }}</span><span class="tv-insignia med-estado med-estado--borrador">{% icono "file-pen-line" %}Borrador</span></p></div>
 </div>
 {% endblock %}
-{% block contenido %}
+{% block cuerpo %}
+{% if alergias %}<div class="med-alergias" role="alert">{% icono "triangle-alert" %}<p><strong>Alergias</strong> {% for a in alergias %}<span class="med-alergias__item">{{ a }}</span>{% endfor %}</p></div>{% else %}<p class="med-sin-alergias med-sin-alergias--pendiente">{% icono "circle-help" clase="tv-icono--sm" %}Alergias: {{ estado_alergias|lower }}</p>{% endif %}
 <div id="editor" class="med-editor" data-abrir-url="{{ abrir_url }}">
   <form id="soap" novalidate class="med-soap" method="post" action="{% url 'med:guardar' c.id %}" data-autoguardar
         hx-post="{% url 'med:guardar' c.id %}" hx-trigger="input changed delay:900ms, change, guardar" hx-swap="none" hx-sync="#editor:queue all">
@@ -19,7 +20,7 @@
       {% for c in encabezado %}{% include "med/parciales/_campo.html" %}{% endfor %}</fieldset>
     {% with c=textos.reason %}<div id="campo-reason">{% include "med/parciales/_campo.html" %}</div>{% endwith %}
     <section class="med-diagnosticos" id="campo-diagnosis">
-      <h2>Diagnóstico o impresión</h2>
+      <h2 class="med-rotulo">{% icono "clipboard-check" clase="tv-icono--sm" %}Diagnóstico o impresión</h2>
       <div id="diagnosticos" data-resumen="diagnosticos">{% include "med/consulta/_diagnosticos.html" %}</div>
     </section>
     {% with c=textos.plan %}<div id="campo-plan">{% include "med/parciales/_campo.html" %}</div>{% endwith %}
@@ -28,16 +29,16 @@
     {% with c=textos.assessment_notes %}<details class="med-colapsable"{% if c.valor %} open{% endif %}><summary>Notas de valoración<span class="med-colapsable__vista" data-vista-de="{{ c.idh }}">{{ c.valor|primera_linea }}</span></summary>{% include "med/parciales/_campo.html" %}</details>{% endwith %}
     <div class="tv-barra-inferior med-barra">
       <span id="indicador" class="med-indicador" aria-live="polite">Borrador guardado</span>
-      <button type="submit" class="tv-boton tv-boton--secundario" id="boton-guardar">Guardar</button>
-      <button type="submit" class="tv-boton" name="ir" value="revisar" id="boton-revisar">Revisar y finalizar</button>
+      <button type="submit" class="tv-boton tv-boton--secundario" id="boton-guardar">{% icono "save" %}Guardar</button>
+      <button type="submit" class="tv-boton" name="ir" value="revisar" id="boton-revisar">{% icono "clipboard-check" %}Revisar y finalizar</button>
     </div>
   </form>
   {% include "med/consulta/_resumenes.html" %}
   <div id="panel" class="med-panel" aria-live="polite"></div>
 </div>
-<div class="med-descartar"><button type="button" class="tv-boton tv-boton--secundario" data-tv-abrir="dlg-retirar">Retirar borrador a la papelera</button></div>
+<div class="med-descartar"><button type="button" class="tv-boton tv-boton--fantasma" data-tv-abrir="dlg-retirar">{% icono "trash-2" %}Retirar borrador</button></div>
 {% hoja_inferior id="dlg-retirar" titulo="¿Retirar este borrador?" %}
-  <p>El borrador de <strong>{{ p.nombre }}</strong> sale de tu lista y pasa a la papelera. No se pierde nada: puedes deshacerlo justo después o recuperarlo desde la papelera.</p>
+  <p>El borrador de <strong>{{ p.nombre }}</strong> pasa a la papelera. Puedes deshacerlo justo después.</p>
   {% url 'med:papelera' c.id as retirar %}{% formulario accion=retirar %}
     <input type="hidden" name="motivo" value="Retirado por el responsable">
     <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" type="button" data-tv-cerrar>Cancelar</button><button class="tv-boton tv-boton--peligro" type="submit">Retirar a la papelera</button></div>

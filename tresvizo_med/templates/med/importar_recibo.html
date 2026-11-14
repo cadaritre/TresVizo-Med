@@ -1,7 +1,7 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Importación terminada{% endblock %}
-{% block encabezado %}<h1>Importación terminada</h1>{% endblock %}
-{% block contenido %}
-{% alerta tipo="exito" %}Se importaron {{ lote.recibo.count }} paciente{{ lote.recibo.count|pluralize }} del archivo «{{ lote.recibo.nombre }}». Repetir la importación no duplica nada.{% endalerta %}
-<p><a class="tv-boton" href="{% url 'med:pacientes' %}">Ver pacientes</a></p>
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}<h1>Importación terminada</h1>{% endblock %}
+{% block cuerpo %}
+{% alerta tipo="exito" %}{{ lote.recibo.count }} paciente{{ lote.recibo.count|pluralize }} importado{{ lote.recibo.count|pluralize }} de «{{ lote.recibo.nombre }}». Si repites la importación no se duplica nada.{% endalerta %}
+<p><a class="tv-boton" href="{% url 'med:pacientes' %}">{% icono "users" %}Ver pacientes</a></p>
 {% endblock %}

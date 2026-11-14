@@ -149,7 +149,6 @@
     }
     // Buscador: Ctrl+K enfoca; flecha abajo baja a los resultados; Enter abre el seleccionado.
     var buscador = document.querySelector("[data-atajo-buscar]");
-    if (buscador && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); buscador.focus(); buscador.select(); }
     if (buscador && e.key === "ArrowDown" && document.activeElement === buscador) {
       var primero = document.querySelector("[data-resultado]");
       if (primero) { e.preventDefault(); primero.focus(); }

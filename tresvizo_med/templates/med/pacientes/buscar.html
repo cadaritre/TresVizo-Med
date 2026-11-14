@@ -1,16 +1,24 @@
-{% extends "med/base.html" %}{% load static tv %}
+{% extends "med/base.html" %}{% load static tv med %}
 {% block titulo %}Pacientes{% endblock %}
 {% block encabezado %}<h1>Pacientes</h1>{% endblock %}
-{% block contenido %}
-{% include "med/parciales/_subnav.html" with seccion="pacientes" %}
+{% block acciones %}<a class="tv-boton" href="{% url 'med:alta_nueva' %}">{% icono "user-plus" %}Nuevo paciente</a>{% endblock %}
+{% block cuerpo %}
+{% if continuar %}<section class="med-continuar" aria-labelledby="titulo-continuar">
+  <h2 id="titulo-continuar" class="med-rotulo">{% icono "clock" clase="tv-icono--sm" %}Continúa donde te quedaste</h2>
+  <ul class="med-continuar__lista">{% for k in continuar %}
+    <li><a class="med-continuar__item" href="{% url 'med:consulta' k.id %}"><span class="med-iniciales" aria-hidden="true">{{ k.paciente.nombre|iniciales_med }}</span>
+      <span class="med-continuar__texto"><strong>{{ k.paciente.nombre }}</strong><span class="tv-tenue">{{ k.atendida_en|date:"d/m/Y" }} · {{ k.motivo|default:"Consulta sin motivo"|truncatechars:48 }}</span></span>
+      {% icono "chevron-right" clase="med-continuar__flecha" %}</a></li>{% endfor %}
+  </ul>
+</section>{% endif %}
 <form method="get" action="{% url 'med:pacientes' %}" class="med-busqueda" role="search"
-      hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:#modo, submit" hx-push-url="true" hx-sync="this:replace" hx-indicator="#buscando">
-  <div class="tv-campo"><label for="q">Buscar por nombre, folio o teléfono</label>
-    <input id="q" name="q" type="search" value="{{ q }}" autocomplete="off" autofocus data-atajo-buscar></div>
-  <div class="tv-campo"><label for="modo">Mostrar</label>
-    <select id="modo" name="modo">{% for m in modos %}<option value="{{ m }}"{% if m == modo %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
-  <button type="submit" class="tv-boton tv-boton--secundario med-busqueda__boton">Buscar</button>
-  <span id="buscando" class="med-buscando" role="status">Buscando…</span>
+      hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:.tv-segmentado, submit" hx-push-url="true" hx-sync="this:replace" hx-indicator="#buscando">
+  <div class="med-buscador"><label for="q" class="tv-solo-lectores">Buscar paciente</label>{% icono "search" clase="med-buscador__icono" %}
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="Nombre, folio o teléfono" autocomplete="off" autofocus data-atajo-buscar>
+    <span id="buscando" class="med-buscando" role="status"><span class="tv-solo-lectores">Buscando…</span></span></div>
+  <div class="tv-segmentado" role="radiogroup" aria-label="Mostrar">{% for m in modos %}
+    <label><input type="radio" name="modo" value="{{ m }}"{% if m == modo %} checked{% endif %}><span>{{ m }}</span></label>{% endfor %}</div>
+  <noscript><button type="submit" class="tv-boton tv-boton--secundario">Buscar</button></noscript>
 </form>
 <div id="resultados" aria-live="polite">{% include "med/pacientes/_resultados.html" %}</div>
 {% endblock %}

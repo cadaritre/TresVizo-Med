@@ -1,28 +1,28 @@
-<aside id="resumenes" class="med-resumenes" aria-label="Capturas de la consulta"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% load tv %}<aside id="resumenes" class="med-resumenes" aria-label="Capturas de la consulta"{% if oob %} hx-swap-oob="true"{% endif %}>
   <section class="tv-tarjeta med-resumen">
-    <header><h2>Signos vitales</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'vitals' %}" hx-target="#panel" hx-sync="#editor:queue all">Agregar</button></header>
+    <header><h2>{% icono "heart-pulse" %}Signos vitales</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'vitals' %}" hx-target="#panel" hx-sync="#editor:queue all">{% icono "plus" %}Agregar</button></header>
     {% for r in resumenes.signos %}<div class="med-item"><button type="button" class="med-item__texto" hx-get="{% url 'med:captura_item' c.id 'vitals' r.id %}" hx-target="#panel">{{ r.texto|linebreaksbr }}</button>
-      <button type="button" class="med-item__quitar" aria-label="Quitar toma" hx-post="{% url 'med:quitar' c.id 'vitals' r.id %}" hx-target="#panel" hx-confirm="¿Quitar esta toma de signos vitales?">✕</button></div>
+      <button type="button" class="med-item__quitar" aria-label="Quitar toma" hx-post="{% url 'med:quitar' c.id 'vitals' r.id %}" hx-target="#panel" hx-confirm="¿Quitar esta toma de signos vitales?">{% icono "x" %}</button></div>
     {% empty %}<p class="tv-tenue">Sin signos vitales.</p>{% endfor %}
   </section>
   <section class="tv-tarjeta med-resumen">
-    <header><h2>Medicamentos</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'medication' %}" hx-target="#panel" hx-sync="#editor:queue all">Agregar</button></header>
+    <header><h2>{% icono "pill" %}Medicamentos</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'medication' %}" hx-target="#panel" hx-sync="#editor:queue all">{% icono "plus" %}Agregar</button></header>
     {% for r in resumenes.medicamentos %}<div class="med-item"><button type="button" class="med-item__texto" hx-get="{% url 'med:captura_item' c.id 'medication' r.id %}" hx-target="#panel">{{ r.texto }}{% if r.revisar %} <span class="tv-insignia">Por revisar</span>{% endif %}</button>
-      <button type="button" class="med-item__quitar" aria-label="Quitar medicamento" hx-post="{% url 'med:quitar' c.id 'medication' r.id %}" hx-target="#panel" hx-confirm="¿Quitar este medicamento?">✕</button></div>
+      <button type="button" class="med-item__quitar" aria-label="Quitar medicamento" hx-post="{% url 'med:quitar' c.id 'medication' r.id %}" hx-target="#panel" hx-confirm="¿Quitar este medicamento?">{% icono "x" %}</button></div>
     {% empty %}<p class="tv-tenue">Sin medicamentos.</p>{% endfor %}
   </section>
   <section class="tv-tarjeta med-resumen">
-    <header><h2>Estudios</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'study' %}" hx-target="#panel" hx-sync="#editor:queue all">Agregar</button></header>
+    <header><h2>{% icono "flask-conical" %}Estudios</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:captura' c.id 'study' %}" hx-target="#panel" hx-sync="#editor:queue all">{% icono "plus" %}Agregar</button></header>
     {% for r in resumenes.estudios %}<div class="med-item"><button type="button" class="med-item__texto" hx-get="{% url 'med:captura_item' c.id 'study' r.id %}" hx-target="#panel">{{ r.texto|linebreaksbr }}</button>
-      <button type="button" class="med-item__quitar" aria-label="Quitar estudio" hx-post="{% url 'med:quitar' c.id 'study' r.id %}" hx-target="#panel" hx-confirm="¿Quitar este estudio?">✕</button></div>
+      <button type="button" class="med-item__quitar" aria-label="Quitar estudio" hx-post="{% url 'med:quitar' c.id 'study' r.id %}" hx-target="#panel" hx-confirm="¿Quitar este estudio?">{% icono "x" %}</button></div>
     {% empty %}<p class="tv-tenue">Sin estudios.</p>{% endfor %}
   </section>
   <section class="tv-tarjeta med-resumen">
-    <header><h2>Documentos</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:panel_documentos' c.id %}" hx-target="#panel">Abrir{% if resumenes.documentos %} ({{ resumenes.documentos }}){% endif %}</button></header>
-    <p class="tv-tenue">{% if resumenes.documentos %}{{ resumenes.documentos }} documento{{ resumenes.documentos|pluralize }} en esta consulta.{% else %}JPEG, PNG, PDF y DOCX.{% endif %}</p>
+    <header><h2>{% icono "paperclip" %}Documentos</h2><button type="button" class="tv-boton tv-boton--secundario" hx-get="{% url 'med:panel_documentos' c.id %}" hx-target="#panel">{% icono "folder-open" %}Abrir{% if resumenes.documentos %} ({{ resumenes.documentos }}){% endif %}</button></header>
+    <p class="tv-tenue">{% if resumenes.documentos %}{{ resumenes.documentos }} documento{{ resumenes.documentos|pluralize }}{% else %}Sin documentos.{% endif %}</p>
   </section>
   {% if resumenes.pendientes %}
-  <section class="tv-tarjeta med-resumen med-resumen--pendiente"><h2>Capturas sin aplicar</h2>
+  <section class="tv-tarjeta med-resumen med-resumen--pendiente"><h2>{% icono "circle-alert" %}Capturas sin aplicar</h2>
     {% for p in resumenes.pendientes %}<button type="button" class="tv-boton tv-boton--secundario" hx-get="{% if p.tipo in 'vitals medication study diagnosis' %}{% url 'med:captura_item' c.id p.tipo p.id %}{% endif %}" hx-target="#panel">{{ p.nombre }} pendiente</button>{% endfor %}
   </section>{% endif %}
 </aside>

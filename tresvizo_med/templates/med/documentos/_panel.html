@@ -1,4 +1,4 @@
-<section class="med-hoja" role="dialog" aria-labelledby="titulo-panel">
-  <header class="med-hoja__cabecera"><h2 id="titulo-panel">Documentos de la consulta</h2><button type="button" class="tv-boton tv-boton--secundario" data-cerrar-panel aria-label="Cerrar panel">✕</button></header>
+{% load tv %}<section class="med-hoja" role="dialog" aria-labelledby="titulo-panel">
+  <header class="med-hoja__cabecera"><h2 id="titulo-panel">Documentos</h2><button type="button" class="tv-boton tv-boton--secundario tv-boton--icono" data-cerrar-panel aria-label="Cerrar">{% icono "x" %}</button></header>
   {% include "med/documentos/_gestor.html" %}
 </section>

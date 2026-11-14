@@ -1,31 +1,29 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Exportar{% endblock %}
-{% block encabezado %}<h1>Exportar</h1>{% endblock %}
-{% block contenido %}
-{% include "med/parciales/_subnav.html" with seccion="exportar" %}
+{% block encabezado %}<h1>Exportar</h1>{% tiene_rol "med" "admin" as es_admin %}<p class="tv-subtitulo">{% if es_admin %}Datos de toda la clínica.{% else %}Tus pacientes y tus consultas.{% endif %}</p>{% endblock %}
+{% block cuerpo %}
 {% tiene_rol "med" "admin" as es_admin %}
-<p class="tv-tenue">{% if es_admin %}Como administrador exportas los datos de toda la clínica.{% else %}Exportas tus pacientes y tus consultas.{% endif %} Los CSV protegen contra fórmulas de hoja de cálculo.</p>
-<div class="tv-rejilla">
-  <section class="tv-tarjeta"><h2>Pacientes</h2>
+<div class="tv-rejilla med-exportar-rejilla">
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "users" %}Pacientes</h2>
     <form method="get" action="{% url 'med:exportar_pacientes' %}" class="tv-formulario">
-      <div class="tv-campo"><label for="ep-modo">Pacientes</label><select id="ep-modo" name="modo">{% for m in modos %}<option value="{{ m }}"{% if m == modo %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
-      <div class="tv-campo"><label for="ep-q">Filtrar por texto (opcional)</label><input id="ep-q" name="q" value="{{ q }}"></div>
-      <div class="tv-campo"><label for="ep-formato">Formato</label><select id="ep-formato" name="formato"><option value="csv">CSV</option><option value="json">JSON</option></select></div>
-      <button class="tv-boton" type="submit">Exportar pacientes</button></form></section>
-  <section class="tv-tarjeta"><h2>Consultas</h2>
+      <div class="tv-campo"><label for="ep-modo">Cuáles</label><select id="ep-modo" name="modo">{% for m in modos %}<option value="{{ m }}"{% if m == modo %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+      <div class="tv-campo"><label for="ep-q">Que contengan (opcional)</label><input id="ep-q" name="q" value="{{ q }}"></div>
+      <div class="tv-campo"><label for="ep-formato">Formato</label><select id="ep-formato" name="formato"><option value="csv">CSV (hoja de cálculo)</option><option value="json">JSON</option></select></div>
+      <button class="tv-boton" type="submit">{% icono "download" %}Descargar pacientes</button></form></section>
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "stethoscope" %}Consultas</h2>
     <form method="get" action="{% url 'med:exportar_consultas' %}" class="tv-formulario">
-      <div class="tv-campo"><label for="ec-desde">Desde</label><input id="ec-desde" name="desde" type="date"></div>
-      <div class="tv-campo"><label for="ec-hasta">Hasta</label><input id="ec-hasta" name="hasta" type="date"></div>
+      <div class="tv-rejilla med-rejilla-2"><div class="tv-campo"><label for="ec-desde">Desde</label><input id="ec-desde" name="desde" type="date"></div>
+      <div class="tv-campo"><label for="ec-hasta">Hasta</label><input id="ec-hasta" name="hasta" type="date"></div></div>
       {% if medicos %}<div class="tv-campo"><label for="ec-doctor">Médico</label><select id="ec-doctor" name="doctor"><option value="*">Toda la clínica</option>{% for m in medicos %}<option value="{{ m.id }}">{{ m.nombre }}</option>{% endfor %}</select></div>{% endif %}
       <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="ec-borradores" name="borradores" value="1"><label for="ec-borradores">Incluir mis borradores</label></div>
-      <button class="tv-boton" type="submit">Exportar consultas (CSV)</button></form></section>
+      <button class="tv-boton" type="submit">{% icono "download" %}Descargar consultas (CSV)</button></form></section>
   {% if es_admin %}
-  <section class="tv-tarjeta"><h2>Exportación completa de la clínica</h2>
-    <p class="tv-tenue">ZIP con pacientes, consultas, adendas, documentos y configuración, con manifiesto SHA-256, en el formato de respaldo del escritorio.</p>
-    <form method="post" action="{% url 'med:exportacion_completa' %}" hx-post="{% url 'med:exportacion_completa' %}" hx-target="#tarea-exportacion">{% csrf_token %}<button class="tv-boton" type="submit">Generar exportación completa</button></form>
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "archive" %}Respaldo completo</h2>
+    <p class="tv-tenue">Pacientes, consultas, adendas, documentos y configuración en un ZIP.</p>
+    <form method="post" action="{% url 'med:exportacion_completa' %}" hx-post="{% url 'med:exportacion_completa' %}" hx-target="#tarea-exportacion">{% csrf_token %}<button class="tv-boton" type="submit">{% icono "hard-drive-download" %}Generar respaldo</button></form>
     <div id="tarea-exportacion"></div></section>
-  <section class="tv-tarjeta"><h2>Importar pacientes</h2><p class="tv-tenue">Desde un CSV con mapeo de columnas y vista previa.</p><a class="tv-boton tv-boton--secundario" href="{% url 'med:importar' %}">Importar CSV</a></section>
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "file-up" %}Importar pacientes</h2><p class="tv-tenue">Desde un CSV, con vista previa.</p><a class="tv-boton tv-boton--secundario" href="{% url 'med:importar' %}">{% icono "file-up" %}Importar CSV</a></section>
   {% endif %}
 </div>
-<p class="tv-tenue">El paquete de un expediente se genera desde el expediente del paciente, pestaña Documentos.</p>
+<p class="tv-tenue med-nota">{% icono "info" clase="tv-icono--sm" %}El paquete de un solo paciente está en su expediente, menú {% icono "ellipsis" clase="tv-icono--sm" %}.</p>
 {% endblock %}

@@ -1,22 +1,26 @@
 {% extends "med/base.html" %}{% load tv static %}
 {% block titulo %}Clínica e identidad{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:configuracion' %}">‹ Configuración</a></p><h1>{% if primera_vez %}Configura tu clínica{% else %}Clínica e identidad{% endif %}</h1></div>{% endblock %}
-{% block contenido %}
-{% if primera_vez %}{% alerta tipo="info" %}Es la primera vez en Med. Estos datos salen en tus recetas y resúmenes. Los usuarios y sus contraseñas los crea el propietario en el portal.{% endalerta %}{% endif %}
+{% block encabezado %}{% if not primera_vez %}{% include "med/parciales/_migas.html" with nivel1="Configuración" url1="med:configuracion" %}{% endif %}<h1>{% if primera_vez %}Configura tu clínica{% else %}Clínica{% endif %}</h1><p class="tv-subtitulo">Así aparece en recetas y resúmenes.</p>{% endblock %}
+{% block cuerpo %}
+
 {% if error %}{% alerta tipo="error" %}{{ error }}{% endalerta %}{% endif %}
-<form method="post" action="{% url 'med:identidad' %}" enctype="multipart/form-data" class="tv-formulario">{% csrf_token %}
+<form method="post" action="{% url 'med:identidad' %}" enctype="multipart/form-data" class="med-pagina med-pagina--angosta">{% csrf_token %}
   <input type="hidden" name="revision" value="{{ fila.revision }}">
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "building-2" %}Datos de la clínica</h2>
   <div class="tv-campo"><label for="clinic_name">Nombre de la clínica</label><input id="clinic_name" name="clinic_name" value="{{ v.clinic_name }}" required maxlength="120"></div>
-  <div class="tv-campo"><label for="app_name">Nombre del sistema en los documentos</label><input id="app_name" name="app_name" value="{{ v.app_name }}" required maxlength="120"></div>
+  <div class="tv-campo"><label for="app_name">Título de los documentos</label><input id="app_name" name="app_name" value="{{ v.app_name }}" required maxlength="120"></div>
   <div class="tv-campo"><label for="contact">Contacto (teléfono, dirección)</label><textarea id="contact" name="contact">{{ v.contact }}</textarea></div>
   <div class="tv-campo"><label for="website">Enlace</label><input id="website" name="website" type="url" value="{{ v.website }}" required></div>
   <div class="tv-campo"><label for="website_text">Texto visible del enlace</label><input id="website_text" name="website_text" value="{{ v.website_text }}" required maxlength="120"></div>
+  </section>
+  <section class="tv-tarjeta med-seccion-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "file-text" %}Documentos</h2>
   <div class="tv-rejilla"><div class="tv-campo"><label for="document_primary">Color de los títulos</label><input id="document_primary" name="document_primary" type="color" value="{{ v.document_primary }}"></div>
   <div class="tv-campo"><label for="document_text">Color del texto</label><input id="document_text" name="document_text" type="color" value="{{ v.document_text }}"></div></div>
   <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="document_website" name="document_website"{% if v.document_website %} checked{% endif %}><label for="document_website">Mostrar el enlace en los documentos</label></div>
-  <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="document_app_brand" name="document_app_brand"{% if v.document_app_brand %} checked{% endif %}><label for="document_app_brand">Mostrar la marca de la aplicación en los documentos</label><div class="tv-campo__ayuda">Apagada por omisión.</div></div>
-  <div class="tv-campo"><label for="logo">Logo de la clínica (PNG, JPEG o ICO, hasta 10 MB)</label><input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/x-icon"></div>
-  {% if fila.logo_ruta %}<div><img src="{% url 'med:logo' %}" alt="Logo actual de la clínica" width="120"><div class="tv-campo tv-campo--casilla"><input type="checkbox" id="quitar_logo" name="quitar_logo"><label for="quitar_logo">Quitar el logo</label></div></div>{% endif %}
-  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Guardar</button></div>
+  <div class="tv-campo tv-campo--casilla"><input type="checkbox" id="document_app_brand" name="document_app_brand"{% if v.document_app_brand %} checked{% endif %}><label for="document_app_brand">Mostrar la marca de la aplicación en los documentos</label></div>
+  <div class="tv-campo"><label for="logo">Logo (PNG, JPEG o ICO, hasta 10 MB)</label><input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/x-icon"></div>
+  {% if fila.logo_ruta %}<div class="med-logo-actual"><img src="{% url 'med:logo' %}" alt="Logo actual de la clínica" width="120"><div class="tv-campo tv-campo--casilla"><input type="checkbox" id="quitar_logo" name="quitar_logo"><label for="quitar_logo">Quitar el logo</label></div></div>{% endif %}
+  </section>
+  <div class="med-pie-formulario"><button class="tv-boton" type="submit">{% icono "check" %}Guardar</button></div>
 </form>
 {% endblock %}

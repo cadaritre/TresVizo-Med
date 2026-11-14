@@ -8,9 +8,10 @@
 {% endblock %}
 {% block menu_cuenta %}
 {% if not bloqueado %}
-{% yo as persona %}{% if persona %}<a class="med-yo"{% if persona.reducir %} data-reducir-movimiento{% endif %} href="{% url 'med:perfil' %}" aria-label="Perfil profesional de {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales" aria-hidden="true">{{ persona.iniciales }}</span>{% endif %}<span>Perfil profesional</span></a>{% endif %}
-<form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" title="Oculta el contenido hasta escribir tu contraseña">Bloquear Med</button></form>
+{% yo as persona %}{% if persona %}<a class="med-yo"{% if persona.reducir %} data-reducir-movimiento{% endif %} href="{% url 'med:perfil' %}">{% if persona.url %}<img src="{{ persona.url }}" alt="" width="24" height="24">{% else %}<span class="med-yo__iniciales" aria-hidden="true">{{ persona.iniciales }}</span>{% endif %}<span>Mi perfil</span></a>{% endif %}
+<form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" title="Oculta Med hasta que escribas tu contraseña">{% icono "lock" clase="tv-nav__icono" %}Bloquear Med</button></form>
 {% endif %}
 {% endblock %}
-{% block pie %}<div id="sin-conexion" class="med-sin-conexion" role="status" hidden>Sin conexión. Med no guarda nada en este dispositivo: lo que escribiste vuelve a guardarse cuando regrese la señal.</div>{% endblock %}
+{% block contenido %}{% block cuerpo %}{% endblock %}{% endblock %}
+{% block pie %}<div id="sin-conexion" class="med-sin-conexion" role="status" hidden>{% icono "wifi-off" %}<span>Sin conexión. Lo que escribas se guarda al volver la señal.</span></div>{% endblock %}
 {% block scripts %}<script src="{% static 'tvplataforma/js/subida.js' %}" defer></script><script src="{% static 'med/med.js' %}" defer></script>{% endblock %}

@@ -52,9 +52,15 @@
       ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
       ctx.drawImage(imagen, x, y, imagen.width * e, imagen.height * e);
     }
+    var subir = raiz.querySelector(".med-avatar--subir");
+    var radios = raiz.querySelectorAll('input[name="avatar"]');
+    function olvidarFoto() { imagen = null; origen.value = ""; contenedor.hidden = true; if (subir) subir.classList.remove("med-avatar--elegido"); }
+    radios.forEach(function (r) { r.addEventListener("change", olvidarFoto); });
     origen.addEventListener("change", function () {
       var archivo = origen.files[0];
       if (!archivo) return;
+      radios.forEach(function (r) { r.checked = false; });
+      if (subir) subir.classList.add("med-avatar--elegido");
       var img = new Image();
       img.onload = function () { imagen = img; zoom.value = 1; x = 0; y = 0; contenedor.hidden = false; dibujar(); URL.revokeObjectURL(img.src); };
       img.src = URL.createObjectURL(archivo);

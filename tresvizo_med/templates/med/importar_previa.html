@@ -1,8 +1,9 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Vista previa de la importación{% endblock %}
-{% block encabezado %}<h1>Vista previa de la importación</h1>{% endblock %}
-{% block contenido %}
-<p>{{ conteos.validas }} válida{{ conteos.validas|pluralize }}, {{ conteos.con_errores }} con errores, {{ conteos.con_duplicados }} con posibles duplicados. Las filas con errores no se pueden importar. Un posible duplicado exige confirmar que es una persona distinta.</p>
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Columnas" url1="med:importar_mapear" url1_args=lote.id %}<h1>Vista previa</h1><p class="tv-subtitulo">Paso 3 de 3 · Elige qué filas importar</p>{% endblock %}
+{% block cuerpo %}
+<div class="med-numeros med-numeros--3"><div class="med-numero"><span class="med-numero__rotulo">{% icono "circle-check" clase="tv-icono--sm" %}Válidas</span><strong>{{ conteos.validas }}</strong></div><div class="med-numero"><span class="med-numero__rotulo">{% icono "circle-x" clase="tv-icono--sm" %}Con errores</span><strong>{{ conteos.con_errores }}</strong></div><div class="med-numero"><span class="med-numero__rotulo">{% icono "copy" clase="tv-icono--sm" %}Posibles duplicados</span><strong>{{ conteos.con_duplicados }}</strong></div></div>
+<p class="tv-tenue">Las filas con errores no se importan. Un posible duplicado se importa solo si confirmas que es otra persona.</p>
 <form method="post" action="{% url 'med:importar_previa' lote.id %}" class="tv-formulario tv-formulario--ancho">{% csrf_token %}
   <div class="tv-tabla-envoltura"><table class="tv-tabla"><thead><tr><th scope="col">Importar</th><th scope="col">Fila</th><th scope="col">Nombre</th><th scope="col">Nacimiento</th><th scope="col">Teléfono</th><th scope="col">Correo</th><th scope="col">Avisos</th></tr></thead><tbody>
   {% for f in filas %}<tr>
@@ -11,6 +12,6 @@
     <td data-etiqueta="Avisos">{% for campo, mensaje in f.errors.items %}<span class="tv-campo__error">{{ mensaje }}</span> {% endfor %}
       {% if f.duplicates %}{% for d in f.duplicates %}<span>{{ d }}</span> {% endfor %}<label><input type="checkbox" name="duplicado" value="{{ f.number }}"> Es una persona distinta</label>{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>
-  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Importar las filas elegidas</button><a class="tv-boton tv-boton--secundario" href="{% url 'med:importar_mapear' lote.id %}">Cambiar el mapeo</a></div>
+  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">{% icono "file-up" %}Importar filas elegidas</button><a class="tv-boton tv-boton--secundario" href="{% url 'med:importar_mapear' lote.id %}">{% icono "columns-3" %}Cambiar columnas</a></div>
 </form>
 {% endblock %}

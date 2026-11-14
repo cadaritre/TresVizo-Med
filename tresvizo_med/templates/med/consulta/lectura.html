@@ -1,44 +1,43 @@
 {% extends "med/base.html" %}{% load tv %}
-{% block titulo %}Consulta · {{ p.nombre }}{% endblock %}
+{% block titulo %}Consulta{% endblock %}
 {% block encabezado %}
-<div class="med-cabecera-paciente">
-  <p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p>
-  <h1>Consulta del {{ c.atendida_en|date:"d/m/Y" }}</h1>
-  <p class="tv-tenue">{{ p.nombre }} · {{ p.folio }} · {{ edad }} · {{ doctor }} · <span class="tv-insignia med-estado med-estado--{{ c.estado|lower }}">{{ c.estado }}</span>{% if c.archivada %} · en la papelera{% endif %}</p>
-  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {{ alergias|join:", " }}</p>{% endif %}
-</div>
+{% include "med/parciales/_migas.html" with nivel1="Expediente" url1="med:expediente" url1_args=p.id %}
+<h1>Consulta del {{ c.atendida_en|date:"d/m/Y" }}</h1>
+<p class="med-persona__datos"><span>{{ p.nombre }}</span><span class="tv-cifra">{{ p.folio }}</span><span>{{ edad }}</span><span>{{ doctor }}</span><span class="tv-insignia med-estado med-estado--{{ c.estado|lower }}">{% if c.estado == 'Borrador' %}{% icono "file-pen-line" %}{% elif c.estado == 'Anulada' %}{% icono "ban" %}{% else %}{% icono "circle-check" %}{% endif %}{{ c.estado }}</span>{% if c.archivada %}<span class="tv-insignia tv-insignia--neutra">{% icono "trash-2" %}En la papelera</span>{% endif %}</p>
 {% endblock %}
-{% block contenido %}
-{% if c.estado == 'Anulada' %}{% alerta tipo="aviso" titulo="Consulta anulada" %}Se conserva en el expediente y no cuenta en las estadísticas.{% endalerta %}{% endif %}
-{% if c.estado == 'Borrador' %}{% alerta tipo="info" %}Este borrador es privado de su responsable.{% endalerta %}{% endif %}
+{% block acciones %}
+<form method="post" action="{% url 'med:pdf_consulta' c.id 'receta' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'receta' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton" type="submit">{% icono "file-text" %}Receta</button></form>
+<form method="post" action="{% url 'med:pdf_consulta' c.id 'resumen' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'resumen' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">{% icono "file-stack" %}Resumen</button></form>
+{% endblock %}
+{% block cuerpo %}
+<div id="tarea-pdf" class="med-tarea-pdf" data-abrir-al-terminar></div>
+{% if alergias %}<div class="med-alergias" role="alert">{% icono "triangle-alert" %}<p><strong>Alergias</strong> {% for a in alergias %}<span class="med-alergias__item">{{ a }}</span>{% endfor %}</p></div>{% endif %}
+{% if c.estado == 'Anulada' %}{% alerta tipo="aviso" titulo="Consulta anulada" %}No cuenta en las estadísticas.{% endalerta %}{% endif %}
+{% if c.estado == 'Borrador' %}{% alerta tipo="info" %}Borrador privado de su responsable.{% endalerta %}{% endif %}
 <article class="med-lectura">
   {% for titulo, texto in secciones %}{% if texto %}<section class="tv-tarjeta"><h2>{{ titulo }}</h2><p>{{ texto|linebreaksbr }}</p></section>{% endif %}{% endfor %}
 </article>
-{% if adendas %}<section class="tv-tarjeta med-adendas" aria-labelledby="titulo-adendas"><h2 id="titulo-adendas">Adendas</h2>
+{% if adendas %}<section class="tv-tarjeta med-adendas" aria-labelledby="titulo-adendas"><h2 id="titulo-adendas" class="med-seccion-tarjeta__titulo">{% icono "message-square-plus" %}Adendas</h2>
   {% for a in adendas %}<article class="med-adenda"><header><strong>{{ a.fecha }}</strong> · {{ a.autor }}</header>
     <p><span class="tv-tenue">Motivo:</span> {{ a.motivo }}</p><p>{{ a.contenido|linebreaksbr }}</p></article>{% endfor %}</section>{% endif %}
-<section class="tv-tarjeta med-pdf-acciones"><h2>PDF</h2>
-  <form method="post" action="{% url 'med:pdf_consulta' c.id 'receta' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'receta' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Receta e indicaciones</button></form>
-  <form method="post" action="{% url 'med:pdf_consulta' c.id 'resumen' %}" class="med-en-linea" hx-post="{% url 'med:pdf_consulta' c.id 'resumen' %}" hx-target="#tarea-pdf">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Resumen de consulta</button></form>
-  <div id="tarea-pdf" data-abrir-al-terminar></div></section>
-{% if documentos %}<section class="tv-tarjeta"><h2>Documentos de la consulta</h2><ul>{% for x in documentos %}<li><a href="{% url 'med:archivo' x.id %}">{{ x.titulo }}</a> · {{ x.categoria }}</li>{% endfor %}</ul></section>{% endif %}
+{% if documentos %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "paperclip" %}Documentos</h2><ul class="med-lista">{% for x in documentos %}<li><a href="{% url 'med:visor' x.id %}">{% icono "file" clase="tv-icono--sm" %} {{ x.titulo }}</a><span class="tv-tenue">{{ x.categoria }}</span></li>{% endfor %}</ul></section>{% endif %}
 {% if c.estado == 'Finalizada' or c.estado == 'Anulada' %}
   {% if puede_adenda %}
-  <details class="tv-tarjeta"><summary>Agregar adenda</summary>
-    <p class="tv-tenue">La consulta no cambia: la adenda se agrega con su autor y fecha.</p>
+  <details class="tv-tarjeta"><summary>{% icono "message-square-plus" %}Agregar adenda</summary>
+    <p class="tv-tenue">La consulta no cambia; la adenda queda con tu nombre y la fecha.</p>
     <form method="post" action="{% url 'med:adenda' c.id %}" class="tv-formulario">{% csrf_token %}
       <div class="tv-campo"><label for="adenda-motivo">Motivo</label><input id="adenda-motivo" name="motivo" required></div>
       <div class="tv-campo"><label for="adenda-contenido">Contenido</label><textarea id="adenda-contenido" name="contenido" required></textarea></div>
-      <button class="tv-boton" type="submit">Agregar adenda</button></form></details>
+      <button class="tv-boton" type="submit">{% icono "plus" %}Agregar adenda</button></form></details>
   {% endif %}
   {% if puede_anular %}
-  <details class="tv-tarjeta"><summary>{% if c.estado == 'Anulada' %}Restaurar consulta{% else %}Anular consulta{% endif %}</summary>
+  <details class="tv-tarjeta med-zona-peligro"><summary>{% if c.estado == 'Anulada' %}{% icono "rotate-ccw" %}Restaurar consulta{% else %}{% icono "ban" %}Anular consulta{% endif %}</summary>
     <form method="post" action="{% if c.estado == 'Anulada' %}{% url 'med:restaurar' c.id %}{% else %}{% url 'med:anular' c.id %}{% endif %}" class="tv-formulario">{% csrf_token %}
       <div class="tv-campo"><label for="anular-motivo">Motivo</label><input id="anular-motivo" name="motivo" required></div>
       <button class="tv-boton tv-boton--peligro" type="submit">{% if c.estado == 'Anulada' %}Restaurar{% else %}Anular{% endif %}</button></form></details>
   {% endif %}
 {% endif %}
 {% if c.estado == 'Borrador' and c.archivada and c.doctor_id == request.actor.cuenta_id %}
-  <form method="post" action="{% url 'med:papelera' c.id %}" class="tv-formulario">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton" type="submit">Recuperar borrador</button></form>
+  <form method="post" action="{% url 'med:papelera' c.id %}" class="tv-formulario">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton" type="submit">{% icono "undo-2" %}Recuperar borrador</button></form>
 {% endif %}
 {% endblock %}

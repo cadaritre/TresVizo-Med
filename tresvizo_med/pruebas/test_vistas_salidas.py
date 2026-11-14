@@ -144,8 +144,8 @@ def test_estadisticas_calculan_y_exportan_con_la_instantanea_de_filtros(web, pac
     r = web.get(reverse('med:estadisticas'), {'desde': '2026-09-01', 'hasta': '2026-09-30', 'grupo': 'Todos'})
     html = r.content.decode()
     assert r.status_code == 200 and 'Migraña' in html and '<svg' in html and 'Periodo previo' in html
-    assert '01/09/2026 a 30/09/2026' in html and 'desde=2026-09-01' in html
-    assert 'desde=2026-09-01' in html and 'estadisticas/csv' in html and 'Generar PDF' in html and 'Calculado con los filtros' in html
+    assert '01/09/2026 – 30/09/2026' in html and 'desde=2026-09-01' in html
+    assert 'desde=2026-09-01' in html and 'estadisticas/csv' in html and 'Generar PDF' in html and 'data-estadisticas' in html
     cuerpo = web.get(reverse('med:estadisticas_csv'), {'desde': '2026-09-01', 'hasta': '2026-09-30'}).content.decode('utf-8-sig')
     filas = list(csv.reader(io.StringIO(cuerpo)))
     assert filas[0] == ['seccion', 'clave', 'valor'] and ['resumen', 'consultations', '1'] in filas and ['diagnoses', 'Migraña', '1'] in filas
@@ -159,7 +159,7 @@ def test_estadisticas_validan_fechas_y_respetan_permisos(web, admin, final):
     assert web.get(reverse('med:estadisticas'), {'desde': '2026-09-01', 'hasta': '2026-09-30', 'doctor': '*'}).status_code == 403
     assert web.get(reverse('med:estadisticas_csv'), {'desde': 'mal', 'hasta': '2026-09-30'}).status_code == 422
     html = admin.get(reverse('med:estadisticas'), {'desde': '2026-09-01', 'hasta': '2026-09-30', 'doctor': '*'}).content.decode()
-    assert 'Toda la clínica' in html and '<strong>1</strong>Consultas' in html
+    assert 'Toda la clínica' in html and 'Consultas</span><strong>1</strong>' in html
     assert 'Médico' in admin.get(reverse('med:estadisticas')).content.decode()
 
 
@@ -257,8 +257,8 @@ def test_las_descargas_son_privadas(web, admin, paciente, cliente_med):
 
 
 def test_pagina_exportar_segun_el_rol(web, admin):
-    assert 'Exportación completa' not in web.get(reverse('med:exportar')).content.decode()
-    assert 'Exportación completa' in admin.get(reverse('med:exportar')).content.decode()
+    assert 'Respaldo completo' not in web.get(reverse('med:exportar')).content.decode()
+    assert 'Respaldo completo' in admin.get(reverse('med:exportar')).content.decode()
 
 
 # --- Importar CSV ------------------------------------------------------------------------------------------------------
@@ -287,7 +287,7 @@ def test_importacion_de_punta_a_punta_con_mapeo_vista_previa_y_duplicados(web, a
     r = admin.post(reverse('med:importar_mapear', args=[lote.id]), {'name': 'Nombre', 'birth_date': 'Nacimiento', 'email': 'Correo', 'phone': 'Tel'})
     assert r['Location'] == reverse('med:importar_previa', args=[lote.id])
     previa = admin.get(r['Location']).content.decode()
-    assert '3 válidas' in previa and '1 con errores' in previa and 'Nombre coincidente' in previa and 'Es una persona distinta' in previa
+    assert 'Válidas</span><strong>3</strong>' in previa and 'Con errores</span><strong>1</strong>' in previa and 'Nombre coincidente' in previa and 'Es una persona distinta' in previa
     assert Paciente.objects.count() == 1  # la vista previa no escribe pacientes
     # Un duplicado sin confirmar frena todo el lote.
     r = admin.post(reverse('med:importar_previa', args=[lote.id]), {'fila': ['2', '4', '5']}, follow=True)
@@ -299,7 +299,7 @@ def test_importacion_de_punta_a_punta_con_mapeo_vista_previa_y_duplicados(web, a
     assert len(set(folios)) == 4 and folios[0] == 'RC-000001'  # la secuencia puede dejar huecos si un lote se revierte
     maria = Paciente.objects.get(nombre__startswith='María')
     assert maria.nombre == 'María; Luz\nPrueba' and maria.datos['provenance']['import_batch'] == str(lote.id)
-    assert 'Se importaron 3 pacientes' in admin.get(r['Location']).content.decode()
+    assert '3 pacientes importados' in admin.get(r['Location']).content.decode()
     # Repetir la confirmación no duplica nada.
     admin.post(reverse('med:importar_previa', args=[lote.id]), {'fila': ['2', '4', '5'], 'duplicado': ['4']})
     assert Paciente.objects.count() == 4
@@ -330,9 +330,9 @@ def test_importacion_detecta_pacientes_nuevos_desde_la_vista_previa(web, admin):
 
 def test_las_pantallas_ofrecen_los_pdf_y_el_paquete(web, final, paciente):
     lectura = web.get(reverse('med:consulta', args=[final.id])).content.decode()
-    assert 'Receta e indicaciones' in lectura and 'Resumen de consulta' in lectura
+    assert '</svg>Receta</button>' in lectura and '</svg>Resumen</button>' in lectura
     borrador = consultas.guardar(web.actor, datos_consulta(paciente))
-    assert 'Receta (borrador)' in web.get(reverse('med:revisar', args=[borrador.id])).content.decode()
+    assert 'Sale marcada como borrador' in web.get(reverse('med:revisar', args=[borrador.id])).content.decode()
     assert 'Paquete del expediente' in web.get(reverse('med:expediente', args=[paciente.id])).content.decode()
 
 
@@ -375,4 +375,4 @@ def test_expediente_con_ultima_consulta_y_enlace_con_boton_copiar_y_paquete_con_
     html = web.get(reverse('med:expediente', args=[final.paciente_id])).content.decode()
     assert 'Última consulta' in html and 'Dolor de cabeza' in html and 'data-tv-copiar=' in html and 'Copiar enlace' in html
     paquete = web.get(reverse('med:paquete', args=[final.paciente_id])).content.decode()
-    assert 'Este paciente no tiene documentos' in paquete
+    assert 'Sin documentos' in paquete

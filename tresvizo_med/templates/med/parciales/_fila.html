@@ -1,5 +1,5 @@
-<fieldset class="med-fila" data-fila>
+{% load tv %}<fieldset class="med-fila" data-fila>
   <legend class="tv-solo-lectores">Elemento</legend>
   {% for c in fila.campos %}{% include "med/parciales/_campo.html" %}{% endfor %}
-  {% if quitar %}<button type="button" class="tv-boton tv-boton--secundario med-fila__quitar" data-quitar-fila>Quitar</button>{% endif %}
+  {% if quitar %}<button type="button" class="tv-boton tv-boton--secundario med-fila__quitar" data-quitar-fila>{% icono "x" %}Quitar</button>{% endif %}
 </fieldset>

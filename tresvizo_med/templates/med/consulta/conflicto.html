@@ -1,8 +1,8 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Conflicto de edición{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:consulta' c.id %}">‹ Consulta</a></p><h1>La consulta cambió en otra pestaña</h1></div>{% endblock %}
-{% block contenido %}
-<p>Lo que escribiste se conserva. Para cada campo donde las dos versiones difieren, elige cuál se queda; lo demás se combinó sin pérdida.</p>
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Consulta" url1="med:consulta" url1_args=c.id %}<h1>La consulta cambió en otra pestaña</h1>{% endblock %}
+{% block cuerpo %}
+<p class="tv-tenue">No se perdió nada. Elige qué versión se queda en cada campo.</p>
 <form method="post" action="{% url 'med:conflicto' c.id %}" class="tv-formulario tv-formulario--ancho">{% csrf_token %}
   {% for f in filas %}
   <fieldset class="tv-tarjeta med-conflicto"><legend>{{ f.etiqueta }}</legend>
@@ -10,6 +10,6 @@
     <label class="med-opcion"><input type="radio" name="campo_{{ f.clave }}" value="remoto"> <span><strong>Versión guardada</strong><br>{{ f.remoto|linebreaksbr|default:"(vacío)" }}</span></label>
   </fieldset>
   {% empty %}<p class="tv-tenue">Ya no hay diferencias. Puedes continuar.</p>{% endfor %}
-  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">Combinar y continuar</button></div>
+  <div class="tv-formulario__acciones"><button class="tv-boton" type="submit">{% icono "git-merge" %}Combinar y continuar</button></div>
 </form>
 {% endblock %}

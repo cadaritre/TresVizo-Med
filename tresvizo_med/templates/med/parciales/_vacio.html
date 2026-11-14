@@ -1,0 +1,1 @@
+{% load tv %}{% vacio titulo=titulo icono=icono %}{% if accion_url %}<a class="tv-boton{% if accion_secundaria %} tv-boton--secundario{% endif %}" href="{% url accion_url %}">{% if accion_icono %}{% icono accion_icono %}{% endif %}{{ accion }}</a>{% endif %}{% endvacio %}

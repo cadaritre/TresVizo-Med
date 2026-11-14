@@ -56,10 +56,10 @@ def test_buscar_abrir_leer_tres_consultas_ver_pdf_e_imagen_sin_scroll_horizontal
     pagina.wait_for_url(f'**/pacientes/{p.id}/')
     revisar(pagina, 'Expediente (resumen)')
     pagina.locator('.med-pestanas a', has_text='Consultas').tap()
-    expect(pagina.locator('.med-lista-consultas li')).to_have_count(3)
+    expect(pagina.locator('.med-historial li')).to_have_count(3)
     revisar(pagina, 'Expediente (consultas)')
     for n in range(3):
-        pagina.locator('.med-lista-consultas li a').nth(n).tap()
+        pagina.locator('.med-historial li a').nth(n).tap()
         expect(pagina.locator('.med-lectura')).to_contain_text('Diagnóstico')
         revisar(pagina, f'Consulta {n+1}')
         pagina.go_back()

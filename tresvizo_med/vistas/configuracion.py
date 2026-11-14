@@ -14,6 +14,7 @@ from ..dominio import themes
 from ..dominio.errores import DataError
 from ..models import Clinica, Profesional
 from ..servicios import PermisoDenegado, apariencia, clinica
+from ..templatetags.med import avatares_de_fabrica, iniciales_de, version_foto
 from .comun import TODOS, vista_med
 
 ETIQUETAS_TOKENS = [(k, v) for k, v in themes.COLORS.items()]
@@ -57,8 +58,13 @@ def apariencia_pagina(request):
 @vista_med(*TODOS, metodos=('POST',))
 def apariencia_aplicar(request):
     try:
-        apariencia.aplicar(request.actor, request.POST.get('clave', ''), hereda=request.POST.get('hereda') == 'on',
-                           clinica=request.POST.get('ambito') == 'clinica')
+        clave = request.POST.get('clave', '')
+        clinica_entera = request.POST.get('ambito') == 'clinica'
+        apariencia.aplicar(request.actor, clave, hereda=request.POST.get('hereda') == 'on', clinica=clinica_entera)
+        if not clinica_entera:
+            # Elegir un tema propio también elige el modo de la cuenta: uno oscuro se ve en oscuro, uno claro en claro.
+            from tvplataforma.models import Preferencias
+            Preferencias.objects.update_or_create(usuario_id=request.user.pk, defaults={'tema': 'oscuro' if apariencia.es_oscuro(clave) else 'claro'})
         messages.success(request, 'Tema aplicado.')
     except PermisoDenegado:
         raise
@@ -192,8 +198,9 @@ def doctores(request):
 
 def _perfil_contexto(request, cuenta_id):
     perfil = Profesional.para(cuenta_id)
-    return {'perfil': perfil, 'cuenta': cuenta_id, 'propio': cuenta_id == request.actor.cuenta_id, 'avatares': clinica.AVATARES,
-            'nombre_portal': cuentas.nombre(cuenta_id), 'cuenta_url': hosts.url_portal(settings.TV_URL_CUENTA)}
+    nombre = cuentas.nombre(cuenta_id)
+    return {'perfil': perfil, 'cuenta': cuenta_id, 'propio': cuenta_id == request.actor.cuenta_id, 'avatares': avatares_de_fabrica(),
+            'iniciales': iniciales_de(perfil.nombre_visible or nombre), 'version_foto': version_foto(perfil), 'nombre_portal': nombre, 'cuenta_url': hosts.url_portal(settings.TV_URL_CUENTA)}
 
 
 @vista_med(*TODOS, metodos=('GET', 'POST'))

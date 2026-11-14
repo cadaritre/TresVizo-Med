@@ -1,6 +1,6 @@
 {% load tv med %}
 <section id="evolucion" class="tv-tarjeta">
-  <h2>Evolución del paciente</h2>
+  <h2 class="tv-solo-lectores">Evolución</h2>
   <form method="get" action="{% url 'med:evolucion' p.id %}" class="med-filtros" hx-get="{% url 'med:evolucion' p.id %}" hx-target="#evolucion" hx-select="#evolucion" hx-swap="outerHTML" hx-trigger="change">
     <div class="tv-campo"><label for="medicion">Medición</label><select id="medicion" name="medicion">{% for k, t in mediciones %}<option value="{{ k }}"{% if k == medicion %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
     <div class="tv-campo"><label for="periodo">Periodo</label><select id="periodo" name="periodo">{% for k, t in periodos %}<option value="{{ k }}"{% if k == periodo %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
@@ -10,11 +10,11 @@
     <div class="med-grafica-caja">{{ grafica }}</div>
     {% if leyenda_series %}<ul class="med-leyenda-series" aria-label="Series de la gráfica">{% for l in leyenda_series %}<li><span class="med-marca med-marca--{{ l.n }}" aria-hidden="true"></span>{{ l.etiqueta }}</li>{% endfor %}</ul>{% endif %}
     <p class="tv-tenue med-leyenda"><span class="med-leyenda__lleno"></span> Consulta finalizada <span class="med-leyenda__hueco"></span> Borrador</p>
-  {% else %}<p class="tv-tenue">No hay mediciones en este periodo.</p>{% endif %}
+  {% else %}{% include "med/parciales/_vacio.html" with icono="chart-spline" titulo="Sin mediciones en este periodo." %}{% endif %}
   {% if tabla_evolucion %}
   <div class="tv-tabla-envoltura"><table class="tv-tabla">
     <thead><tr><th scope="col">Fecha</th><th scope="col">Medición</th><th scope="col" class="tv-num">Valor</th><th scope="col">Contexto</th><th scope="col">Origen</th></tr></thead>
-    <tbody>{% for f in tabla_evolucion %}<tr><td data-etiqueta="Fecha">{{ f.at|fecha_iso }} {{ f.at|slice:"11:16" }}</td><td data-etiqueta="Medición">{{ f.medicion }}</td>
+    <tbody>{% for f in tabla_evolucion %}<tr><td data-etiqueta="Fecha" class="tv-cifra">{{ f.at|fecha_iso }} {{ f.at|slice:"11:16" }}</td><td data-etiqueta="Medición">{{ f.medicion }}</td>
       <td class="tv-num" data-etiqueta="Valor">{{ f.valor|floatformat:"-2" }} {{ f.unidad }}</td><td data-etiqueta="Contexto">{{ f.contexto }}</td><td data-etiqueta="Origen">{{ f.estado }}{% if f.doctor %} · {{ f.doctor }}{% endif %}</td></tr>{% endfor %}</tbody>
   </table></div>{% endif %}
 </section>

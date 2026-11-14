@@ -1,22 +1,23 @@
-{% load tv %}<p class="tv-tenue med-conteo">{{ total }} paciente{{ total|pluralize }}{% if q %} para «{{ q }}»{% endif %}</p>
-{% if filas %}
+{% load tv med %}{% if filas %}<p class="med-conteo tv-tenue">{{ total }} paciente{{ total|pluralize }}{% if q %} para «{{ q }}»{% endif %}</p>
 <ul class="med-resultados">
-  <li class="med-resultados__cabecera" aria-hidden="true"><span>Paciente</span><span>Folio</span><span>Edad</span><span>Teléfono</span><span>Alergias</span></li>
   {% for f in filas %}
-  <li><a class="tv-tarjeta tv-tarjeta--enlace med-paciente" href="{% url 'med:expediente' f.id %}" data-resultado>
-    <span class="med-paciente__nombre">{{ f.name }}{% if f.archived %} <span class="tv-insignia">Archivado</span>{% endif %}</span>
-    <span class="med-paciente__datos"><span>{{ f.file_number }}</span><span>{{ f.edad }}</span><span class="med-paciente__telefono">{{ f.phone }}</span></span>
-    <span class="med-paciente__alergias-celda">{% if f.allergies %}<span class="med-paciente__alergias"><span class="med-paciente__alergias-rotulo">Alergias: </span>{{ f.allergies }}</span>{% endif %}</span>
+  <li><a class="med-paciente" href="{% url 'med:expediente' f.id %}" data-resultado>
+    <span class="med-iniciales" aria-hidden="true">{{ f.name|iniciales_med }}</span>
+    <span class="med-paciente__principal"><span class="med-paciente__nombre">{{ f.name }}</span>
+      <span class="med-paciente__datos"><span class="tv-cifra">{{ f.file_number }}</span>{% if f.edad %}<span>{{ f.edad }}</span>{% endif %}{% if f.phone %}<span class="tv-cifra">{{ f.phone }}</span>{% endif %}</span></span>
+    <span class="med-paciente__insignias">{% if f.allergies %}<span class="tv-insignia tv-insignia--error" title="Alergias: {{ f.allergies }}">{% icono "triangle-alert" %}<span class="med-paciente__alergias">{{ f.allergies }}</span></span>{% endif %}{% if f.archived %}<span class="tv-insignia tv-insignia--neutra">{% icono "archive" %}Archivado</span>{% endif %}</span>
+    {% icono "chevron-right" clase="med-paciente__flecha" %}
   </a></li>
   {% endfor %}
 </ul>
 {% if hay_anterior or hay_siguiente %}
 <nav class="med-paginas" aria-label="Páginas">
-  {% if hay_anterior %}<a class="tv-boton tv-boton--secundario" href="?{{ anterior }}">Anterior</a>{% endif %}
-  <span>Página {{ pagina|add:1 }}</span>
-  {% if hay_siguiente %}<a class="tv-boton tv-boton--secundario" href="?{{ siguiente }}">Siguiente</a>{% endif %}
+  {% if hay_anterior %}<a class="tv-boton tv-boton--secundario" href="?{{ anterior }}">{% icono "chevron-left" %}Anterior</a>{% endif %}
+  <span class="tv-tenue tv-cifra">Página {{ pagina|add:1 }}</span>
+  {% if hay_siguiente %}<a class="tv-boton tv-boton--secundario" href="?{{ siguiente }}">Siguiente{% icono "chevron-right" %}</a>{% endif %}
 </nav>
 {% endif %}
-{% else %}
-{% alerta tipo="info" %}{% if q %}Ningún paciente coincide con la búsqueda.{% else %}Todavía no hay pacientes en esta vista.{% endif %}{% endalerta %}
+{% elif q %}{% include "med/parciales/_vacio.html" with icono="search-x" titulo="Ningún paciente coincide con la búsqueda." accion_url="med:alta_nueva" accion="Nuevo paciente" accion_icono="user-plus" %}
+{% elif modo == 'Archivados' %}{% include "med/parciales/_vacio.html" with icono="archive" titulo="No hay pacientes archivados." %}
+{% else %}{% include "med/parciales/_vacio.html" with icono="users" titulo="Aún no hay pacientes." accion_url="med:alta_nueva" accion="Nuevo paciente" accion_icono="user-plus" %}
 {% endif %}

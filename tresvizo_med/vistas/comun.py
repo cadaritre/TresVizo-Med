@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.cache import add_never_cache_headers, patch_cache_control
 from tvplataforma.permisos import requiere_rol
 
+from .. import navegacion
 from ..servicios import Actor, NoEncontrado, PermisoDenegado
 
 CLAVE_BLOQUEO = 'med_bloqueado'
@@ -43,6 +44,7 @@ def vista_med(*roles, metodos=('GET', 'HEAD'), bloqueable=True):
                 return HttpResponseNotAllowed(metodos)
             try:
                 request.actor = Actor.de(request.user)
+                request.tv_seccion = navegacion.seccion(request)
                 if bloqueable and request.session.get(CLAVE_BLOQUEO):
                     if es_htmx(request):
                         return redirigir(request, reverse('med:desbloquear'))

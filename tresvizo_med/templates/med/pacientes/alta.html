@@ -1,23 +1,22 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}{% if edicion %}Editar paciente{% else %}Nuevo paciente{% endif %}{% endblock %}
-{% block encabezado %}<h1>{% if edicion %}Editar paciente{% else %}Nuevo paciente{% endif %}</h1>{% endblock %}
-{% block contenido %}
-<p class="tv-tenue">Borrador privado a cargo de {{ tv_usuario.get_full_name|default:tv_usuario.get_username }} · solo el nombre es obligatorio.</p>
+{% block encabezado %}{% if edicion %}{% include "med/parciales/_migas.html" with nivel1="Expediente" url1="med:expediente" url1_args=edicion.id %}{% else %}{% include "med/parciales/_migas.html" with nivel1="Pacientes" url1="med:pacientes" %}{% endif %}<h1>{% if edicion %}Editar paciente{% else %}Nuevo paciente{% endif %}</h1><p class="tv-subtitulo">{% icono "lock" clase="tv-icono--sm" %} Borrador privado · solo el nombre es obligatorio</p>{% endblock %}
+{% block cuerpo %}
 {% if errores.general %}{% alerta tipo="error" %}{{ errores.general }}{% endalerta %}{% endif %}
 {% if errores %}{% if not errores.general %}{% alerta tipo="error" titulo="Revisa los datos" %}Corrige los campos marcados para guardar el paciente.{% endalerta %}{% endif %}{% endif %}
-{% if conflicto %}{% alerta tipo="aviso" titulo="El expediente cambió" %}Otra persona o pestaña guardó este paciente mientras lo editabas (revisión {{ conflicto.revision }}). <a href="{% url 'med:expediente' conflicto.id %}">Abre el expediente guardado</a>, revisa las diferencias y vuelve a editar; este borrador se conserva.{% endalerta %}{% endif %}
+{% if conflicto %}{% alerta tipo="aviso" titulo="El expediente cambió" %}Alguien más lo guardó mientras editabas. Tu borrador se conserva: <a href="{% url 'med:expediente' conflicto.id %}">revisa el expediente</a> y vuelve a editar.{% endalerta %}{% endif %}
 {% if duplicados %}
 {% alerta tipo="aviso" titulo="Posibles duplicados" %}
-  <p>Ya existe un paciente con el mismo nombre o teléfono. Revisa antes de registrar a otra persona:</p>
+  <p>Hay pacientes con el mismo nombre o teléfono:</p>
   <ul>{% for d in duplicados %}<li><a href="{% url 'med:expediente' d.id %}" target="_blank" rel="noopener">{{ d.nombre }}</a> · {{ d.folio }}{% if d.nacimiento %} · nació {{ d.nacimiento|date:"d/m/Y" }}{% endif %}</li>{% endfor %}</ul>
-  <p>Si es una persona distinta, confirma abajo. Nunca se fusionan expedientes.</p>
+  <p>Si es otra persona, vuelve a guardar.</p>
 {% endalerta %}
 {% endif %}
 <form id="alta" novalidate method="post" action="{% url 'med:alta_registrar' borrador.id %}" class="tv-formulario tv-formulario--ancho med-alta" data-autoguardar
       hx-post="{% url 'med:alta_guardar' borrador.id %}" hx-trigger="input changed delay:900ms, change, guardar" hx-swap="none" hx-sync="this:replace">
   {% csrf_token %}
   <section class="tv-tarjeta">
-    <h2>Datos personales</h2>
+    <h2 class="med-seccion-tarjeta__titulo">{% icono "user-round" %}Datos personales</h2>
     {% with c=campos.nombre %}{% include "med/parciales/_campo.html" %}{% endwith %}
     {% with c=campos.preferido %}{% include "med/parciales/_campo.html" %}{% endwith %}
     <div class="med-nacimiento">
@@ -32,25 +31,25 @@
         {% with c=campos.aprox_fecha %}{% include "med/parciales/_campo.html" %}{% endwith %}
       </div>
     </div>
-    <p class="med-edad"><strong>Edad:</strong> {{ campos.edad }}</p>
+    <p class="med-edad tv-tenue">Edad: <strong>{{ campos.edad }}</strong></p>
   </section>
   <details class="tv-tarjeta med-seccion" open>
-    <summary>Alergias</summary>
+    <summary>{% icono "triangle-alert" %}Alergias</summary>
     {% with c=campos.estado_alergias %}{% include "med/parciales/_campo.html" %}{% endwith %}
     {% for col in colecciones %}{% if col.nombre == 'allergies' %}{% include "med/parciales/_coleccion.html" %}{% endif %}{% endfor %}
   </details>
   <details class="tv-tarjeta med-seccion">
-    <summary>Contacto</summary>
+    <summary>{% icono "phone" %}Contacto</summary>
     {% for col in colecciones %}{% if col.nombre == 'phones' %}{% include "med/parciales/_coleccion.html" %}{% endif %}{% endfor %}
     {% with c=campos.correo %}{% include "med/parciales/_campo.html" %}{% endwith %}
     {% with c=campos.direccion %}{% include "med/parciales/_campo.html" %}{% endwith %}
   </details>
   <details class="tv-tarjeta med-seccion">
-    <summary>Contacto de emergencia y responsable</summary>
+    <summary>{% icono "siren" %}Emergencia y responsable</summary>
     {% for c in campos.emergencia %}{% include "med/parciales/_campo.html" %}{% endfor %}
   </details>
   <details class="tv-tarjeta med-seccion">
-    <summary>Antecedentes y medicación habitual</summary>
+    <summary>{% icono "book-open-text" %}Antecedentes y medicación</summary>
     {% for col in colecciones %}{% if col.nombre == 'problems' %}{% include "med/parciales/_coleccion.html" %}{% endif %}{% endfor %}
     {% for h in campos.historias %}<details class="med-historia"><summary>{{ h.titulo }}</summary>
       {% with c=h.estado %}{% include "med/parciales/_campo.html" %}{% endwith %}{% with c=h.notas %}{% include "med/parciales/_campo.html" %}{% endwith %}</details>{% endfor %}
@@ -61,15 +60,15 @@
   </details>
     {% if duplicados %}<input type="hidden" name="confirmar_duplicado" value="1">{% endif %}
   <div class="tv-barra-inferior med-barra">
-    <span id="indicador" class="med-indicador" aria-live="polite">Borrador privado guardado</span>
-    <button type="submit" class="tv-boton" name="comenzar" value="{% if puede_atender %}1{% else %}0{% endif %}">{% if puede_atender %}Guardar y comenzar consulta{% else %}Guardar paciente{% endif %}</button>
-    {% if puede_atender %}<button type="submit" class="tv-boton tv-boton--secundario" name="comenzar" value="0">Guardar solo paciente</button>{% endif %}
+    <span id="indicador" class="med-indicador" aria-live="polite">Borrador guardado</span>
+    <button type="submit" class="tv-boton" name="comenzar" value="{% if puede_atender %}1{% else %}0{% endif %}">{% if puede_atender %}{% icono "stethoscope" %}Guardar y atender{% else %}{% icono "check" %}Guardar paciente{% endif %}</button>
+    {% if puede_atender %}<button type="submit" class="tv-boton tv-boton--secundario" name="comenzar" value="0">{% icono "check" %}Solo guardar</button>{% endif %}
   </div>
 </form>
-<section class="med-docs-alta"><h2>Documentos e imágenes</h2><p class="tv-tenue">Archivos para el expediente general del paciente; pasan al expediente al guardar.</p>{% include "med/documentos/_gestor.html" %}</section>
-<div class="med-descartar"><button type="button" class="tv-boton tv-boton--secundario" data-tv-abrir="dlg-descartar">Descartar borrador</button></div>
+<section class="med-docs-alta"><h2 class="med-rotulo">{% icono "paperclip" clase="tv-icono--sm" %}Documentos e imágenes</h2>{% include "med/documentos/_gestor.html" %}</section>
+<div class="med-descartar"><button type="button" class="tv-boton tv-boton--fantasma" data-tv-abrir="dlg-descartar">{% icono "trash-2" %}Descartar borrador</button></div>
 {% hoja_inferior id="dlg-descartar" titulo="¿Descartar este borrador?" %}
-  <p>Se borra el borrador del alta{% if campos.nombre.valor %} de <strong>{{ campos.nombre.valor }}</strong>{% endif %} con todo lo que capturaste. <strong>No se puede deshacer.</strong> Ningún expediente se crea ni se modifica.</p>
+  <p>Se borra el borrador del alta{% if campos.nombre.valor %} de <strong>{{ campos.nombre.valor }}</strong>{% endif %} con lo que capturaste. <strong>No se puede deshacer.</strong> Ningún expediente cambia.</p>
   {% url 'med:alta_descartar' borrador.id as descartar %}{% formulario accion=descartar %}
     <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" type="button" data-tv-cerrar>Seguir editando</button><button class="tv-boton tv-boton--peligro" type="submit">Descartar el borrador</button></div>
   {% endformulario %}

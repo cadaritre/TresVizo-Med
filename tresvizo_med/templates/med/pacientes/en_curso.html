@@ -1,19 +1,22 @@
-{% extends "med/base.html" %}{% load tv %}
-{% block titulo %}Registros en curso{% endblock %}
-{% block encabezado %}<h1>Registros en curso</h1>{% endblock %}
-{% block contenido %}
-{% include "med/parciales/_subnav.html" with seccion="en_curso" %}
-<p class="tv-tenue">Tus borradores privados: nadie más los ve.</p>
-<h2>Altas y ediciones de pacientes</h2>
-<div class="med-en-curso">
-{% for a in altas %}
-<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:alta' a.borrador.id %}"><strong>{{ a.nombre }}</strong> · {% if a.edicion %}edición{% else %}alta nueva{% endif %} · guardado hace {{ a.borrador.updated_at|timesince }}</a>
-{% empty %}<p class="tv-tenue">No tienes altas pendientes.</p>{% endfor %}
-</div>
-<h2>Consultas en borrador</h2>
-<div class="med-en-curso">
-{% for k in consultas %}
-<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.consulta.id %}"><strong>{{ k.paciente.nombre }}</strong> · {{ k.consulta.atendida_en|date:"d/m/Y" }} · {{ k.consulta.motivo|default:"sin motivo todavía"|truncatechars:80 }}</a>
-{% empty %}<p class="tv-tenue">No tienes consultas en borrador.</p>{% endfor %}
-</div>
+{% extends "med/base.html" %}{% load tv med %}
+{% block titulo %}Borradores{% endblock %}
+{% block encabezado %}<h1>Borradores</h1><p class="tv-subtitulo">{% icono "lock" clase="tv-icono--sm" %} Solo tú los ves.</p>{% endblock %}
+{% block cuerpo %}
+{% if not altas and not consultas %}{% include "med/parciales/_vacio.html" with icono="circle-check" titulo="No tienes borradores pendientes." accion_url="med:pacientes" accion="Ir a pacientes" accion_icono="users" accion_secundaria=True %}
+{% else %}
+{% if consultas %}<section class="med-bloque" aria-labelledby="t-consultas">
+  <h2 id="t-consultas" class="med-rotulo">{% icono "stethoscope" clase="tv-icono--sm" %}Consultas</h2>
+  <ul class="med-filas">{% for k in consultas %}
+    <li><a class="med-fila-enlace" href="{% url 'med:consulta' k.consulta.id %}"><span class="med-iniciales" aria-hidden="true">{{ k.paciente.nombre|iniciales_med }}</span>
+      <span class="med-fila-enlace__texto"><strong>{{ k.paciente.nombre }}</strong><span class="tv-tenue">{{ k.consulta.motivo|default:"Sin motivo todavía"|truncatechars:80 }}</span></span>
+      <span class="med-fila-enlace__meta tv-tenue tv-cifra">{{ k.consulta.atendida_en|date:"d/m/Y" }}</span>{% icono "chevron-right" clase="med-fila-enlace__flecha" %}</a></li>{% endfor %}
+  </ul></section>{% endif %}
+{% if altas %}<section class="med-bloque" aria-labelledby="t-altas">
+  <h2 id="t-altas" class="med-rotulo">{% icono "user-pen" clase="tv-icono--sm" %}Pacientes</h2>
+  <ul class="med-filas">{% for a in altas %}
+    <li><a class="med-fila-enlace" href="{% url 'med:alta' a.borrador.id %}"><span class="med-iniciales" aria-hidden="true">{{ a.nombre|iniciales_med }}</span>
+      <span class="med-fila-enlace__texto"><strong>{{ a.nombre }}</strong><span class="tv-tenue">{% if a.edicion %}Edición{% else %}Alta nueva{% endif %}</span></span>
+      <span class="med-fila-enlace__meta tv-tenue">hace {{ a.borrador.updated_at|timesince }}</span>{% icono "chevron-right" clase="med-fila-enlace__flecha" %}</a></li>{% endfor %}
+  </ul></section>{% endif %}
+{% endif %}
 {% endblock %}

@@ -58,7 +58,7 @@ def test_asociar_incorporar_con_metadatos_y_listar(web, paciente, tmp_path, imag
     fila = subir(web, tmp_path, imagen)['subido_id']
     r = web.post(reverse('med:asociar', args=['paciente', paciente.id]), {'subido': fila}, **HTMX)
     html = r.content.decode()
-    assert r.status_code == 200 and 'placa.png' in html and 'Incorporar al expediente' in html and 'id="lista-docs"' in html
+    assert r.status_code == 200 and 'placa.png' in html and 'Incorporar' in html and 'id="lista-docs"' in html
     assert documentos.subidos(web.actor) == [] and len(documentos.cola(web.actor, paciente=paciente.id)) == 1
     r = web.post(reverse('med:incorporar', args=['paciente', paciente.id, fila]),
                  {'categoria': 'Laboratorio', 'titulo': 'Radiografía de tórax', 'notas': 'AP', 'fecha': '2026-09-01'}, **HTMX)
@@ -117,7 +117,7 @@ def test_visor_de_imagen_pdf_y_docx(web, paciente, tmp_path, imagen):
     html = web.get(reverse('med:visor', args=[doc_pdf.id])).content.decode()
     assert 'data-pdf' in html and 'pdf.min.mjs' in html and 'pdf.worker.min.mjs' in html and 'type="module"' in html
     assert 'nonce=' in html
-    assert 'aplicación local' in web.get(reverse('med:visor', args=[doc_docx.id])).content.decode()
+    assert 'se abre en tu computadora' in web.get(reverse('med:visor', args=[doc_docx.id])).content.decode()
 
 
 def test_archivo_en_linea_solo_para_imagenes_y_pdf(web, paciente, tmp_path, imagen):
@@ -171,7 +171,7 @@ def test_editar_archivar_versiones_y_foto(web, paciente, tmp_path, imagen):
 def test_documentos_en_una_consulta_borrador_y_finalizada(web, paciente, tmp_path, imagen):
     borrador = consultas.guardar(web.actor, datos_consulta(paciente))
     panel = web.get(reverse('med:panel_documentos', args=[borrador.id]), **HTMX).content.decode()
-    assert 'Documentos de la consulta' in panel and 'tv-subida' in panel and 'data-asociar' in panel and 'capture="environment"' in panel
+    assert 'Documentos' in panel and 'tv-subida' in panel and 'data-asociar' in panel and 'capture="environment"' in panel
     assert 'Documentos' in web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
     fila = subir(web, tmp_path, imagen)['subido_id']
     web.post(reverse('med:asociar', args=['consulta', borrador.id]), {'subido': fila}, **HTMX)

@@ -28,7 +28,7 @@ def test_buscar_en_tarjetas_con_folio_edad_y_alergias(web):
     pacientes.guardar(web.actor, datos_paciente('Luis Pérez'))
     html = web.get(reverse('med:pacientes'), {'q': 'munoz'}).content.decode()
     assert 'Ana Muñoz' in html and 'Luis' not in html and 'RC-000001' in html and 'Penicilina' in html and 'Alergias: ' in html and '1 paciente' in html
-    assert 'med-resultados__cabecera' in html and 'id="buscando"' in html and 'hx-indicator="#buscando"' in html
+    assert 'med-iniciales' in html and 'id="buscando"' in html and 'hx-indicator="#buscando"' in html
     parcial = web.get(reverse('med:pacientes'), {'q': 'luis'}, **htmx(HTTP_HX_TARGET='resultados')).content.decode()
     assert 'Luis Pérez' in parcial and '<html' not in parcial
 
@@ -141,11 +141,11 @@ def test_expediente_pestanas_y_alerta_de_alergias(web):
     consultas.guardar(web.actor, datos_consulta(paciente, 'Finalizada', reason='Dolor de cabeza'))
     url = reverse('med:expediente', args=[paciente.id])
     resumen = web.get(url).content.decode()
-    assert 'Ana Muñoz' in resumen and 'Penicilina (Grave)' in resumen and 'role="alert"' in resumen and '5551' in resumen
+    assert 'Ana Muñoz' in resumen and 'Penicilina' in resumen and 'grave' in resumen and 'role="alert"' in resumen and '5551' in resumen
     lista = web.get(url, {'pestana': 'consultas'}).content.decode()
     assert 'Dolor de cabeza' in lista and 'Finalizada' in lista
-    assert 'No hay documentos' in web.get(url, {'pestana': 'documentos'}).content.decode()
-    assert 'Evolución del paciente' in web.get(url, {'pestana': 'evolucion'}).content.decode()
+    assert 'Sin documentos todavía' in web.get(url, {'pestana': 'documentos'}).content.decode()
+    assert 'id="evolucion"' in web.get(url, {'pestana': 'evolucion'}).content.decode()
     assert f'http://med.tresvizo.com{url}' in resumen  # enlace absoluto con el host del módulo
     assert web.get(url, {'pestana': 'inexistente'}).status_code == 200
 
@@ -155,7 +155,7 @@ def test_atender_nunca_crea_dos_borradores_y_abre_la_consulta(web):
     r1 = web.post(reverse('med:atender', args=[paciente.id]))
     r2 = web.post(reverse('med:atender', args=[paciente.id]))
     assert r1['Location'] == r2['Location'] and paciente.consultas.count() == 1
-    assert 'Retomar' in web.get(reverse('med:expediente', args=[paciente.id]), {'pestana': 'consultas'}).content.decode()
+    assert 'Continuar consulta' in web.get(reverse('med:expediente', args=[paciente.id]), {'pestana': 'consultas'}).content.decode()
 
 
 def test_registros_en_curso_solo_los_propios(web, cliente_med):
@@ -206,5 +206,31 @@ def test_evolucion_grafica_tabla_y_puntos_huecos(web):
     assert 'med-grafica--amplia' in html and 'med-grafica--estrecha' in html and '<rect class="med-grafica__punto med-serie-2' in html
     assert '01/11/2026' in html and '2026-11-01' not in html.split('<tbody>')[1]
     parcial = web.get(reverse('med:evolucion', args=[paciente.id]), {'medicion': 'weight'}, **htmx()).content.decode()
-    assert '<html' not in parcial and 'No hay mediciones' in parcial
+    assert '<html' not in parcial and 'Sin mediciones' in parcial
     assert web.get(reverse('med:evolucion', args=[paciente.id]), {'medicion': 'x', 'periodo': 'y'}).status_code == 200
+
+
+def test_busqueda_de_la_paleta_json_privada_y_solo_con_rol_de_med(web, cliente_med):
+    pacientes.guardar(web.actor, datos_paciente('Ana Muñoz', birth_date='1990-05-01', phone='5551234',
+                                               allergy_records=[{'substance': 'Penicilina'}], allergy_status='Alergias registradas'))
+    url = reverse('med:buscar_paleta')
+    datos = web.get(url, {'q': 'muñoz'}).json()
+    assert len(datos['resultados']) == 1
+    fila = datos['resultados'][0]
+    assert fila['titulo'] == 'Ana Muñoz' and fila['url'].startswith('/pacientes/') and fila['subtitulo'].startswith('RC-000001')
+    # Por encima del hombro: ni teléfono ni alergias en el subtítulo
+    assert '5551234' not in fila['subtitulo'] and 'Penicilina' not in fila['subtitulo']
+    assert web.get(url, {'q': 'a'}).json() == {'resultados': []}
+    # Sin rol de Med la búsqueda no existe (404, igual que cualquier página de Med)
+    assert cliente_med(username='ajeno').get(url, {'q': 'ana'}).status_code == 404
+
+
+def test_la_navegacion_marca_la_seccion_en_todas_las_paginas(web):
+    """El lateral del armazón resalta Pacientes en el expediente y Estadísticas en su página (antes perdía la navegación)."""
+    p = pacientes.guardar(web.actor, datos_paciente('Ana Muñoz'))
+    expediente = web.get(reverse('med:expediente', args=[p.id])).content.decode()
+    estadisticas = web.get(reverse('med:estadisticas')).content.decode()
+    for html, actual in ((expediente, 'Pacientes'), (estadisticas, 'Estadísticas')):
+        assert 'Borradores' in html and 'Configuración' in html
+        assert re.search(r'aria-current="page"[^>]*>(?:(?!</a>).)*' + actual, html, re.S)
+    assert '<title>Expediente' in expediente and 'Ana Muñoz</title>' not in expediente  # el nombre no va en la pestaña del navegador

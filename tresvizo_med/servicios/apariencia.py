@@ -32,6 +32,16 @@ def clave_activa(actor):
     return perfil.tema
 
 
+def tokens_de_fabrica(nombre='Clínico'):
+    return deepcopy(listar()[nombre]['tokens'])
+
+
+def es_oscuro(clave):
+    from tvplataforma.temas import es_claro
+    tema = listar().get(clave)
+    return bool(tema) and not es_claro(tema['tokens'])
+
+
 def tokens_activos(actor):
     disponibles = listar()
     clave = clave_activa(actor)

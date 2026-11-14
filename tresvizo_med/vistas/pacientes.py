@@ -3,11 +3,14 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from tvplataforma import hosts
+from tvplataforma.modulos import modulo
 
+from .. import navegacion
 from ..dominio.clinical_models import VITALS, age_label
 from ..dominio.errores import DataError
 from ..formato import consulta_a_dict, paciente_a_dict
@@ -22,6 +25,7 @@ from .documentos import contexto_gestor
 MEDICIONES = [('blood_pressure', 'Presión arterial'), *[(k, v[0]) for k, v in VITALS.items() if k not in ('systolic', 'diastolic')], ('bmi', 'IMC')]
 PERIODOS = [('30', '30 días'), ('90', '90 días'), ('365', 'Un año'), ('todo', 'Todo')]
 PESTANAS = [('resumen', 'Resumen'), ('consultas', 'Consultas'), ('documentos', 'Documentos'), ('evolucion', 'Evolución')]
+ICONOS_PESTANA = {'resumen': 'clipboard-list', 'consultas': 'stethoscope', 'documentos': 'folder-open', 'evolucion': 'activity'}
 
 
 @vista_med(*TODOS)
@@ -50,9 +54,25 @@ def buscar(request):
     contexto = {'filas': filas, 'total': total, 'pagina': actual, 'q': consulta, 'modo': modo, 'modos': pacientes.MODOS,
                 'hay_anterior': actual > 0, 'hay_siguiente': (actual+1)*100 < total,
                 'anterior': urlencode({**consulta_qs, 'pagina': actual-1}), 'siguiente': urlencode({**consulta_qs, 'pagina': actual+1})}
-    plantilla = 'med/pacientes/_resultados.html' if es_htmx(request) and request.headers.get('HX-Target') == 'resultados' \
-        else 'med/pacientes/buscar.html'
-    return render(request, plantilla, contexto)
+    parcial = es_htmx(request) and request.headers.get('HX-Target') == 'resultados'
+    if not parcial and request.actor.es_medico:
+        # El camino diario más corto: las consultas en borrador propias, arriba de la búsqueda.
+        contexto['continuar'] = consultas.visibles(request.actor).filter(estado=Consulta.Estado.BORRADOR, doctor_id=request.actor.cuenta_id) \
+            .select_related('paciente').order_by('-updated_at')[:3]
+    return render(request, 'med/pacientes/_resultados.html' if parcial else 'med/pacientes/buscar.html', contexto)
+
+
+@vista_med(*TODOS)
+def buscar_paleta(request):
+    """Pacientes para la paleta de comandos (contrato tvplataforma §12.1): JSON con hasta 20 resultados y solo rutas internas.
+    El subtítulo lleva folio y edad, nunca teléfono ni alergias (la paleta puede verse por encima del hombro)."""
+    texto = request.GET.get('q', '').strip()
+    if len(texto) < navegacion.BUSQUEDA.minimo:
+        return JsonResponse({'resultados': []})
+    filas, _, _ = pacientes.buscar(request.actor, texto[:100], 'Activos', 0, tamano=20)
+    return JsonResponse({'resultados': [
+        {'titulo': f['name'], 'subtitulo': ' · '.join(x for x in (f['file_number'], form_paciente.edad_texto(f)) if x),
+         'url': reverse('med:expediente', args=[f['id']])} for f in filas]})
 
 
 @vista_med(*TODOS)
@@ -177,8 +197,15 @@ def fila(request, coleccion):
 def _contexto_expediente(request, persona):
     datos = paciente_a_dict(persona)
     alergias = [r for r in datos.get('allergy_records', []) if r.get('substance')]
+    borrador = None
+    if request.actor.es_medico:
+        borrador = consultas.visibles(request.actor).filter(paciente=persona, estado=Consulta.Estado.BORRADOR,
+                                                           doctor_id=request.actor.cuenta_id, archivada=False).order_by('-updated_at').first()
     return {'p': persona, 'd': datos, 'edad': form_paciente.edad_texto(datos), 'alergias': alergias,
-            'estado_alergias': datos.get('allergy_status', 'No interrogado'), 'pestanas': PESTANAS}
+            'estado_alergias': datos.get('allergy_status', 'No interrogado'), 'pestanas': PESTANAS,
+            'pestanas_ui': [(k, t, ICONOS_PESTANA[k]) for k, t in PESTANAS], 'borrador': borrador,
+            'enlace': hosts.url_de(modulo('med'), reverse('med:expediente', args=[persona.id])),
+            'titulo_archivar': '¿Restaurar este paciente?' if persona.archivado else '¿Archivar este paciente?'}
 
 
 @vista_med(*TODOS)
@@ -187,10 +214,7 @@ def expediente(request, paciente):
     pestana = request.GET.get('pestana', 'resumen')
     if pestana not in dict(PESTANAS):
         pestana = 'resumen'
-    from tvplataforma import hosts
-    from tvplataforma.modulos import modulo
-    contexto = {**_contexto_expediente(request, persona), 'pestana': pestana,
-                'enlace': hosts.url_de(modulo('med'), reverse('med:expediente', args=[persona.id]))}
+    contexto = {**_contexto_expediente(request, persona), 'pestana': pestana}
     deshacer = request.session.pop('med_deshacer', None)
     if deshacer and Consulta.objects.filter(pk=deshacer, paciente=persona, estado=Consulta.Estado.BORRADOR, archivada=True,
                                             doctor_id=request.actor.cuenta_id).exists():
@@ -206,8 +230,7 @@ def expediente(request, paciente):
     elif pestana == 'consultas':
         filas = list(consultas.visibles(request.actor).filter(paciente=persona).order_by('-atendida_en'))
         nombres = profesionales.nombres({c.doctor_id for c in filas})
-        borrador = next((c for c in filas if c.estado == Consulta.Estado.BORRADOR and c.doctor_id == request.actor.cuenta_id), None)
-        contexto.update(consultas=[{'c': c, 'doctor': nombres.get(c.doctor_id, '')} for c in filas], borrador=borrador)
+        contexto.update(consultas=[{'c': c, 'doctor': nombres.get(c.doctor_id, '')} for c in filas])
     elif pestana == 'documentos':
         contexto.update(contexto_gestor(request, 'paciente', persona.id))
     else:

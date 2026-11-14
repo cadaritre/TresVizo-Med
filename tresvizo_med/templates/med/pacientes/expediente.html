@@ -1,70 +1,89 @@
-{% extends "med/base.html" %}{% load tv %}
-{% block titulo %}{{ p.nombre }}{% endblock %}
+{% extends "med/base.html" %}{% load tv med %}
+{% block titulo %}Expediente{% endblock %}
 {% block encabezado %}
-<div class="med-cabecera-paciente">
-  {% if p.foto_documento %}<img class="med-foto-paciente" src="{% url 'med:archivo' p.foto_documento %}?en_linea=1" alt="Foto de {{ p.nombre }}" width="64" height="64">{% endif %}<h1>{{ p.nombre }}</h1>
-  <p class="tv-tenue">{{ p.folio }} · {{ edad }}{% if p.sexo %} · {{ p.sexo }}{% endif %}{% if p.archivado %} · <span class="tv-insignia">Archivado</span>{% endif %}</p>
-  {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {% for a in alergias %}{{ a.substance }}{% if a.severity and a.severity != 'No documentada' %} ({{ a.severity }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
-  {% elif estado_alergias == 'Sin alergias conocidas' %}<p class="tv-tenue">Sin alergias conocidas.</p>
-  {% else %}<p class="tv-tenue">Alergias: {{ estado_alergias|lower }}.</p>{% endif %}
+{% include "med/parciales/_migas.html" with nivel1="Pacientes" url1="med:pacientes" %}
+<div class="med-persona">
+  {% if p.foto_documento %}<img class="med-persona__foto" src="{% url 'med:archivo' p.foto_documento %}?en_linea=1" alt="" width="56" height="56">{% else %}<span class="med-iniciales med-iniciales--grande" aria-hidden="true">{{ p.nombre|iniciales_med }}</span>{% endif %}
+  <div class="med-persona__texto">
+    <h1>{{ p.nombre }}</h1>
+    <p class="med-persona__datos"><span class="tv-cifra">{{ p.folio }}</span><span>{{ edad }}</span>{% if p.sexo %}<span>{{ p.sexo }}</span>{% endif %}{% if p.archivado %}<span class="tv-insignia tv-insignia--neutra">{% icono "archive" %}Archivado</span>{% endif %}</p>
+  </div>
 </div>
 {% endblock %}
-{% block contenido %}
-{% if deshacer_consulta %}{% alerta tipo="info" %}Borrador retirado a la papelera.
-  <form method="post" action="{% url 'med:papelera' deshacer_consulta %}" class="med-en-linea">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton tv-boton--secundario" type="submit">Deshacer</button></form>{% endalerta %}{% endif %}
-<nav class="med-subnav" aria-label="Expediente">
-  <a href="{% url 'med:pacientes' %}">‹ Pacientes</a>
-  {% tiene_rol "med" "medico" as es_medico %}{% tiene_rol "med" "admin" as es_admin %}
-  {% if es_medico and not p.archivado %}<form method="post" action="{% url 'med:atender' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton" type="submit">Atender</button></form>{% endif %}
-  <form method="post" action="{% url 'med:editar' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit">Editar</button></form>
-  <a class="tv-boton tv-boton--secundario" href="{% url 'med:paquete' p.id %}">Paquete del expediente</a>
-  {% if es_admin %}
-  <details class="med-archivar"><summary class="tv-boton tv-boton--secundario">{% if p.archivado %}Restaurar{% else %}Archivar{% endif %}</summary>
-    <form method="post" action="{% url 'med:archivar' p.id %}" class="tv-formulario">{% csrf_token %}
-      <input type="hidden" name="accion" value="{% if p.archivado %}restaurar{% else %}archivar{% endif %}">
-      <div class="tv-campo"><label for="motivo-archivo">Motivo</label><input id="motivo-archivo" name="motivo" required></div>
-      <button class="tv-boton tv-boton--peligro" type="submit">Confirmar</button></form></details>
-  {% endif %}
+{% block acciones %}
+{% tiene_rol "med" "medico" as es_medico %}{% tiene_rol "med" "admin" as es_admin %}
+{% if es_medico and not p.archivado %}
+  {% if borrador %}<a class="tv-boton" href="{% url 'med:consulta' borrador.id %}">{% icono "file-pen-line" %}Continuar consulta</a>
+  {% else %}<form method="post" action="{% url 'med:atender' p.id %}" class="med-en-linea" data-tv-una-vez>{% csrf_token %}<button class="tv-boton" type="submit">{% icono "stethoscope" %}Nueva consulta</button></form>{% endif %}
+{% endif %}
+<form method="post" action="{% url 'med:editar' p.id %}" class="med-en-linea">{% csrf_token %}<button class="tv-boton tv-boton--secundario" type="submit" title="Editar paciente">{% icono "pencil" %}<span class="med-solo-ancho">Editar</span></button></form>
+<details class="tv-menu med-mas"><summary class="tv-boton tv-boton--secundario tv-boton--icono" aria-label="Más acciones" title="Más acciones">{% icono "ellipsis" %}</summary>
+  <div class="tv-menu__panel">
+    <a href="{% url 'med:paquete' p.id %}">{% icono "package" clase="tv-nav__icono" %}Paquete del expediente</a>
+    <button type="button" data-tv-copiar="{{ enlace }}" data-tv-copiado="Enlace copiado">{% icono "link" clase="tv-nav__icono" %}Copiar enlace</button>
+    {% if es_admin %}<button type="button" data-tv-abrir="dlg-archivar">{% if p.archivado %}{% icono "archive-restore" clase="tv-nav__icono" %}Restaurar paciente{% else %}{% icono "archive" clase="tv-nav__icono" %}Archivar paciente{% endif %}</button>{% endif %}
+  </div>
+</details>
+{% endblock %}
+{% block cuerpo %}
+{% tiene_rol "med" "admin" as es_admin %}
+{% if alergias %}<div class="med-alergias" role="alert">{% icono "triangle-alert" %}<p><strong>Alergias</strong> {% for a in alergias %}<span class="med-alergias__item">{{ a.substance }}{% if a.severity and a.severity != 'No documentada' %} <span class="med-alergias__grado">{{ a.severity|lower }}</span>{% endif %}</span>{% endfor %}</p></div>
+{% elif estado_alergias == 'Sin alergias conocidas' %}<p class="med-sin-alergias">{% icono "shield-check" clase="tv-icono--sm" %}Sin alergias conocidas</p>
+{% else %}<p class="med-sin-alergias med-sin-alergias--pendiente">{% icono "circle-help" clase="tv-icono--sm" %}Alergias: {{ estado_alergias|lower }}</p>{% endif %}
+{% if deshacer_consulta %}<div class="tv-alerta tv-alerta--info med-deshacer" role="status">{% icono "trash-2" %}<div class="tv-alerta__cuerpo">Borrador retirado a la papelera.</div>
+  <form method="post" action="{% url 'med:papelera' deshacer_consulta %}" class="med-en-linea">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton tv-boton--secundario" type="submit">{% icono "undo-2" %}Deshacer</button></form></div>{% endif %}
+<nav class="med-pestanas" aria-label="Secciones del expediente">
+  {% for clave, titulo, ic in pestanas_ui %}<a href="?pestana={{ clave }}"{% if clave == pestana %} aria-current="page"{% endif %}>{% icono ic %}<span>{{ titulo }}</span></a>{% endfor %}
 </nav>
-<div class="med-pestanas" role="tablist">
-  {% for clave, titulo in pestanas %}<a role="tab" href="?pestana={{ clave }}" {% if clave == pestana %}aria-selected="true" aria-current="page"{% endif %}>{{ titulo }}</a>{% endfor %}
-</div>
 <div class="med-panel-pestana">
 {% if pestana == 'resumen' %}
-  <section class="tv-tarjeta"><h2>Datos</h2>
+  <div class="med-resumen-exp">
+  {% if ultima %}<a class="tv-tarjeta med-ultima" href="{% url 'med:consulta' ultima.c.id %}">
+    <h2 class="med-seccion-tarjeta__titulo">{% icono "history" %}Última consulta</h2>
+    <p class="med-ultima__fecha"><span class="tv-cifra">{{ ultima.c.atendida_en|date:"d/m/Y" }}</span> · {{ ultima.c.tipo|default:"General" }} · {{ ultima.doctor }}</p>
+    <p>{{ ultima.c.motivo|default:"Sin motivo" }}</p>{% if ultima.c.diagnostico %}<p class="tv-tenue">{{ ultima.c.diagnostico|truncatechars:120 }}</p>{% endif %}</a>{% endif %}
+  <section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "contact-round" %}Datos</h2>
     <dl class="med-datos">
       {% if d.preferred_name %}<dt>Nombre preferido</dt><dd>{{ d.preferred_name }}</dd>{% endif %}
-      <dt>Nacimiento</dt><dd>{% if p.nacimiento %}{{ p.nacimiento|date:"d/m/Y" }}{% else %}{{ edad }}{% endif %}</dd>
-      {% for t in d.phones %}<dt>Teléfono ({{ t.type }})</dt><dd><a href="tel:{{ t.number }}">{{ t.number }}</a></dd>{% empty %}{% if p.telefono %}<dt>Teléfono</dt><dd>{{ p.telefono }}</dd>{% endif %}{% endfor %}
-      {% if d.email %}<dt>Correo</dt><dd>{{ d.email }}</dd>{% endif %}
+      <dt>Nacimiento</dt><dd class="tv-cifra">{% if p.nacimiento %}{{ p.nacimiento|date:"d/m/Y" }}{% else %}{{ edad }}{% endif %}</dd>
+      {% for t in d.phones %}<dt>Teléfono{% if t.type %} · {{ t.type|lower }}{% endif %}</dt><dd><a class="tv-cifra" href="tel:{{ t.number }}">{{ t.number }}</a></dd>{% empty %}{% if p.telefono %}<dt>Teléfono</dt><dd><a class="tv-cifra" href="tel:{{ p.telefono }}">{{ p.telefono }}</a></dd>{% endif %}{% endfor %}
+      {% if d.email %}<dt>Correo</dt><dd><a href="mailto:{{ d.email }}">{{ d.email }}</a></dd>{% endif %}
       {% if d.address %}<dt>Dirección</dt><dd>{{ d.address|linebreaksbr }}</dd>{% endif %}
-      {% if d.emergency_contact.name %}<dt>Emergencia</dt><dd>{{ d.emergency_contact.name }}{% if d.emergency_contact.relationship %} · {{ d.emergency_contact.relationship }}{% endif %}{% if d.emergency_contact.phone %} · {{ d.emergency_contact.phone }}{% endif %}</dd>{% endif %}
+      {% if d.emergency_contact.name %}<dt>Emergencia</dt><dd>{{ d.emergency_contact.name }}{% if d.emergency_contact.relationship %} · {{ d.emergency_contact.relationship }}{% endif %}{% if d.emergency_contact.phone %} · <a class="tv-cifra" href="tel:{{ d.emergency_contact.phone }}">{{ d.emergency_contact.phone }}</a>{% endif %}</dd>{% endif %}
       {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }}{% if d.emergency_contact.guardian_relation %} · {{ d.emergency_contact.guardian_relation }}{% endif %}</dd>{% endif %}
     </dl>
   </section>
-  {% if ultima %}<section class="tv-tarjeta med-ultima"><h2>Última consulta</h2>
-    <p><a href="{% url 'med:consulta' ultima.c.id %}"><strong>{{ ultima.c.atendida_en|date:"d/m/Y" }}</strong></a> · {{ ultima.c.tipo }} · {{ ultima.doctor }}</p>
-    <p>{{ ultima.c.motivo|default:"Sin motivo" }}{% if ultima.c.diagnostico %}<br><span class="tv-tenue">Diagnóstico: {{ ultima.c.diagnostico|truncatechars:120 }}</span>{% endif %}</p></section>{% endif %}
-  {% if d.problem_records %}<section class="tv-tarjeta"><h2>Problemas activos</h2><ul>{% for r in d.problem_records %}<li>{{ r.name }} · {{ r.status }}{% if r.notes %} — {{ r.notes }}{% endif %}</li>{% endfor %}</ul></section>{% endif %}
-  {% if historias %}<section class="tv-tarjeta"><h2>Antecedentes</h2>{% for titulo, h in historias %}<h3>{{ titulo }}</h3><p>{{ h.status }}{% if h.notes %}: {{ h.notes|linebreaksbr }}{% endif %}</p>{% endfor %}</section>{% endif %}
-  {% if d.medication_records %}<section class="tv-tarjeta"><h2>Medicación habitual</h2><ul>{% for m in d.medication_records %}<li>{{ m.name }} {{ m.strength }} {{ m.dose }} {{ m.dose_unit }} {{ m.route }} · {{ m.status }}</li>{% endfor %}</ul></section>{% endif %}
-  {% if d.administrative or d.clinical_notes %}<section class="tv-tarjeta"><h2>Notas</h2>{% if d.clinical_notes %}<p>{{ d.clinical_notes|linebreaksbr }}</p>{% endif %}{% if d.administrative %}<p class="tv-tenue">{{ d.administrative|linebreaksbr }}</p>{% endif %}</section>{% endif %}
-  {% if heredado %}<section class="tv-tarjeta"><h2>Información heredada · pendiente de revisión</h2>{% for k, v in heredado.items %}<p><strong>{{ k }}:</strong> {{ v|linebreaksbr }}</p>{% endfor %}</section>{% endif %}
-  <section class="tv-tarjeta med-enlace"><h2>Enlace al expediente</h2><div class="tv-campo"><label for="enlace">Para compartir con tu equipo (pide iniciar sesión)</label>
-    <div class="med-enlace__fila"><input id="enlace" value="{{ enlace }}" readonly><button type="button" class="tv-boton tv-boton--secundario" data-tv-copiar="{{ enlace }}" data-tv-copiado="Copiado">Copiar enlace</button></div></div></section>
+  {% if d.problem_records %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "list-checks" %}Problemas activos</h2><ul class="med-lista">{% for r in d.problem_records %}<li><span>{{ r.name }}</span><span class="tv-insignia tv-insignia--neutra">{{ r.status }}</span>{% if r.notes %}<span class="tv-tenue">{{ r.notes }}</span>{% endif %}</li>{% endfor %}</ul></section>{% endif %}
+  {% if d.medication_records %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "pill" %}Medicación habitual</h2><ul class="med-lista">{% for m in d.medication_records %}<li><span>{{ m.name }} {{ m.strength }}</span><span class="tv-tenue">{{ m.dose }} {{ m.dose_unit }} · {{ m.route }}</span><span class="tv-insignia tv-insignia--neutra">{{ m.status }}</span></li>{% endfor %}</ul></section>{% endif %}
+  {% if historias %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "book-open-text" %}Antecedentes</h2><dl class="med-datos med-datos--apilados">{% for titulo, h in historias %}<dt>{{ titulo }}</dt><dd>{{ h.status }}{% if h.notes %}<br>{{ h.notes|linebreaksbr }}{% endif %}</dd>{% endfor %}</dl></section>{% endif %}
+  {% if d.administrative or d.clinical_notes %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "notebook-pen" %}Notas</h2>{% if d.clinical_notes %}<p>{{ d.clinical_notes|linebreaksbr }}</p>{% endif %}{% if d.administrative %}<p class="tv-tenue">{{ d.administrative|linebreaksbr }}</p>{% endif %}</section>{% endif %}
+  {% if heredado %}<section class="tv-tarjeta"><h2 class="med-seccion-tarjeta__titulo">{% icono "inbox" %}Información heredada por revisar</h2>{% for k, v in heredado.items %}<p><strong>{{ k }}:</strong> {{ v|linebreaksbr }}</p>{% endfor %}</section>{% endif %}
+  </div>
 {% elif pestana == 'consultas' %}
-  {% if borrador %}{% alerta tipo="info" %}Tienes un borrador de consulta de este paciente. <a href="{% url 'med:consulta' borrador.id %}">Retomar</a>{% endalerta %}{% endif %}
-  <ul class="med-lista-consultas">
+  {% if consultas %}<ul class="med-filas med-historial">
   {% for k in consultas %}
-    <li><a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.c.id %}">
-      <strong>{{ k.c.atendida_en|date:"d/m/Y" }}</strong> · {{ k.c.tipo|default:"General" }} <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{{ k.c.estado }}</span><br>
-      {{ k.c.motivo|default:"Sin motivo"|truncatechars:140 }}<br><span class="tv-tenue">{{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:80 }}{% endif %}</span></a></li>
-  {% empty %}<li class="tv-tenue">Todavía no hay consultas.</li>{% endfor %}
+    <li><a class="med-fila-enlace" href="{% url 'med:consulta' k.c.id %}">
+      <span class="med-historial__fecha"><span class="med-historial__dia tv-cifra">{{ k.c.atendida_en|date:"d" }}</span><span class="med-historial__mes">{{ k.c.atendida_en|date:"M Y" }}</span></span>
+      <span class="med-fila-enlace__texto"><strong>{{ k.c.motivo|default:"Sin motivo"|truncatechars:110 }}</strong><span class="tv-tenue">{{ k.c.tipo|default:"General" }} · {{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:70 }}{% endif %}</span></span>
+      <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{% if k.c.estado == 'Borrador' %}{% icono "file-pen-line" %}{% elif k.c.estado == 'Anulada' %}{% icono "ban" %}{% else %}{% icono "circle-check" %}{% endif %}{{ k.c.estado }}</span>
+      {% icono "chevron-right" clase="med-fila-enlace__flecha" %}</a></li>
+  {% endfor %}
   </ul>
+  {% else %}{% include "med/parciales/_vacio.html" with icono="stethoscope" titulo="Todavía no hay consultas." %}{% endif %}
 {% elif pestana == 'documentos' %}
   {% include "med/documentos/_gestor.html" %}
 {% else %}
   {% include "med/pacientes/_evolucion.html" %}
 {% endif %}
 </div>
+{% if es_admin %}
+{% hoja_inferior id="dlg-archivar" titulo=titulo_archivar %}
+  <p>{% if p.archivado %}Vuelve a la lista de activos.{% else %}Sale de la lista de activos. No se borra nada y puedes restaurarlo.{% endif %}</p>
+  <form method="post" action="{% url 'med:archivar' p.id %}" class="tv-formulario" data-tv-una-vez>{% csrf_token %}
+    <input type="hidden" name="accion" value="{% if p.archivado %}restaurar{% else %}archivar{% endif %}">
+    <div class="tv-campo"><label for="motivo-archivo">Motivo</label><input id="motivo-archivo" name="motivo" required></div>
+    <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" type="button" data-tv-cerrar>Cancelar</button><button class="tv-boton{% if not p.archivado %} tv-boton--peligro{% endif %}" type="submit">{% if p.archivado %}Restaurar{% else %}Archivar{% endif %}</button></div>
+  </form>
+{% endhoja_inferior %}
+{% endif %}
 {% endblock %}

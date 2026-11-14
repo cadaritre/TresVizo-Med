@@ -1,4 +1,4 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block encabezado %}<h1>{{ titulo }}</h1>{% endblock %}
-{% block contenido %}<div class="tv-tarjeta">{% progreso tarea %}</div><p><a href="{% url 'med:pacientes' %}" class="tv-boton tv-boton--secundario">Volver a Med</a></p>{% endblock %}
+{% block cuerpo %}<div class="tv-tarjeta med-pagina--angosta">{% progreso tarea %}</div>{% endblock %}

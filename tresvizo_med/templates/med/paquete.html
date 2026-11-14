@@ -1,15 +1,14 @@
 {% extends "med/base.html" %}{% load tv %}
 {% block titulo %}Paquete del expediente{% endblock %}
-{% block encabezado %}<div><p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p><h1>Paquete del expediente</h1></div>{% endblock %}
-{% block contenido %}
-<p>ZIP con los datos del paciente, sus consultas visibles para ti y los documentos que elijas, con manifiesto SHA-256.</p>
+{% block encabezado %}{% include "med/parciales/_migas.html" with nivel1="Expediente" url1="med:expediente" url1_args=p.id %}<h1>Paquete del expediente</h1><p class="tv-subtitulo">Datos, consultas y los documentos que elijas, en un ZIP.</p>{% endblock %}
+{% block cuerpo %}
 <form method="post" action="{% url 'med:paquete' p.id %}" hx-post="{% url 'med:paquete' p.id %}" hx-target="#tarea-paquete" class="tv-formulario">{% csrf_token %}
-  <fieldset class="tv-tarjeta" data-paquete><legend>Documentos</legend>
-    {% if documentos %}<div class="med-paquete__acciones"><button type="button" class="tv-boton tv-boton--secundario" data-marcar="todo">Marcar todos</button><button type="button" class="tv-boton tv-boton--secundario" data-marcar="ninguno">Quitar todos</button>
+  <fieldset class="tv-tarjeta" data-paquete><legend class="med-seccion-tarjeta__titulo">{% icono "paperclip" %}Documentos</legend>
+    {% if documentos %}<div class="med-paquete__acciones"><button type="button" class="tv-boton tv-boton--secundario" data-marcar="todo">{% icono "square-check" %}Marcar todos</button><button type="button" class="tv-boton tv-boton--secundario" data-marcar="ninguno">{% icono "square" %}Quitar todos</button>
       <span class="tv-tenue" data-total role="status" aria-live="polite"></span></div>{% endif %}
     {% for d in documentos %}<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="pd-{{ d.id }}" name="documento" value="{{ d.id }}" data-tamano="{{ d.tamano }}" checked><label for="pd-{{ d.id }}">{{ d.titulo }} · {{ d.categoria }} · {{ d.tamano|filesizeformat }}</label></div>
-    {% empty %}<p class="tv-tenue">Este paciente no tiene documentos; el paquete llevará solo los datos.</p>{% endfor %}</fieldset>
-  <button class="tv-boton" type="submit">Generar paquete</button>
+    {% empty %}<p class="tv-tenue">Sin documentos: el paquete lleva solo los datos.</p>{% endfor %}</fieldset>
+  <div class="med-pie-formulario"><button class="tv-boton" type="submit">{% icono "package" %}Generar paquete</button></div>
 </form>
 <div id="tarea-paquete"></div>
 {% endblock %}

@@ -1,12 +1,13 @@
 {% extends "med/base.html" %}{% load tv static %}
 {% block titulo %}Vista previa del PDF{% endblock %}
-{% block encabezado %}<h1>Vista previa del PDF</h1>{% endblock %}
-{% block contenido %}
+{% block encabezado %}<h1>Vista previa</h1>{% endblock %}
+{% block acciones %}<button type="button" class="tv-boton tv-boton--secundario" data-volver>{% icono "arrow-left" %}Volver</button><a class="tv-boton" href="{% url 'med:pdf_archivo' pdf_id %}" download="documento.pdf">{% icono "download" %}Descargar PDF</a>{% endblock %}
+{% block cuerpo %}
 <section class="tv-tarjeta med-visor">
   <div class="med-pdf" data-pdf data-src="{% url 'med:pdf_archivo' pdf_id %}" data-lib="{% static 'med/vendor/pdfjs/pdf.min.mjs' %}" data-worker="{% static 'med/vendor/pdfjs/pdf.worker.min.mjs' %}">
-    <p class="tv-tenue" data-pdf-estado>Cargando el documento…</p><div data-pdf-paginas></div>
+    <p class="tv-tenue med-cargando" data-pdf-estado>Cargando el documento…</p><div data-pdf-paginas></div>
   </div>
   <script type="module" src="{% static 'med/med-pdf.js' %}" nonce="{{ csp_nonce }}"></script>
-  <p><a class="tv-boton" href="{% url 'med:pdf_archivo' pdf_id %}" download="documento.pdf">Descargar el PDF</a> <button type="button" class="tv-boton tv-boton--secundario" data-volver>Volver</button> <span class="tv-tenue">Disponible 24 horas.</span></p>
+  <p class="tv-tenue med-nota">{% icono "clock" clase="tv-icono--sm" %}Disponible 24 horas.</p>
 </section>
 {% endblock %}

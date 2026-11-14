@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from django.contrib.staticfiles.storage import ManifestStaticFilesStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
@@ -71,7 +72,7 @@ def test_el_contraste_insuficiente_bloquea_se_explica_y_se_corrige(web):
     html = r.content.decode()
     assert r.status_code == 422 and 'Contraste insuficiente' in html and not Tema.objects.exists()
     r = web.post(reverse('med:apariencia_guardar'), {'nombre': 'Ilegible', 'base': 'Clínico', 'accion': 'reparar', **malos})
-    assert r.status_code == 200 and 'cumple AA' in r.content.decode()
+    assert r.status_code == 200 and 'Contraste correcto' in r.content.decode()
     reparado = {c.split('name="')[1].split('"')[0]: c.split('value="')[1].split('"')[0]
                 for c in r.content.decode().split('<input id="c-')[1:] for c in [c]}
     assert not apariencia.problemas({k[2:]: v for k, v in reparado.items() if k.startswith('c_')})
@@ -81,7 +82,7 @@ def test_verificacion_en_vivo_del_contraste(web):
     ok = web.post(reverse('med:apariencia_verificar'), campos_tema(), **HTMX).content.decode()
     mal = web.post(reverse('med:apariencia_verificar'), campos_tema(text='#FFFFFF'), **HTMX).content.decode()
     roto = web.post(reverse('med:apariencia_verificar'), campos_tema(primary='rojo'), **HTMX).content.decode()
-    assert 'cumple AA' in ok and 'Contraste insuficiente' in mal and 'tv-alerta--error' in roto
+    assert 'Contraste correcto' in ok and 'Contraste insuficiente' in mal and 'tv-alerta--error' in roto
 
 
 def test_renombrar_eliminar_y_permisos_de_temas(web, admin, cliente_med):
@@ -117,7 +118,7 @@ def test_exportar_e_importar_el_json_del_tema(web):
 def test_primera_vez_el_admin_configura_la_clinica_y_luego_entra_a_pacientes(admin):
     assert admin.get(reverse('med:inicio'))['Location'] == reverse('med:identidad')
     html = admin.get(reverse('med:identidad')).content.decode()
-    assert 'Configura tu clínica' in html and 'primera vez' in html
+    assert 'Configura tu clínica' in html and 'recetas y resúmenes' in html
     r = admin.post(reverse('med:identidad'), {'clinic_name': 'Clínica Sur', 'app_name': 'Registro Sur', 'contact': 'Tel. 555', 'website': 'https://clinicasur.example/',
                                               'website_text': 'clinicasur.example', 'document_primary': '#112233', 'document_text': '#223344',
                                               'document_website': 'on', 'revision': 1})
@@ -165,7 +166,9 @@ def test_logo_se_valida_normaliza_y_se_sirve_a_los_documentos(web, admin):
 
 def test_perfil_propio_con_datos_profesionales_y_avatar(web):
     html = web.get(reverse('med:perfil')).content.decode()
-    assert 'Mi perfil' in html and html.count('name="avatar"') == 1+len(clinica.AVATARES) and 'data-recorte' in html and 'tu cuenta' in html
+    assert 'Mi perfil' in html and html.count('name="avatar"') == 1+len(clinica.AVATARES) and 'data-recorte' in html and 'Mi cuenta' in html
+    # Avatares de fábrica, archivo por archivo con {% static %} (nombres con hash en producción): nunca la carpeta + el nombre
+    assert 'src="/static/med/img/avatares/koala.png"' in html and 'role="radiogroup"' in html
     assert 'http://app.' in html or 'https://' in html  # el enlace al portal sale de tvplataforma, no de una ruta fija
     r = web.post(reverse('med:perfil'), {'nombre_visible': 'Dra. Ana Prueba', 'cedula': '123', 'especialidad': 'Pediatría', 'avatar': 'koala', 'reducir_movimiento': 'on'})
     assert r['Location'] == reverse('med:perfil')
@@ -173,9 +176,9 @@ def test_perfil_propio_con_datos_profesionales_y_avatar(web):
     assert (perfil.nombre_visible, perfil.cedula, perfil.avatar, perfil.reducir_movimiento) == ('Dra. Ana Prueba', '123', 'koala', True)
     assert web.get(reverse('med:perfil_foto', args=[web.actor.cuenta_id]))['Content-Type'] == 'image/png'
     pagina = web.get(reverse('med:pacientes')).content.decode()
-    assert 'med-yo' in pagina and 'Dra. Ana Prueba' in pagina and f'perfil/{web.actor.cuenta_id}/foto/' in pagina
+    assert 'med-yo' in pagina and 'src="/static/med/img/avatares/koala.png"' in pagina
     menu = pagina.split('Menú de la cuenta')[1].split('</details>')[0]  # Perfil y Bloquear viven en el menú de la cuenta, no en el encabezado
-    assert 'Perfil profesional' in menu and 'Bloquear Med' in menu
+    assert 'Mi perfil' in menu and 'Bloquear Med' in menu
     assert 'Bloquear' not in pagina.split('<div class="tv-acciones">')[1].split('</header>')[0]
     assert web.post(reverse('med:perfil'), {'avatar': 'inventado'}).status_code == 422
 
@@ -198,20 +201,20 @@ def test_foto_de_perfil_recortada_se_valida_y_se_guarda_en_256(web):
 def test_los_doctores_los_ve_el_admin_y_cada_perfil_solo_su_dueno_o_el_admin(web, admin, cliente_med):
     assert web.get(reverse('med:doctores')).status_code == 403
     html = admin.get(reverse('med:doctores')).content.decode()
-    assert 'dra' in html and 'portal' in html and 'solo por el propietario' in html
+    assert 'dra' in html and 'portal' in html
     assert web.get(reverse('med:perfil_de', args=[admin.actor.cuenta_id])).status_code == 403
     assert web.post(reverse('med:perfil_de', args=[admin.actor.cuenta_id]), {'cedula': 'x'}).status_code == 403
     r = admin.post(reverse('med:perfil_de', args=[web.actor.cuenta_id]), {'cedula': '999', 'campo_activo': '1'})
     perfil = Profesional.objects.get(cuenta_id=web.actor.cuenta_id)
     assert r.status_code == 302 and perfil.cedula == '999' and perfil.activo is False
-    assert 'inactivo' in admin.get(reverse('med:doctores')).content.decode()
+    assert 'Inactivo' in admin.get(reverse('med:doctores')).content.decode()
 
 
 def test_configuracion_muestra_cada_opcion_segun_el_rol(web, admin):
     medico = web.get(reverse('med:configuracion')).content.decode()
     assert 'Mi perfil' in medico and 'Apariencia' in medico and 'Clínica e identidad' not in medico
     jefe = admin.get(reverse('med:configuracion')).content.decode()
-    assert 'Clínica e identidad' in jefe and 'Doctores' in jefe and 'Exportación completa' in jefe
+    assert 'Clínica' in jefe and 'Doctores' in jefe and 'Exportación completa' in jefe
 
 
 def test_los_formularios_con_autoguardado_no_se_bloquean_por_validacion_del_navegador(web):
@@ -237,3 +240,46 @@ def test_apariencia_una_opcion_de_clinica_arriba_un_boton_principal_por_tema_y_m
     assert html.count('Usar el tema de la clínica') == 1 and html.count('Usar siempre el tema de la clínica') == 0
     assert html.count('med-vista__barra') == html.count('Usar este tema') + html.count('>En uso</button>') and 'aria-label="Más opciones del tema Clínico"' in html
     assert 'Copiar y editar' in html and 'Exportar' in html
+
+
+
+class AlmacenComoProduccion(ManifestStaticFilesStorage):
+    """El de producción (tvportal.estaticos.AlmacenDeEstaticos): nombres con hash y sin fallar por una entrada ausente."""
+    manifest_strict = False
+
+
+def test_avatares_con_nombre_con_hash_en_produccion(web, settings, tmp_path):
+    """Causa de los avatares rotos en producción: Caddy marca todo /static/* como inmutable un año, también las respuestas 404.
+    Con la URL sin hash (``{% static 'carpeta/' %}{{ nombre }}.png``) una sola falla pasajera quedaba fija en el navegador. Cada
+    avatar sale por su propio {% static %}, con el nombre con hash del manifiesto, en el selector y en el menú de la cuenta."""
+    from django.core.management import call_command
+    from django.test import modify_settings
+    clinica.elegir_avatar(web.actor, web.actor.cuenta_id, 'koala')
+    with modify_settings(INSTALLED_APPS={'append': 'django.contrib.staticfiles'}):
+        settings.STATIC_ROOT = str(tmp_path/'estaticos')
+        settings.STORAGES = {**settings.STORAGES, 'staticfiles': {'BACKEND': f'{__name__}.AlmacenComoProduccion'}}
+        call_command('collectstatic', '--noinput', verbosity=0)
+        manifiesto = json.loads((tmp_path/'estaticos'/'staticfiles.json').read_text())['paths']
+        html = web.get(reverse('med:perfil')).content.decode()
+    for a in clinica.AVATARES:
+        con_hash = manifiesto[f'med/img/avatares/{a}.png']
+        assert con_hash != f'med/img/avatares/{a}.png' and f'src="/static/{con_hash}"' in html
+    assert 'src="/static/med/img/avatares/koala.png"' not in html
+    menu = html.split('Menú de la cuenta')[1].split('</details>')[0]
+    assert manifiesto['med/img/avatares/koala.png'] in menu
+
+
+def test_temas_de_med_conviven_con_el_modo_claro_u_oscuro_de_la_cuenta(web):
+    """Claro por omisión y nunca según el sistema: un tema claro pinta solo el modo claro; uno oscuro, solo el oscuro (el claro
+    queda en Clínico). Elegir un tema propio elige también el modo de la cuenta."""
+    from tvplataforma.models import Preferencias
+    hoja = web.get(reverse('med:tema')).content.decode()
+    assert ':root:not([data-tv-tema="oscuro"])' in hoja and '[data-tv-tema="oscuro"] {' not in hoja and 'prefers-color-scheme' not in hoja
+    web.post(reverse('med:apariencia_aplicar'), {'clave': 'Azul profundo', 'ambito': 'personal'})
+    hoja = web.get(reverse('med:tema')).content.decode()
+    claro, oscuro = hoja.split(':root[data-tv-tema="oscuro"]')
+    assert '#101D2E' in oscuro and '#101D2E' not in claro  # el fondo de Azul profundo solo en el modo oscuro
+    assert Preferencias.de(web.usuario).tema == 'oscuro'
+    web.post(reverse('med:apariencia_aplicar'), {'clave': 'Verde suave', 'ambito': 'personal'})
+    assert Preferencias.de(web.usuario).tema == 'claro'
+    assert 'Modo oscuro' in web.get(reverse('med:apariencia')).content.decode()

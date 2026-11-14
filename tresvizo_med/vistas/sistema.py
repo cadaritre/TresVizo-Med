@@ -6,7 +6,7 @@ from django.contrib.auth import logout
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from tvplataforma.temas import hoja_css
+from tvplataforma.temas import es_claro, hoja_css
 
 from ..servicios import apariencia
 from .comun import CLAVE_BLOQUEO, TODOS, redirigir, vista_med
@@ -51,5 +51,17 @@ def desbloquear(request):
 
 @vista_med(*TODOS, bloqueable=False)
 def tema_css(request):
-    """Hoja que redefine los tokens ``--tv-*`` con el tema activo de la persona (nunca estilos en línea)."""
-    return HttpResponse(hoja_css(apariencia.tokens_activos(request.actor)), content_type='text/css; charset=utf-8')
+    """Hoja que redefine los tokens ``--tv-*`` con el tema de Med de la persona (nunca estilos en línea).
+
+    El modo lo decide la cuenta (``<html data-tv-tema="claro|oscuro">``, claro por omisión, nunca el del sistema). Los temas de Med
+    son paletas: un tema claro pinta el modo claro y deja el oscuro al grafito del armazón; un tema oscuro (Azul profundo o uno
+    propio) pinta solo el modo oscuro y el claro queda en Clínico. Así nadie ve Med oscuro sin haberlo pedido, y la hoja no depende
+    de la preferencia (cambiar de modo desde la paleta no necesita recargarla).
+    """
+    return HttpResponse(hoja_para_modos(apariencia.tokens_activos(request.actor)), content_type='text/css; charset=utf-8')
+
+
+def hoja_para_modos(tokens):
+    if es_claro(tokens):
+        return hoja_css(tokens, ':root:not([data-tv-tema="oscuro"])')
+    return hoja_css(apariencia.tokens_de_fabrica(), ':root:not([data-tv-tema="oscuro"])') + hoja_css(tokens, ':root[data-tv-tema="oscuro"]')
