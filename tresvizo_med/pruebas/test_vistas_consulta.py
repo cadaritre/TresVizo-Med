@@ -137,6 +137,17 @@ def test_paneles_de_captura_se_abren(web, borrador):
     assert web.get(reverse('med:captura', args=[borrador.id, 'inventada'])).status_code == 404
 
 
+def test_el_panel_de_signos_no_repite_los_id_de_la_consulta(web, borrador):
+    import re
+    pagina = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
+    panel = web.get(reverse('med:captura', args=[borrador.id, 'vitals']), **HTMX).content.decode()
+    ids_pagina = set(re.findall(r' id="([^"]+)"', pagina))
+    ids_panel = re.findall(r' id="([^"]+)"', panel)
+    assert 'id_date' in ids_pagina and 'id_captura_date' in ids_panel and 'id_captura_time' in ids_panel
+    assert not ids_pagina & set(ids_panel), ids_pagina & set(ids_panel)
+    assert 'for="id_captura_date"' in panel and 'for="id_date"' not in panel
+
+
 def test_signos_vitales_se_capturan_normalizan_y_se_resumen(web, borrador):
     r = aplicar(web, borrador, 'vitals', v_systolic='120', u_systolic='mmHg', v_diastolic='80', u_diastolic='mmHg',
                 v_weight='154.3', u_weight='lb', v_height='1,75', u_height='m', date='2026-09-10', time='10:15', context='Ayuno')

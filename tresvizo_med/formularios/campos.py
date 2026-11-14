@@ -12,8 +12,16 @@ HTML = {'texto': 'text', 'fecha': 'date', 'numero': 'text', 'correo': 'email', '
 
 def campo(nombre, etiqueta, valor='', tipo='texto', opciones=None, error='', ayuda='', requerido=False, **extra):
     """``tipo``: texto, fecha, numero, area, seleccion, casilla, correo, hora, fechahora o telefono."""
-    return {'html': HTML.get(tipo, 'text'), 'nombre': nombre, 'etiqueta': etiqueta, 'valor': '' if valor is None else valor, 'tipo': tipo,
+    return {'html': HTML.get(tipo, 'text'), 'nombre': nombre, 'idh': 'id_'+nombre, 'etiqueta': etiqueta, 'valor': '' if valor is None else valor, 'tipo': tipo,
             'opciones': opciones or [], 'error': error, 'ayuda': ayuda, 'requerido': requerido, **extra}
+
+
+def con_prefijo_de_id(campos, prefijo):
+    """Cambia el ``id`` HTML de los campos a ``id_<prefijo>_<nombre>``: dos formularios en la misma página no repiten ``id``
+    (la etiqueta enfoca su propio campo y el lector de pantalla anuncia el correcto)."""
+    for c in campos:
+        c['idh'] = f"id_{prefijo}_{c['nombre']}"
+    return campos
 
 
 def cadena(post, nombre, por_omision=''):

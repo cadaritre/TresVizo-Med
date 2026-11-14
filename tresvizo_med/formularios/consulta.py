@@ -4,7 +4,7 @@ from django.utils import timezone
 from ..dominio.clinical_models import MED_FIELDS, VITALS, local_date
 from ..dominio.consultation_state import attention_time
 from ..dominio.errores import DataError
-from .campos import cadena, campo
+from .campos import cadena, campo, con_prefijo_de_id
 from .paciente import OPCIONES_MED, TIPOS_MED
 
 TIPOS_CONSULTA = ['General', 'Control', 'Urgencia', 'Primera vez']
@@ -44,7 +44,12 @@ def campos_texto(datos):
 # --- Capturas ------------------------------------------------------------------------------------------------
 
 def campos_captura(tipo, valores, catalogo=None, errores=None):
-    """Campos del panel lateral para ``tipo`` con los ``valores`` actuales (de un registro o de una captura pendiente)."""
+    """Campos del panel lateral para ``tipo`` con los ``valores`` actuales (de un registro o de una captura pendiente).
+    Sus ``id`` llevan el prefijo ``captura`` para no repetir los de la consulta (fecha y hora)."""
+    return con_prefijo_de_id(_campos_captura(tipo, valores, catalogo, errores), 'captura')
+
+
+def _campos_captura(tipo, valores, catalogo, errores):
     errores = errores or {}
     v = valores or {}
     if tipo == 'diagnosis':
