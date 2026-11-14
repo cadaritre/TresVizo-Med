@@ -361,5 +361,7 @@ def papelera(request, consulta):
     except DataError as error:
         messages.error(request, str(error))
         return _volver(request, c)
+    if not recuperar:
+        request.session['med_deshacer'] = str(c.id)  # el expediente ofrece «Deshacer» una sola vez
     messages.success(request, 'Borrador recuperado.' if recuperar else 'Borrador retirado a la papelera.')
     return redirect('med:expediente', paciente=c.paciente_id)

@@ -191,6 +191,10 @@ def expediente(request, paciente):
     from tvplataforma.modulos import modulo
     contexto = {**_contexto_expediente(request, persona), 'pestana': pestana,
                 'enlace': hosts.url_de(modulo('med'), reverse('med:expediente', args=[persona.id]))}
+    deshacer = request.session.pop('med_deshacer', None)
+    if deshacer and Consulta.objects.filter(pk=deshacer, paciente=persona, estado=Consulta.Estado.BORRADOR, archivada=True,
+                                            doctor_id=request.actor.cuenta_id).exists():
+        contexto['deshacer_consulta'] = deshacer
     if pestana == 'resumen':
         d = contexto['d']
         contexto['historias'] = [(t, d.get('histories', {}).get(k, {})) for k, t in form_paciente.HISTORIAS

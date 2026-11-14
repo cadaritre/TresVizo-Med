@@ -363,3 +363,15 @@ def test_lectura_ordena_los_signos_y_pone_la_presion_en_una_linea(web, paciente)
     html = web.get(reverse('med:consulta', args=[c.id])).content.decode()
     orden = [html.index(t) for t in ('Presión arterial: 157/73 mmHg', 'Frecuencia cardiaca: 72 lpm', 'Peso: 70 kg', 'Estatura: 165 cm', 'Glucosa: 100 mg/dL')]
     assert orden == sorted(orden)
+
+
+def test_retirar_borrador_pide_confirmacion_y_el_expediente_ofrece_deshacer(web, borrador):
+    editor = web.get(reverse('med:consulta', args=[borrador.id])).content.decode()
+    assert 'data-tv-abrir="dlg-retirar"' in editor and 'id="dlg-retirar"' in editor and 'Retirar a la papelera' in editor
+    r = web.post(reverse('med:papelera', args=[borrador.id]), {'motivo': 'Retirado por el responsable'})
+    expediente = web.get(r['Location']).content.decode()
+    assert 'Deshacer' in expediente and 'Borrador retirado a la papelera' in expediente
+    assert 'Deshacer' not in web.get(r['Location']).content.decode()  # se ofrece una sola vez
+    web.post(reverse('med:papelera', args=[borrador.id]), {'accion': 'restaurar', 'motivo': 'Recuperado'})
+    borrador.refresh_from_db()
+    assert borrador.archivada is False

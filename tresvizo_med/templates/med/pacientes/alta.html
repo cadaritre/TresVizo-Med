@@ -67,5 +67,11 @@
   </div>
 </form>
 <section class="med-docs-alta"><h2>Documentos e imágenes</h2><p class="tv-tenue">Archivos para el expediente general del paciente; pasan al expediente al guardar.</p>{% include "med/documentos/_gestor.html" %}</section>
-<form method="post" action="{% url 'med:alta_descartar' borrador.id %}" class="med-descartar">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario">Descartar borrador</button></form>
+<div class="med-descartar"><button type="button" class="tv-boton tv-boton--secundario" data-tv-abrir="dlg-descartar">Descartar borrador</button></div>
+{% hoja_inferior id="dlg-descartar" titulo="¿Descartar este borrador?" %}
+  <p>Se borra el borrador del alta{% if campos.nombre.valor %} de <strong>{{ campos.nombre.valor }}</strong>{% endif %} con todo lo que capturaste. <strong>No se puede deshacer.</strong> Ningún expediente se crea ni se modifica.</p>
+  {% url 'med:alta_descartar' borrador.id as descartar %}{% formulario accion=descartar %}
+    <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" type="button" data-tv-cerrar>Seguir editando</button><button class="tv-boton tv-boton--peligro" type="submit">Descartar el borrador</button></div>
+  {% endformulario %}
+{% endhoja_inferior %}
 {% endblock %}

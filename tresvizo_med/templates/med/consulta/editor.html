@@ -35,7 +35,12 @@
   {% include "med/consulta/_resumenes.html" %}
   <div id="panel" class="med-panel" aria-live="polite"></div>
 </div>
-<form method="post" action="{% url 'med:papelera' c.id %}" class="med-descartar">{% csrf_token %}
-  <input type="hidden" name="motivo" value="Retirado por el responsable">
-  <button type="submit" class="tv-boton tv-boton--secundario">Retirar borrador a la papelera</button></form>
+<div class="med-descartar"><button type="button" class="tv-boton tv-boton--secundario" data-tv-abrir="dlg-retirar">Retirar borrador a la papelera</button></div>
+{% hoja_inferior id="dlg-retirar" titulo="¿Retirar este borrador?" %}
+  <p>El borrador de <strong>{{ p.nombre }}</strong> sale de tu lista y pasa a la papelera. No se pierde nada: puedes deshacerlo justo después o recuperarlo desde la papelera.</p>
+  {% url 'med:papelera' c.id as retirar %}{% formulario accion=retirar %}
+    <input type="hidden" name="motivo" value="Retirado por el responsable">
+    <div class="tv-formulario__acciones"><button class="tv-boton tv-boton--secundario" type="button" data-tv-cerrar>Cancelar</button><button class="tv-boton tv-boton--peligro" type="submit">Retirar a la papelera</button></div>
+  {% endformulario %}
+{% endhoja_inferior %}
 {% endblock %}

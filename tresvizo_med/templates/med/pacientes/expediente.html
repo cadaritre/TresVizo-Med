@@ -10,6 +10,8 @@
 </div>
 {% endblock %}
 {% block contenido %}
+{% if deshacer_consulta %}{% alerta tipo="info" %}Borrador retirado a la papelera.
+  <form method="post" action="{% url 'med:papelera' deshacer_consulta %}" class="med-en-linea">{% csrf_token %}<input type="hidden" name="accion" value="restaurar"><input type="hidden" name="motivo" value="Recuperado"><button class="tv-boton tv-boton--secundario" type="submit">Deshacer</button></form>{% endalerta %}{% endif %}
 <nav class="med-subnav" aria-label="Expediente">
   <a href="{% url 'med:pacientes' %}">‹ Pacientes</a>
   {% tiene_rol "med" "medico" as es_medico %}{% tiene_rol "med" "admin" as es_admin %}
