@@ -2,7 +2,7 @@
 {% block titulo %}Mapear columnas{% endblock %}
 {% block encabezado %}<h1>Mapear columnas</h1>{% endblock %}
 {% block contenido %}
-<p>{{ lote.conteos.filas }} fila{{ lote.conteos.filas|pluralize }} en «{{ lote.recibo.nombre }}». Elige qué columna corresponde a cada dato; solo el nombre es obligatorio.</p>
+<p>{{ lote.conteos.filas }} fila{{ lote.conteos.filas|pluralize }} en «{{ lote.recibo.nombre }}». Ya sugerimos la columna de cada dato según su encabezado; revísalas y corrige las que no coincidan. Solo el nombre es obligatorio. Las fechas pueden venir como día/mes/año o como AAAA-MM-DD.</p>
 <form method="post" action="{% url 'med:importar_mapear' lote.id %}" class="tv-formulario">{% csrf_token %}
   {% for clave, etiqueta in campos %}
   <div class="tv-campo"><label for="m-{{ clave }}">{{ etiqueta }}</label><select id="m-{{ clave }}" name="{{ clave }}"><option value="">(no importar)</option>{% for c in columnas %}<option value="{{ c }}"{% if c == sugerido|get:clave %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>

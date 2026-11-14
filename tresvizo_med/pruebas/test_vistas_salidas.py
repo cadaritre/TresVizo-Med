@@ -333,3 +333,22 @@ def test_las_pantallas_ofrecen_los_pdf_y_el_paquete(web, final, paciente):
     borrador = consultas.guardar(web.actor, datos_consulta(paciente))
     assert 'Receta (borrador)' in web.get(reverse('med:revisar', args=[borrador.id])).content.decode()
     assert 'Paquete del expediente' in web.get(reverse('med:expediente', args=[paciente.id])).content.decode()
+
+
+def test_el_mapeo_sugiere_columnas_en_espanol_con_acentos_y_mayusculas():
+    from tresvizo_med.servicios.importacion import sugerir_mapeo
+    assert sugerir_mapeo(['Nombre', 'Nacimiento', 'Teléfono', 'Correo']) == {'name': 'Nombre', 'birth_date': 'Nacimiento', 'phone': 'Teléfono', 'email': 'Correo'}
+    assert sugerir_mapeo(['NOMBRE COMPLETO', 'Fecha de Nacimiento', 'Celular', 'E-mail']) == \
+        {'name': 'NOMBRE COMPLETO', 'birth_date': 'Fecha de Nacimiento', 'phone': 'Celular', 'email': 'E-mail'}
+    assert sugerir_mapeo(['name', 'birth_date', 'phone', 'email'])['birth_date'] == 'birth_date'
+    assert sugerir_mapeo(['Folio', 'Notas']) == {'name': '', 'birth_date': '', 'phone': '', 'email': ''}
+
+
+def test_la_pantalla_de_mapeo_preselecciona_y_la_fecha_dia_mes_anio_se_acepta(admin):
+    subir_csv(admin, csv_bytes([['Nombre', 'Fecha de nacimiento', 'Teléfono', 'Correo'], ['Rosa Díaz', '15/03/1985', '5551112222', 'rosa@correo.mx']]))
+    lote = LoteImportacion.objects.get()
+    pagina = admin.get(reverse('med:importar_mapear', args=[lote.id])).content.decode()
+    assert re.search(r'<option value="Fecha de nacimiento" selected>', pagina) and re.search(r'<option value="Teléfono" selected>', pagina)
+    admin.post(reverse('med:importar_mapear', args=[lote.id]), {'name': 'Nombre', 'birth_date': 'Fecha de nacimiento', 'phone': 'Teléfono', 'email': 'Correo'})
+    lote.refresh_from_db()
+    assert lote.conteos['validas'] == 1 and lote.recibo['filas'][0]['patient']['birth_date'] == '1985-03-15'

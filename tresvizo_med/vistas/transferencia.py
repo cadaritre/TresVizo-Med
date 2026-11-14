@@ -86,7 +86,7 @@ def paquete(request, paciente):
 
 # --- Importar pacientes desde CSV --------------------------------------------------------------------------------
 
-CAMPOS_IMPORTACION = [('name', 'Nombre (obligatorio)'), ('birth_date', 'Fecha de nacimiento (AAAA-MM-DD)'), ('phone', 'Teléfono'), ('email', 'Correo')]
+CAMPOS_IMPORTACION = [('name', 'Nombre (obligatorio)'), ('birth_date', 'Fecha de nacimiento'), ('phone', 'Teléfono'), ('email', 'Correo')]
 
 
 @vista_med('admin', metodos=('GET', 'POST'))
@@ -117,7 +117,7 @@ def importar_mapear(request, lote):
             messages.error(request, str(exc))
             return redirect('med:importar_mapear', lote=registro.id)
         return redirect('med:importar_previa', lote=registro.id)
-    sugerido = {clave: next((c for c in columnas if c.strip().lower() == clave), '') for clave, _ in CAMPOS_IMPORTACION}
+    sugerido = importacion.sugerir_mapeo(columnas)
     return render(request, 'med/importar_mapear.html', {'lote': registro, 'columnas': columnas, 'campos': CAMPOS_IMPORTACION,
                                                           'sugerido': registro.recibo.get('mapeo') or sugerido,
                                                           'muestra': registro.recibo['fuente']['rows'][:3]})
