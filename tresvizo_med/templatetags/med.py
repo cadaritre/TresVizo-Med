@@ -2,6 +2,7 @@
 from django import template
 from django.urls import reverse
 
+from ..formato import fecha_corta
 from ..servicios import clinica as servicio_clinica
 
 register = template.Library()
@@ -14,6 +15,12 @@ def get(diccionario, clave):
         return diccionario.get(clave, '')
     except AttributeError:
         return ''
+
+
+@register.filter
+def fecha_iso(texto):
+    """``{{ '2026-09-10'|fecha_iso }}`` → 10/09/2026."""
+    return fecha_corta(texto)
 
 
 @register.filter

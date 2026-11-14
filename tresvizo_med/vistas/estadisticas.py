@@ -1,5 +1,5 @@
 """Estadísticas: periodo, doctor, tipo, diagnóstico, nuevos y recurrentes, comparación y exportación con instantánea de filtros."""
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import urlencode
 
 from django.http import HttpResponse
@@ -8,6 +8,8 @@ from django.utils import timezone
 from tvplataforma import cuentas
 
 from ..dominio.errores import DataError
+from ..formularios.consulta import TIPOS_CONSULTA
+from ..formato import fecha_corta
 from ..graficas import barras
 from ..servicios import estadisticas, exportaciones
 from .comun import TODOS, vista_med
@@ -36,6 +38,18 @@ def _validar(f):
         raise DataError('Grupo de pacientes no admitido.')
 
 
+def _periodos(filtros):
+    """Atajos de periodo (este mes, mes pasado, este año) que conservan los demás filtros."""
+    hoy = timezone.localdate()
+    inicio_mes = hoy.replace(day=1)
+    fin_pasado = inicio_mes-timedelta(days=1)
+    rangos = [('Este mes', inicio_mes, hoy), ('Mes pasado', fin_pasado.replace(day=1), fin_pasado), ('Este año', hoy.replace(month=1, day=1), hoy)]
+    resto = {'doctor': '' if filtros['doctor'] is None else filtros['doctor'], 'tipo': filtros['tipo'], 'diagnostico': filtros['diagnostico'],
+             'grupo': filtros['grupo']}
+    return [{'etiqueta': nombre, 'url': '?'+urlencode({'desde': a.isoformat(), 'hasta': b.isoformat(), **resto}),
+             'activo': (a.isoformat(), b.isoformat()) == (filtros['inicio'], filtros['fin'])} for nombre, a, b in rangos]
+
+
 def _quien(actor, doctor):
     if doctor == '*':
         return 'Toda la clínica'
@@ -47,18 +61,19 @@ def pagina(request):
     actor = request.actor
     filtros = filtros_de(request.GET)
     error, datos = '', None
-    if 'desde' in request.GET or 'hasta' in request.GET:
-        try:
-            _validar(filtros)
-            datos = estadisticas.calcular(actor, filtros['inicio'], filtros['fin'], filtros['doctor'], filtros['tipo'],
-                                          filtros['diagnostico'], filtros['grupo'])
-        except DataError as exc:
-            if 'administrador' in str(exc):
-                raise
-            error = str(exc)
+    try:  # se calcula al entrar (el mes en curso, o los filtros del enlace)
+        _validar(filtros)
+        datos = estadisticas.calcular(actor, filtros['inicio'], filtros['fin'], filtros['doctor'], filtros['tipo'],
+                                      filtros['diagnostico'], filtros['grupo'])
+    except DataError as exc:
+        if 'administrador' in str(exc):
+            raise
+        error = str(exc)
     instantanea = urlencode({'desde': filtros['inicio'], 'hasta': filtros['fin'], 'doctor': '' if filtros['doctor'] is None else filtros['doctor'],
                              'tipo': filtros['tipo'], 'diagnostico': filtros['diagnostico'], 'grupo': filtros['grupo']})
     contexto = {'filtros': filtros, 'error': error, 'datos': datos, 'instantanea': instantanea, 'grupos': GRUPOS,
+                'tipos': [*TIPOS_CONSULTA, *([filtros['tipo']] if filtros['tipo'] and filtros['tipo'] not in TIPOS_CONSULTA else [])],
+                'periodos': _periodos(filtros),
                 'medicos': cuentas.con_rol('med', 'medico') if actor.es_admin else [], 'quien': _quien(actor, filtros['doctor'])}
     if datos:
         contexto.update(grafica=barras(datos['activity']), tablas=[

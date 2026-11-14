@@ -117,3 +117,11 @@ def documento_a_dict(x):
     if x.historial:
         d['history'] = x.historial
     return d
+
+
+def fecha_corta(texto):
+    """``2026-09-10`` (o con hora) → ``10/09/2026``; lo que no es una fecha ISO se devuelve igual."""
+    try:
+        return date.fromisoformat(str(texto)[:10]).strftime('%d/%m/%Y')
+    except ValueError:
+        return str(texto)

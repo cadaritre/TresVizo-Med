@@ -11,7 +11,7 @@ from ..dominio.documents import create_pdf
 from ..dominio.documentos_medicos import crear_receta, crear_resumen
 from ..dominio.errores import DataError
 from ..dominio.presentacion import adendas, seccion_nota
-from ..formato import consulta_a_dict, paciente_a_dict
+from ..formato import consulta_a_dict, fecha_corta, paciente_a_dict
 from ..models import Clinica
 from . import consultas, estadisticas, profesionales
 
@@ -108,11 +108,11 @@ def crear_pdf_consulta(actor, consulta_id, tipo, progreso=lambda f, m='': None):
 def secciones_estadisticas(datos):
     def tabla(diccionario, limite=15):
         return '\n'.join(f'{clave}: {valor}' for clave, valor in list(diccionario.items())[:limite]) or 'Sin datos'
-    previo = f"{datos['previous']} consultas ({datos['previous_start']} a {datos['previous_end']})"
+    previo = f"{datos['previous']} consultas ({fecha_corta(datos['previous_start'])} a {fecha_corta(datos['previous_end'])})"
     variacion = 'sin periodo previo para comparar' if datos['variation'] is None else f"{datos['variation']:+.1f} %"
     filtros = datos['filters']
     return [
-        ('Periodo', f"{datos['start']} a {datos['end']}"),
+        ('Periodo', f"{fecha_corta(datos['start'])} a {fecha_corta(datos['end'])}"),
         ('Filtros', f"Tipo: {filtros['type'] or 'todos'} · Diagnóstico: {filtros['diagnosis'] or 'todos'} · Pacientes: {filtros['patient_group']}"),
         ('Resumen', f"Consultas: {datos['consultations']}\nPacientes: {datos['patients']} ({datos['new']} nuevos, {datos['recurrent']} recurrentes)\n"
                     f"Días con actividad: {datos['days']} · Promedio por día: {datos['average']:.1f}\nBorradores: {datos['drafts']} · Sin diagnóstico: {datos['no_diagnosis']}"),

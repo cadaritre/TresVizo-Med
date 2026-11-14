@@ -160,6 +160,8 @@ details.tv-tarjeta > form + form, details.tv-tarjeta > form + p { margin-top: va
 .med-bloqueo { max-width: 420px; }
 
 /* Evolución */
+.med-periodos { display: flex; flex-wrap: wrap; gap: var(--tv-espacio-2); margin-bottom: var(--tv-espacio-3); }
+.med-periodos a[aria-current] { background: var(--tv-seleccion); color: var(--tv-sobre-seleccion); border-color: var(--tv-primario); font-weight: 700; }
 .med-filtros { display: grid; gap: var(--tv-espacio-3); grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: var(--tv-espacio-3); }
 .med-grafica-caja { width: 100%; max-width: 860px; overflow: hidden; }
 .med-leyenda { margin: var(--tv-espacio-2) 0 var(--tv-espacio-3); font-size: .875rem; }

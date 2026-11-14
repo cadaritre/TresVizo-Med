@@ -143,11 +143,12 @@ def test_pdf_anterior_a_24_horas_se_limpia(web, final):
 def test_estadisticas_calculan_y_exportan_con_la_instantanea_de_filtros(web, paciente, final):
     r = web.get(reverse('med:estadisticas'), {'desde': '2026-09-01', 'hasta': '2026-09-30', 'grupo': 'Todos'})
     html = r.content.decode()
-    assert r.status_code == 200 and 'migrana' in html and '<svg' in html and 'Periodo previo' in html
+    assert r.status_code == 200 and 'Migraña' in html and '<svg' in html and 'Periodo previo' in html
+    assert '01/09/2026 a 30/09/2026' in html and 'desde=2026-09-01' in html
     assert 'desde=2026-09-01' in html and 'estadisticas/csv' in html and 'Generar PDF' in html and 'Calculado con los filtros' in html
     cuerpo = web.get(reverse('med:estadisticas_csv'), {'desde': '2026-09-01', 'hasta': '2026-09-30'}).content.decode('utf-8-sig')
     filas = list(csv.reader(io.StringIO(cuerpo)))
-    assert filas[0] == ['seccion', 'clave', 'valor'] and ['resumen', 'consultations', '1'] in filas and ['diagnoses', 'migrana', '1'] in filas
+    assert filas[0] == ['seccion', 'clave', 'valor'] and ['resumen', 'consultations', '1'] in filas and ['diagnoses', 'Migraña', '1'] in filas
     r = web.post(reverse('med:estadisticas_pdf'), {'desde': '2026-09-01', 'hasta': '2026-09-30'}, **HTMX)
     assert 'El PDF está listo' in r.content.decode()
     assert 'Estadísticas de consulta' in texto_pdf(next(servicio_pdf.carpeta_pdf(web.usuario.pk).glob('*.pdf')))
@@ -352,3 +353,19 @@ def test_la_pantalla_de_mapeo_preselecciona_y_la_fecha_dia_mes_anio_se_acepta(ad
     admin.post(reverse('med:importar_mapear', args=[lote.id]), {'name': 'Nombre', 'birth_date': 'Fecha de nacimiento', 'phone': 'Teléfono', 'email': 'Correo'})
     lote.refresh_from_db()
     assert lote.conteos['validas'] == 1 and lote.recibo['filas'][0]['patient']['birth_date'] == '1985-03-15'
+
+
+def test_estadisticas_calculan_al_entrar_con_atajos_de_periodo_y_tipo_como_lista(web, final):
+    r = web.get(reverse('med:estadisticas'))
+    html = r.content.decode()
+    assert r.status_code == 200 and 'med-resultado' in html and 'Este mes' in html and 'Mes pasado' in html and 'Este año' in html
+    assert '<select id="tipo"' in html and '<option value="Urgencia"' in html
+
+
+def test_estadisticas_ordenan_las_edades_por_rango(web, paciente):
+    for fecha, nacimiento in (('2026-09-10', '1950-01-01'), ('2026-09-11', '2023-01-01'), ('2026-09-12', '2012-01-01'), ('2026-09-13', '1990-01-01')):
+        p = pacientes.guardar(web.actor, datos_paciente('Paciente '+nacimiento, birth_date=nacimiento))
+        consultas.guardar(web.actor, datos_consulta(p, 'Finalizada', attended_at=fecha+'T10:00:00-06:00'))
+    from tresvizo_med.servicios import estadisticas
+    datos = estadisticas.calcular(web.actor, '2026-09-01', '2026-09-30')
+    assert list(datos['ages']) == ['0–5', '6–17', '18–39', '65+']
