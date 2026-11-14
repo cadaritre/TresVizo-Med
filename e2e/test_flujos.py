@@ -221,7 +221,8 @@ def test_estadisticas_y_exportaciones_con_descargas(medico, actor, tmp_path):
 def test_bloquear_oculta_el_contenido_y_la_contrasena_lo_reabre(medico, actor):
     paciente(actor)
     pagina = medico.ir('/pacientes/')
-    pagina.click('button:has-text("Bloquear")')
+    pagina.click('summary[aria-label="Menú de la cuenta"]')
+    pagina.click('button:has-text("Bloquear Med")')
     pagina.wait_for_url(re.compile(r'/desbloquear/'))
     assert 'Ana Muñoz' not in pagina.content()
     pagina.goto(medico.servidor+'/pacientes/')

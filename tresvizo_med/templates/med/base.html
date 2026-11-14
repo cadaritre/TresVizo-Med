@@ -6,10 +6,10 @@
 <link rel="stylesheet" href="{% url 'med:tema' %}">
 <link rel="stylesheet" href="{% static 'med/med.css' %}">
 {% endblock %}
-{% block acciones %}
+{% block menu_cuenta %}
 {% if not bloqueado %}
-{% yo as persona %}{% if persona %}<a class="med-yo"{% if persona.reducir %} data-reducir-movimiento{% endif %} href="{% url 'med:perfil' %}" aria-label="Mi perfil: {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales">{{ persona.iniciales }}</span>{% endif %}<span class="med-yo__nombre">{{ persona.nombre }}</span></a>{% endif %}
-<form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" class="tv-boton tv-boton--secundario" title="Oculta el contenido hasta escribir tu contraseña">Bloquear</button></form>
+{% yo as persona %}{% if persona %}<a class="med-yo"{% if persona.reducir %} data-reducir-movimiento{% endif %} href="{% url 'med:perfil' %}" aria-label="Perfil profesional de {{ persona.nombre }}">{% if persona.url %}<img src="{% url 'med:perfil_foto' user.pk %}" alt="">{% else %}<span class="med-yo__iniciales" aria-hidden="true">{{ persona.iniciales }}</span>{% endif %}<span>Perfil profesional</span></a>{% endif %}
+<form method="post" action="{% url 'med:bloquear' %}" class="med-bloquear">{% csrf_token %}<button type="submit" title="Oculta el contenido hasta escribir tu contraseña">Bloquear Med</button></form>
 {% endif %}
 {% endblock %}
 {% block pie %}<div id="sin-conexion" class="med-sin-conexion" role="status" hidden>Sin conexión. Med no guarda nada en este dispositivo: lo que escribiste vuelve a guardarse cuando regrese la señal.</div>{% endblock %}

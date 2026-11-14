@@ -174,6 +174,9 @@ def test_perfil_propio_con_datos_profesionales_y_avatar(web):
     assert web.get(reverse('med:perfil_foto', args=[web.actor.cuenta_id]))['Content-Type'] == 'image/png'
     pagina = web.get(reverse('med:pacientes')).content.decode()
     assert 'med-yo' in pagina and 'Dra. Ana Prueba' in pagina and f'perfil/{web.actor.cuenta_id}/foto/' in pagina
+    menu = pagina.split('Menú de la cuenta')[1].split('</details>')[0]  # Perfil y Bloquear viven en el menú de la cuenta, no en el encabezado
+    assert 'Perfil profesional' in menu and 'Bloquear Med' in menu
+    assert 'Bloquear' not in pagina.split('<div class="tv-acciones">')[1].split('</header>')[0]
     assert web.post(reverse('med:perfil'), {'avatar': 'inventado'}).status_code == 422
 
 

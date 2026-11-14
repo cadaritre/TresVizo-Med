@@ -12,7 +12,6 @@
   .med-subnav[aria-label="Med"] .tv-boton { order: -1; margin-left: 0; margin-right: var(--tv-espacio-2); }
 }
 .med-en-linea { display: inline; }
-.med-bloquear { display: inline; }
 
 /* Búsqueda y resultados en tarjetas */
 .med-busqueda { display: grid; gap: var(--tv-espacio-3); grid-template-columns: 1fr; margin-bottom: var(--tv-espacio-4); }
@@ -247,11 +246,9 @@ details.tv-tarjeta > form + form, details.tv-tarjeta > form + p { margin-top: va
 .med-recorte { display: grid; gap: var(--tv-espacio-2); }
 .med-avatar img { border-radius: 50%; display: block; }
 .med-recorte__editor canvas { display: block; width: 256px; max-width: 100%; height: auto; border: 1px solid var(--tv-borde); border-radius: 50%; touch-action: none; cursor: grab; margin: var(--tv-espacio-2) 0; }
-.med-yo { display: inline-flex; align-items: center; gap: var(--tv-espacio-2); text-decoration: none; color: inherit; min-height: var(--tv-tactil-min); }
-.med-yo img, .med-yo__iniciales { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-.med-yo__iniciales { display: inline-grid; place-items: center; background: var(--tv-secundario); color: var(--tv-sobre-secundario); font-weight: 700; font-size: .8rem; }
-.med-yo__nombre { display: none; }
-@media (min-width: 700px) { .med-yo__nombre { display: inline; } }
+.tv-menu__panel .med-yo { display: flex; align-items: center; gap: var(--tv-espacio-2); text-decoration: none; }
+.med-yo img, .med-yo__iniciales { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; }
+.med-yo__iniciales { display: inline-grid; place-items: center; background: var(--tv-secundario); color: var(--tv-sobre-secundario); font-weight: 700; font-size: .625rem; }
 
 /* Sin conexión */
 .med-sin-conexion { position: fixed; inset: auto 0 0 0; z-index: 60; padding: var(--tv-espacio-3) var(--tv-espacio-4); background: var(--tv-estado-aviso-fondo); color: var(--tv-estado-aviso-texto); border-top: 2px solid var(--tv-estado-aviso-texto); font-weight: 600; }
