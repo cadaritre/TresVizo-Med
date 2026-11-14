@@ -4,8 +4,10 @@
 {% block contenido %}
 <p>ZIP con los datos del paciente, sus consultas visibles para ti y los documentos que elijas, con manifiesto SHA-256.</p>
 <form method="post" action="{% url 'med:paquete' p.id %}" hx-post="{% url 'med:paquete' p.id %}" hx-target="#tarea-paquete" class="tv-formulario">{% csrf_token %}
-  <fieldset class="tv-tarjeta"><legend>Documentos</legend>
-    {% for d in documentos %}<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="pd-{{ d.id }}" name="documento" value="{{ d.id }}" checked><label for="pd-{{ d.id }}">{{ d.titulo }} · {{ d.categoria }}</label></div>
+  <fieldset class="tv-tarjeta" data-paquete><legend>Documentos</legend>
+    {% if documentos %}<div class="med-paquete__acciones"><button type="button" class="tv-boton tv-boton--secundario" data-marcar="todo">Marcar todos</button><button type="button" class="tv-boton tv-boton--secundario" data-marcar="ninguno">Quitar todos</button>
+      <span class="tv-tenue" data-total role="status" aria-live="polite"></span></div>{% endif %}
+    {% for d in documentos %}<div class="tv-campo tv-campo--casilla"><input type="checkbox" id="pd-{{ d.id }}" name="documento" value="{{ d.id }}" data-tamano="{{ d.tamano }}" checked><label for="pd-{{ d.id }}">{{ d.titulo }} · {{ d.categoria }} · {{ d.tamano|filesizeformat }}</label></div>
     {% empty %}<p class="tv-tenue">Este paciente no tiene documentos; el paquete llevará solo los datos.</p>{% endfor %}</fieldset>
   <button class="tv-boton" type="submit">Generar paquete</button>
 </form>

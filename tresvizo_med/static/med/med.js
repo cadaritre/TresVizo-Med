@@ -92,6 +92,24 @@
     if (e.target.closest("[data-volver]")) { e.preventDefault(); if (history.length > 1) history.back(); else window.location.assign("/"); }
   });
 
+  // Paquete del expediente: marcar todos o ninguno y tamaño total de los documentos elegidos.
+  function totalPaquete(caja) {
+    var bytes = 0, n = 0;
+    caja.querySelectorAll("input[type=checkbox][data-tamano]").forEach(function (c) { if (c.checked) { bytes += Number(c.dataset.tamano) || 0; n += 1; } });
+    var mb = bytes >= 1048576 ? (bytes / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(bytes / 1024)) + " KB";
+    var salida = caja.querySelector("[data-total]");
+    if (salida) salida.textContent = n ? n + " documento" + (n === 1 ? "" : "s") + " · " + (bytes ? mb : "0 KB") + " (sin contar los datos)" : "Ningún documento elegido";
+  }
+  document.querySelectorAll("[data-paquete]").forEach(totalPaquete);
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-marcar]");
+    if (!b) return;
+    var caja = b.closest("[data-paquete]");
+    caja.querySelectorAll("input[type=checkbox][data-tamano]").forEach(function (c) { c.checked = b.dataset.marcar === "todo"; });
+    totalPaquete(caja);
+  });
+  document.addEventListener("change", function (e) { var caja = e.target.closest && e.target.closest("[data-paquete]"); if (caja) totalPaquete(caja); });
+
   // Sección plegada de la consulta: su primera línea se actualiza al escribir para que, plegada, no parezca vacía.
   document.addEventListener("input", function (e) {
     var area = e.target.closest(".med-colapsable textarea");

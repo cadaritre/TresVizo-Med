@@ -369,3 +369,10 @@ def test_estadisticas_ordenan_las_edades_por_rango(web, paciente):
     from tresvizo_med.servicios import estadisticas
     datos = estadisticas.calcular(web.actor, '2026-09-01', '2026-09-30')
     assert list(datos['ages']) == ['0–5', '6–17', '18–39', '65+']
+
+
+def test_expediente_con_ultima_consulta_y_enlace_con_boton_copiar_y_paquete_con_marcar_todo(web, final):
+    html = web.get(reverse('med:expediente', args=[final.paciente_id])).content.decode()
+    assert 'Última consulta' in html and 'Dolor de cabeza' in html and 'data-tv-copiar=' in html and 'Copiar enlace' in html
+    paquete = web.get(reverse('med:paquete', args=[final.paciente_id])).content.decode()
+    assert 'Este paciente no tiene documentos' in paquete

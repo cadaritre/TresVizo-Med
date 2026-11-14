@@ -355,3 +355,7 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
 .med-mas .tv-menu__panel { left: 0; right: auto; min-width: 220px; }
 .med-renombrar { margin-top: var(--tv-espacio-3); }
 .med-renombrar > summary { cursor: pointer; min-height: var(--tv-tactil-min); display: flex; align-items: center; color: var(--tv-tenue); }
+
+.med-enlace__fila { display: flex; flex-wrap: wrap; gap: var(--tv-espacio-2); } .med-enlace__fila input { flex: 1 1 220px; min-width: 0; }
+.med-foto-paciente { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; float: left; margin-right: var(--tv-espacio-3); }
+.med-paquete__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--tv-espacio-2); margin-bottom: var(--tv-espacio-3); }

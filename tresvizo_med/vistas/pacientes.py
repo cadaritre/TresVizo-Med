@@ -200,6 +200,8 @@ def expediente(request, paciente):
         contexto['historias'] = [(t, d.get('histories', {}).get(k, {})) for k, t in form_paciente.HISTORIAS
                                  if d.get('histories', {}).get(k, {}).get('notes') or
                                  d.get('histories', {}).get(k, {}).get('status') not in (None, '', 'No registrado')]
+        recientes = consultas.visibles(request.actor).filter(paciente=persona, archivada=False).exclude(estado=Consulta.Estado.BORRADOR).order_by('-atendida_en')[:1]
+        contexto['ultima'] = {'c': recientes[0], 'doctor': profesionales.nombre(recientes[0].doctor_id)} if recientes else None
         contexto['heredado'] = {k: v for k, v in d.get('legacy', {}).items() if v}
     elif pestana == 'consultas':
         filas = list(consultas.visibles(request.actor).filter(paciente=persona).order_by('-atendida_en'))

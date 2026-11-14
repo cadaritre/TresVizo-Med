@@ -2,7 +2,7 @@
 {% block titulo %}{{ p.nombre }}{% endblock %}
 {% block encabezado %}
 <div class="med-cabecera-paciente">
-  <h1>{{ p.nombre }}</h1>
+  {% if p.foto_documento %}<img class="med-foto-paciente" src="{% url 'med:archivo' p.foto_documento %}?en_linea=1" alt="Foto de {{ p.nombre }}" width="64" height="64">{% endif %}<h1>{{ p.nombre }}</h1>
   <p class="tv-tenue">{{ p.folio }} · {{ edad }}{% if p.sexo %} · {{ p.sexo }}{% endif %}{% if p.archivado %} · <span class="tv-insignia">Archivado</span>{% endif %}</p>
   {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {% for a in alergias %}{{ a.substance }}{% if a.severity and a.severity != 'No documentada' %} ({{ a.severity }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
   {% elif estado_alergias == 'Sin alergias conocidas' %}<p class="tv-tenue">Sin alergias conocidas.</p>
@@ -42,12 +42,16 @@
       {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }}{% if d.emergency_contact.guardian_relation %} · {{ d.emergency_contact.guardian_relation }}{% endif %}</dd>{% endif %}
     </dl>
   </section>
-  <section class="tv-tarjeta"><h2>Enlace</h2><div class="tv-campo"><label for="enlace">Para compartir con tu equipo (pide iniciar sesión)</label><input id="enlace" value="{{ enlace }}" readonly></div></section>
+  {% if ultima %}<section class="tv-tarjeta med-ultima"><h2>Última consulta</h2>
+    <p><a href="{% url 'med:consulta' ultima.c.id %}"><strong>{{ ultima.c.atendida_en|date:"d/m/Y" }}</strong></a> · {{ ultima.c.tipo }} · {{ ultima.doctor }}</p>
+    <p>{{ ultima.c.motivo|default:"Sin motivo" }}{% if ultima.c.diagnostico %}<br><span class="tv-tenue">Diagnóstico: {{ ultima.c.diagnostico|truncatechars:120 }}</span>{% endif %}</p></section>{% endif %}
   {% if d.problem_records %}<section class="tv-tarjeta"><h2>Problemas activos</h2><ul>{% for r in d.problem_records %}<li>{{ r.name }} · {{ r.status }}{% if r.notes %} — {{ r.notes }}{% endif %}</li>{% endfor %}</ul></section>{% endif %}
   {% if historias %}<section class="tv-tarjeta"><h2>Antecedentes</h2>{% for titulo, h in historias %}<h3>{{ titulo }}</h3><p>{{ h.status }}{% if h.notes %}: {{ h.notes|linebreaksbr }}{% endif %}</p>{% endfor %}</section>{% endif %}
   {% if d.medication_records %}<section class="tv-tarjeta"><h2>Medicación habitual</h2><ul>{% for m in d.medication_records %}<li>{{ m.name }} {{ m.strength }} {{ m.dose }} {{ m.dose_unit }} {{ m.route }} · {{ m.status }}</li>{% endfor %}</ul></section>{% endif %}
   {% if d.administrative or d.clinical_notes %}<section class="tv-tarjeta"><h2>Notas</h2>{% if d.clinical_notes %}<p>{{ d.clinical_notes|linebreaksbr }}</p>{% endif %}{% if d.administrative %}<p class="tv-tenue">{{ d.administrative|linebreaksbr }}</p>{% endif %}</section>{% endif %}
   {% if heredado %}<section class="tv-tarjeta"><h2>Información heredada · pendiente de revisión</h2>{% for k, v in heredado.items %}<p><strong>{{ k }}:</strong> {{ v|linebreaksbr }}</p>{% endfor %}</section>{% endif %}
+  <section class="tv-tarjeta med-enlace"><h2>Enlace al expediente</h2><div class="tv-campo"><label for="enlace">Para compartir con tu equipo (pide iniciar sesión)</label>
+    <div class="med-enlace__fila"><input id="enlace" value="{{ enlace }}" readonly><button type="button" class="tv-boton tv-boton--secundario" data-tv-copiar="{{ enlace }}" data-tv-copiado="Copiado">Copiar enlace</button></div></div></section>
 {% elif pestana == 'consultas' %}
   {% if borrador %}{% alerta tipo="info" %}Tienes un borrador de consulta de este paciente. <a href="{% url 'med:consulta' borrador.id %}">Retomar</a>{% endalerta %}{% endif %}
   <ul class="med-lista-consultas">
