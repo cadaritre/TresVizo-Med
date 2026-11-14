@@ -64,7 +64,7 @@ def test_buscar_abrir_leer_tres_consultas_ver_pdf_e_imagen_sin_scroll_horizontal
         revisar(pagina, f'Consulta {n+1}')
         pagina.go_back()
     pagina.locator('.med-pestanas a', has_text='Evolución').tap()
-    expect(pagina.locator('svg.med-grafica')).to_be_visible()
+    expect(pagina.locator('svg.med-grafica:visible')).to_be_visible()
     revisar(pagina, 'Evolución')
     pagina.goto(telefono.servidor+f'/documentos/{imagen.id}/')
     pagina.wait_for_function("() => document.querySelector('[data-zoom-imagen]').naturalWidth > 0")
@@ -154,7 +154,8 @@ def test_med_no_guarda_nada_en_el_telefono(telefono, actor_tel, tmp_path):
 def test_bloquear_en_el_telefono(telefono, actor_tel):
     pacientes.guardar(actor_tel, {'name': 'Ana Muñoz'})
     pagina = telefono.ir('/pacientes/')
-    pagina.locator('button:has-text("Bloquear")').tap()
+    pagina.locator('summary[aria-label="Menú de la cuenta"]').tap()
+    pagina.locator('button:has-text("Bloquear Med")').tap()
     pagina.wait_for_url('**/desbloquear/')
     assert 'Ana Muñoz' not in pagina.content()
     revisar(pagina, 'Bloqueo')

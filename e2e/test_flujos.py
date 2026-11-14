@@ -114,7 +114,7 @@ def test_adenda_anulacion_y_restauracion(medico, actor):
     pagina.fill('#adenda-motivo', 'Aclaración')
     pagina.fill('#adenda-contenido', 'El paciente refiere mejoría.')
     pagina.click('button:has-text("Agregar adenda")')
-    expect(pagina.locator('.med-lectura')).to_contain_text('El paciente refiere mejoría.')
+    expect(pagina.locator('.med-adendas')).to_contain_text('El paciente refiere mejoría.')
     c.refresh_from_db()
     assert c.motivo == 'Dolor de cabeza' and c.adendas.count() == 1  # la consulta no cambió; la adenda se agregó
     pagina.locator('summary', has_text='Anular consulta').click()
@@ -188,7 +188,7 @@ def test_pdf_de_receta_con_vista_previa(medico, actor):
     c = finalizada(actor, p, prescriptions=[MEDICAMENTO])
     pagina = medico.ir(f'/consultas/{c.id}/')
     pagina.click('text=Receta e indicaciones')
-    pagina.click('#tarea-pdf >> text=Ver el PDF')
+    pagina.wait_for_url('**/pdf/**', timeout=15000)  # la vista previa se abre sola al terminar
     pagina.wait_for_selector('canvas.med-pdf__pagina--lista', timeout=15000)
     assert pagina.locator('canvas.med-pdf__pagina').count() == 1
     assert pagina.evaluate("() => document.querySelector('canvas').width") > 200
@@ -202,11 +202,11 @@ def test_estadisticas_y_exportaciones_con_descargas(medico, actor, tmp_path):
     pagina.fill('#hasta', '2026-09-30')
     pagina.click('text=Calcular')
     expect(pagina.locator('.med-numero').first).to_contain_text('1')
-    expect(pagina.locator('svg.med-grafica')).to_be_visible()
+    expect(pagina.locator('svg.med-grafica:visible')).to_be_visible()
     with pagina.expect_download() as descarga:
         pagina.click('text=Exportar CSV')
     contenido = Path(descarga.value.path()).read_text(encoding='utf-8-sig')
-    assert 'resumen,consultations,1' in contenido and 'diagnoses,migrana,1' in contenido
+    assert 'resumen,consultations,1' in contenido and 'diagnoses,Migraña,1' in contenido
     pagina.fill('#desde', '2026-08-01')  # al cambiar los filtros, las exportaciones se ocultan hasta recalcular
     expect(pagina.locator('.med-exportar')).to_be_hidden()
     pagina.goto(medico.servidor+'/exportar/')
