@@ -119,3 +119,61 @@ def test_transparency_of_brand_assets():
 def test_avatars_and_icons_ship_with_the_package():
     assert len(list((STATIC/'avatares').glob('*.png'))) == 16
     assert (STATIC.parent/'iconos'/'LICENSE.txt').is_file() and list((STATIC.parent/'iconos').glob('*.svg'))
+
+
+# --- Receta y resumen (UX-MED-05) ------------------------------------------------------------------------------
+
+def _datos_receta(**extra):
+    return {'estado': 'Finalizada', 'fecha': '10/09/2026',
+            'paciente': {'name': 'Ana Muñoz', 'folio': 'RC-000001', 'age': '35 años', 'sex': 'Femenino', 'allergies': 'Penicilina'},
+            'medico': {'name': 'Dra. Ana Prueba', 'cedula': '123456', 'specialty': 'Medicina general'},
+            'diagnostico': 'Gastritis', 'plan': 'Reposo', 'seguimiento': '', 'signos': [],
+            'medicamentos': [{'name': 'Omeprazol', 'strength': '20 mg', 'dose': '1', 'dose_unit': 'cápsula', 'route': 'Oral',
+                              'frequency_kind': 'Cada N horas', 'frequency': '24', 'duration': '14', 'duration_unit': 'días'}], **extra}
+
+
+def test_receta_tiene_encabezado_paciente_medicamentos_y_firma(tmp_path):
+    from tresvizo_med.dominio.documentos_medicos import crear_receta
+    logo = tmp_path/'logo.png'
+    Image.new('RGBA', (300, 100), 'blue').save(logo)
+    crear_receta(tmp_path/'r.pdf', {**DEFAULT_IDENTITY, 'clinic_name': 'Clínica Norte', 'contact': 'Tel. 555 1111', 'clinic_logo': str(logo)}, _datos_receta())
+    pdf = PdfReader(tmp_path/'r.pdf')
+    texto = pdf.pages[0].extract_text()
+    assert len(pdf.pages) == 1 and pdf.pages[0].mediabox.width == 612  # carta
+    for esperado in ('Clínica Norte', 'Tel. 555 1111', 'Dra. Ana Prueba', 'Cédula profesional 123456', 'Medicina general', 'Ana Muñoz', '35 años',
+                     '10/09/2026', 'Penicilina', 'Gastritis', 'Omeprazol 20 mg', 'Tomar 1 cápsula por vía oral cada 24 horas durante 14 días.', 'Firma del médico'):
+        assert esperado in texto, esperado
+    assert texto.index('Omeprazol') < texto.index('Firma del médico')
+
+
+@pytest.mark.parametrize('estado, marca', [('Borrador', 'BORRADOR'), ('Anulada', 'ANULADA')])
+def test_receta_marca_borrador_y_anulada(tmp_path, estado, marca):
+    from tresvizo_med.dominio.documentos_medicos import crear_receta
+    crear_receta(tmp_path/'r.pdf', DEFAULT_IDENTITY, _datos_receta(estado=estado))
+    assert marca in PdfReader(tmp_path/'r.pdf').pages[0].extract_text()
+    crear_receta(tmp_path/'f.pdf', DEFAULT_IDENTITY, _datos_receta())
+    texto = PdfReader(tmp_path/'f.pdf').pages[0].extract_text()
+    assert 'BORRADOR' not in texto and 'ANULADA' not in texto
+
+
+def test_posologia_en_lenguaje_de_receta():
+    from tresvizo_med.dominio.presentacion import medicamento
+    base = {'name': 'Paracetamol', 'strength': '500 mg', 'dose': '1', 'dose_unit': 'tableta', 'route': 'Oral'}
+    assert medicamento({**base, 'frequency_kind': 'Veces al día', 'frequency': '3', 'duration': '5', 'duration_unit': 'días'})['posologia'] == \
+        'Tomar 1 tableta por vía oral 3 veces al día durante 5 días.'
+    assert medicamento({**base, 'frequency_kind': 'Cada N horas', 'frequency': '8', 'as_needed': True, 'as_needed_reason': 'dolor'})['posologia'] == \
+        'Tomar 1 tableta por vía oral cada 8 horas. Solo si es necesario: dolor.'
+    crema = medicamento({'name': 'Hidrocortisona', 'strength': '1 %', 'presentation': 'Crema', 'dose': '1', 'dose_unit': 'g', 'route': 'Tópica',
+                         'frequency_kind': 'Cada N horas', 'frequency': '12', 'quantity': '30', 'quantity_unit': 'g'})
+    assert crema['titulo'] == 'Hidrocortisona 1 %, crema' and crema['posologia'].startswith('Aplicar 1 g por vía tópica cada 12 horas') and crema['surtir'] == '30 g'
+
+
+def test_signos_en_orden_clinico_y_presion_en_una_linea():
+    from tresvizo_med.dominio.presentacion import signos_ordenados
+    grupo = {'at': '2026-09-10T10:00:00', 'values': {
+        'height': {'value': '165', 'unit': 'cm'}, 'oxygen': {'value': '97', 'unit': '%'}, 'weight': {'value': '70', 'unit': 'kg'},
+        'glucose': {'value': '100', 'unit': 'mg/dL'}, 'diastolic': {'value': '73', 'unit': 'mmHg'}, 'systolic': {'value': '157', 'unit': 'mmHg'},
+        'heart_rate': {'value': '72', 'unit': 'lpm'}}, 'bmi': 25.7}
+    filas = signos_ordenados(grupo)
+    assert [r for _, r, _ in filas] == ['Presión arterial', 'Frecuencia cardiaca', 'Saturación de oxígeno', 'Peso', 'Estatura', 'IMC', 'Glucosa']
+    assert filas[0][2] == '157/73 mmHg'

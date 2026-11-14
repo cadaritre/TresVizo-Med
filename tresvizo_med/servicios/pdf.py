@@ -5,18 +5,17 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
-from tvplataforma import cuentas
 
-from ..dominio.clinical_models import encounter_sections, medication_text
+from ..dominio.clinical_models import age_label, display_date
 from ..dominio.documents import create_pdf
+from ..dominio.documentos_medicos import crear_receta, crear_resumen
 from ..dominio.errores import DataError
-from ..dominio.texto import normalized
+from ..dominio.presentacion import adendas, seccion_nota
 from ..formato import consulta_a_dict, paciente_a_dict
-from ..models import Clinica, Profesional
-from . import consultas, estadisticas
+from ..models import Clinica
+from . import consultas, estadisticas, profesionales
 
 HORAS_VIGENCIA = 24
-ROTULOS_ESTADO = {'Borrador': 'BORRADOR · ', 'Anulada': 'ANULADA · ', 'Finalizada': ''}
 
 
 def carpeta_pdf(cuenta_id):
@@ -34,14 +33,10 @@ def identidad():
 
 
 def texto_doctor(cuenta_id):
-    perfil = Profesional.objects.filter(cuenta_id=cuenta_id).first()
-    nombre = (perfil.nombre_visible if perfil and perfil.nombre_visible else '') or cuentas.nombre(cuenta_id)
-    extras = []
-    if perfil and perfil.cedula:
-        extras.append('Cédula '+perfil.cedula)
-    if perfil and perfil.especialidad:
-        extras.append(perfil.especialidad)
-    return ' · '.join([nombre, *extras])
+    """Línea de responsable de los PDF genéricos (estadísticas): nombre, cédula y especialidad."""
+    datos = profesionales.firma(cuenta_id)
+    extras = [x for x in ('Cédula '+datos['cedula'] if datos['cedula'] else '', datos['specialty']) if x]
+    return ' · '.join([datos['name'], *extras])
 
 
 def limpiar_vencidos(cuenta_id):
@@ -53,21 +48,35 @@ def limpiar_vencidos(cuenta_id):
                 ruta.unlink(missing_ok=True)
 
 
-def _secciones_consulta(actor, consulta, tipo):
-    d = consulta_a_dict(consulta)
-    autores = cuentas.nombres({d['doctor_id'], *[a['actor'] for a in d['addenda']]})
-    prefijo = ROTULOS_ESTADO.get(consulta.estado, '')
-    nota = [('Estado', 'Consulta todavía sin finalizar.')] if consulta.estado == 'Borrador' else \
-        [('Estado', 'Consulta anulada: no es válida.')] if consulta.estado == 'Anulada' else []
-    if tipo == 'receta':
-        if not d.get('prescriptions'):
-            raise DataError('La consulta no tiene medicamentos para la receta.')
-        medicamentos = '\n\n'.join(medication_text(m)+('\n'+m['instructions'] if m.get('instructions') else '') for m in d['prescriptions'])
-        secciones = [*nota, ('Fecha de atención', encounter_sections(d)[0][1]), ('Diagnóstico', d.get('assessment', '')),
-                     ('Medicamentos', medicamentos), ('Indicaciones', d.get('plan', ''))]
-        return prefijo+'Receta e indicaciones', secciones, d, autores
-    secciones = [*nota, *[(t, c) for t, c in encounter_sections(d, autores) if c]]
-    return prefijo+'Resumen de consulta', secciones, d, autores
+def _datos_documento(consulta, d, firmante):
+    paciente = consulta.paciente
+    datos_paciente = paciente.datos
+    alergias = ', '.join(r['substance'] for r in datos_paciente.get('allergy_records', []) if r.get('substance'))
+    if not alergias and datos_paciente.get('allergy_status') == 'Sin alergias conocidas':
+        alergias = 'Sin alergias conocidas'
+    alergias = alergias or 'No registradas'
+    atendida = timezone.localtime(consulta.atendida_en)
+    return {'estado': consulta.estado, 'doctor_id': consulta.doctor_id, 'medico': firmante,
+            'paciente': {'name': paciente.nombre, 'folio': paciente.folio, 'sex': paciente.sexo,
+                         'age': edad_en_pdf(paciente_a_dict(paciente), atendida.date()), 'allergies': alergias},
+            'fecha': atendida.strftime('%d/%m/%Y'), 'fecha_hora': atendida.strftime('%d/%m/%Y %H:%M')}
+
+
+def edad_en_pdf(datos, al):
+    """Edad en la fecha de la consulta; la aproximada se marca con «≈»."""
+    if datos.get('birth_date'):
+        return age_label(datos, al)
+    aproximada = datos.get('approx_age', {})
+    if aproximada.get('value') not in ('', None):
+        return f"≈ {aproximada['value']} {aproximada.get('unit', 'años')}"
+    return ''
+
+
+def _seguimiento(d):
+    seguimiento = d.get('followup', {})
+    if not seguimiento.get('date'):
+        return ''
+    return ' · '.join(x for x in (display_date(seguimiento['date']), seguimiento.get('reason', '')) if x)
 
 
 def crear_pdf_consulta(actor, consulta_id, tipo, progreso=lambda f, m='': None):
@@ -76,14 +85,23 @@ def crear_pdf_consulta(actor, consulta_id, tipo, progreso=lambda f, m='': None):
         raise DataError('Tipo de PDF no admitido.')
     consulta = consultas.obtener(actor, consulta_id)
     progreso(.2, 'Reuniendo los datos')
-    titulo, secciones, d, autores = _secciones_consulta(actor, consulta, tipo)
-    paciente = consulta.paciente
+    d = consulta_a_dict(consulta)
+    if tipo == 'receta' and not d.get('prescriptions'):
+        raise DataError('La consulta no tiene medicamentos para la receta.')
+    autores = profesionales.nombres({d['doctor_id'], *[a['actor'] for a in d['addenda']]})
+    datos = _datos_documento(consulta, d, profesionales.firma(consulta.doctor_id))
     limpiar_vencidos(actor.cuenta_id)
     identificador = uuid.uuid4()
     ruta = carpeta_pdf(actor.cuenta_id)/f'{identificador}.pdf'
     ruta.parent.mkdir(parents=True, exist_ok=True)
     progreso(.5, 'Armando el documento')
-    create_pdf(ruta, identidad(), titulo, secciones, texto_doctor(consulta.doctor_id), f'{paciente.nombre} · {paciente.folio}')
+    if tipo == 'receta':
+        crear_receta(ruta, identidad(), {**datos, 'diagnostico': d.get('assessment', ''), 'medicamentos': d['prescriptions'],
+                                         'plan': d.get('plan', ''), 'seguimiento': _seguimiento(d), 'signos': d.get('vitals', [])})
+    else:
+        secciones = [(t, c) for t, c in seccion_nota(d) if t != 'Atención']
+        crear_resumen(ruta, identidad(), {**datos, 'fecha': datos['fecha_hora'], 'secciones': secciones, 'signos': d.get('vitals', []),
+                                          'medicamentos': d.get('prescriptions', []), 'adendas': adendas(d, autores)})
     return identificador, ruta
 
 

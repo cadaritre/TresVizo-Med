@@ -2,6 +2,7 @@
 import csv
 import io
 import json
+import re
 import zipfile
 
 import pytest
@@ -72,9 +73,11 @@ def test_pdf_de_receta_con_identidad_doctor_y_liberation_sans(web, final):
     assert archivo['Content-Type'] == 'application/pdf' and 'inline' in archivo['Content-Disposition']
     ruta = next((servicio_pdf.carpeta_pdf(web.usuario.pk)).glob('*.pdf'))
     texto = texto_pdf(ruta)
-    for esperado in ('Receta e indicaciones', 'Clínica Sur', 'Paciente: Ana Muñoz', 'Dra. Ana Prueba', 'Cédula 123456', 'Paracetamol',
-                     'Cada 8 horas', 'Con alimentos', 'Reposo e hidratación', 'Migraña'):
+    for esperado in ('RECETA MÉDICA', 'Clínica Sur', 'Tel. 555 0000', 'Ana Muñoz', '10/09/2026', 'Dra. Ana Prueba',
+                     'Cédula profesional 123456', 'Medicina general', 'Paracetamol 500 mg', 'Tomar 1 tableta por vía oral cada 8 horas',
+                     'Con alimentos', 'Reposo e hidratación', 'Migraña', 'Página 1 de 1'):
         assert esperado in texto, esperado
+    assert re.search(r'\d+ años', texto) and 'Femenino' in texto  # edad y sexo del paciente
     fuentes = {str(f.get_object().get('/BaseFont')) for p in PdfReader(ruta).pages for f in p['/Resources']['/Font'].values()}
     assert any('LiberationSans' in f for f in fuentes)
 
@@ -83,7 +86,8 @@ def test_pdf_de_resumen_incluye_adendas_y_estado(web, final):
     consultas.agregar_adenda(web.actor, final.id, 'Aclaración', 'Texto de la adenda')
     generar(web, final, 'resumen')
     texto = texto_pdf(next(servicio_pdf.carpeta_pdf(web.usuario.pk).glob('*.pdf')))
-    assert 'Resumen de consulta' in texto and 'Dolor de cabeza' in texto and 'Texto de la adenda' in texto and 'Autor:' in texto
+    assert 'RESUMEN DE CONSULTA' in texto and 'Dolor de cabeza' in texto and 'ADENDAS' in texto and 'Texto de la adenda' in texto
+    assert 'Aclaración' in texto and 'Médico responsable' in texto and 'Paracetamol 500 mg' in texto
     assert 'BORRADOR' not in texto and 'ANULADA' not in texto
 
 
@@ -94,6 +98,17 @@ def test_pdf_de_borrador_y_de_consulta_anulada_se_marcan(web, paciente):
     anulada = consultas.anular(web.actor, consultas.guardar(web.actor, datos_consulta(paciente, 'Finalizada', prescriptions=[MEDICAMENTO])).id, 'Duplicada')
     generar(web, anulada, 'receta')
     assert any('ANULADA' in texto_pdf(p) for p in servicio_pdf.carpeta_pdf(web.usuario.pk).glob('*.pdf'))
+
+
+def test_pdf_de_receta_con_muchos_medicamentos_firma_en_la_ultima_hoja(web, paciente):
+    filas = [{**MEDICAMENTO, 'name': f'Medicamento {n}', 'instructions': 'Indicación larga. '*8} for n in range(1, 15)]
+    consulta = consultas.guardar(web.actor, datos_consulta(paciente, 'Finalizada', prescriptions=filas))
+    generar(web, consulta, 'receta')
+    paginas = PdfReader(next(servicio_pdf.carpeta_pdf(web.usuario.pk).glob('*.pdf'))).pages
+    assert len(paginas) >= 2
+    assert 'Firma del médico' in paginas[-1].extract_text() and 'Firma del médico' not in paginas[0].extract_text()
+    assert 'Medicamento 14' in paginas[-1].extract_text() or 'Medicamento 14' in paginas[-2].extract_text()
+    assert all(f'Página {n} de {len(paginas)}' in p.extract_text() for n, p in enumerate(paginas, 1))
 
 
 def test_receta_sin_medicamentos_falla_con_mensaje_y_tipo_invalido_es_404(web, final, paciente):
