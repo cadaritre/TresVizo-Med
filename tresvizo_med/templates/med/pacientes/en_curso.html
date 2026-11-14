@@ -5,11 +5,15 @@
 {% include "med/parciales/_subnav.html" with seccion="en_curso" %}
 <p class="tv-tenue">Tus borradores privados: nadie más los ve.</p>
 <h2>Altas y ediciones de pacientes</h2>
+<div class="med-en-curso">
 {% for a in altas %}
-<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:alta' a.borrador.id %}"><strong>{{ a.nombre }}</strong> · {% if a.edicion %}edición{% else %}alta nueva{% endif %} · guardado {{ a.borrador.updated_at|timesince }} atrás</a>
+<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:alta' a.borrador.id %}"><strong>{{ a.nombre }}</strong> · {% if a.edicion %}edición{% else %}alta nueva{% endif %} · guardado hace {{ a.borrador.updated_at|timesince }}</a>
 {% empty %}<p class="tv-tenue">No tienes altas pendientes.</p>{% endfor %}
+</div>
 <h2>Consultas en borrador</h2>
+<div class="med-en-curso">
 {% for k in consultas %}
-<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.consulta.id %}"><strong>{{ k.paciente.nombre }}</strong> · {{ k.consulta.atendida_iso|slice:":10" }} · {{ k.consulta.motivo|default:"sin motivo todavía"|truncatechars:80 }}</a>
+<a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.consulta.id %}"><strong>{{ k.paciente.nombre }}</strong> · {{ k.consulta.atendida_en|date:"d/m/Y" }} · {{ k.consulta.motivo|default:"sin motivo todavía"|truncatechars:80 }}</a>
 {% empty %}<p class="tv-tenue">No tienes consultas en borrador.</p>{% endfor %}
+</div>
 {% endblock %}

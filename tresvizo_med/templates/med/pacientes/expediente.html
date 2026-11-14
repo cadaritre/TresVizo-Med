@@ -36,8 +36,8 @@
       {% for t in d.phones %}<dt>Teléfono ({{ t.type }})</dt><dd><a href="tel:{{ t.number }}">{{ t.number }}</a></dd>{% empty %}{% if p.telefono %}<dt>Teléfono</dt><dd>{{ p.telefono }}</dd>{% endif %}{% endfor %}
       {% if d.email %}<dt>Correo</dt><dd>{{ d.email }}</dd>{% endif %}
       {% if d.address %}<dt>Dirección</dt><dd>{{ d.address|linebreaksbr }}</dd>{% endif %}
-      {% if d.emergency_contact.name %}<dt>Emergencia</dt><dd>{{ d.emergency_contact.name }} {{ d.emergency_contact.relationship }} {{ d.emergency_contact.phone }}</dd>{% endif %}
-      {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }} {{ d.emergency_contact.guardian_relation }}</dd>{% endif %}
+      {% if d.emergency_contact.name %}<dt>Emergencia</dt><dd>{{ d.emergency_contact.name }}{% if d.emergency_contact.relationship %} · {{ d.emergency_contact.relationship }}{% endif %}{% if d.emergency_contact.phone %} · {{ d.emergency_contact.phone }}{% endif %}</dd>{% endif %}
+      {% if d.emergency_contact.guardian %}<dt>Responsable</dt><dd>{{ d.emergency_contact.guardian }}{% if d.emergency_contact.guardian_relation %} · {{ d.emergency_contact.guardian_relation }}{% endif %}</dd>{% endif %}
     </dl>
   </section>
   <section class="tv-tarjeta"><h2>Enlace</h2><div class="tv-campo"><label for="enlace">Para compartir con tu equipo (pide iniciar sesión)</label><input id="enlace" value="{{ enlace }}" readonly></div></section>
@@ -51,7 +51,7 @@
   <ul class="med-lista-consultas">
   {% for k in consultas %}
     <li><a class="tv-tarjeta tv-tarjeta--enlace" href="{% url 'med:consulta' k.c.id %}">
-      <strong>{{ k.c.atendida_iso|slice:":10" }}</strong> · {{ k.c.tipo|default:"General" }} <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{{ k.c.estado }}</span><br>
+      <strong>{{ k.c.atendida_en|date:"d/m/Y" }}</strong> · {{ k.c.tipo|default:"General" }} <span class="tv-insignia med-estado med-estado--{{ k.c.estado|lower }}">{{ k.c.estado }}</span><br>
       {{ k.c.motivo|default:"Sin motivo"|truncatechars:140 }}<br><span class="tv-tenue">{{ k.doctor }}{% if k.c.diagnostico %} · {{ k.c.diagnostico|truncatechars:80 }}{% endif %}</span></a></li>
   {% empty %}<li class="tv-tenue">Todavía no hay consultas.</li>{% endfor %}
   </ul>

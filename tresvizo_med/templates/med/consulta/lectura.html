@@ -3,7 +3,7 @@
 {% block encabezado %}
 <div class="med-cabecera-paciente">
   <p class="tv-tenue"><a href="{% url 'med:expediente' p.id %}">‹ {{ p.nombre }}</a></p>
-  <h1>Consulta del {{ d.attended_at|slice:":10" }}</h1>
+  <h1>Consulta del {{ c.atendida_en|date:"d/m/Y" }}</h1>
   <p class="tv-tenue">{{ p.nombre }} · {{ p.folio }} · {{ edad }} · {{ doctor }} · <span class="tv-insignia med-estado med-estado--{{ c.estado|lower }}">{{ c.estado }}</span>{% if c.archivada %} · en la papelera{% endif %}</p>
   {% if alergias %}<p class="med-alerta-alergias" role="alert"><strong>Alergias:</strong> {{ alergias|join:", " }}</p>{% endif %}
 </div>
