@@ -27,7 +27,8 @@ def test_buscar_en_tarjetas_con_folio_edad_y_alergias(web):
                                                allergy_records=[{'substance': 'Penicilina'}], allergy_status='Alergias registradas'))
     pacientes.guardar(web.actor, datos_paciente('Luis Pérez'))
     html = web.get(reverse('med:pacientes'), {'q': 'munoz'}).content.decode()
-    assert 'Ana Muñoz' in html and 'Luis' not in html and 'RC-000001' in html and 'Alergias: Penicilina' in html and '1 paciente' in html
+    assert 'Ana Muñoz' in html and 'Luis' not in html and 'RC-000001' in html and 'Penicilina' in html and 'Alergias: ' in html and '1 paciente' in html
+    assert 'med-resultados__cabecera' in html and 'id="buscando"' in html and 'hx-indicator="#buscando"' in html
     parcial = web.get(reverse('med:pacientes'), {'q': 'luis'}, **htmx(HTTP_HX_TARGET='resultados')).content.decode()
     assert 'Luis Pérez' in parcial and '<html' not in parcial
 

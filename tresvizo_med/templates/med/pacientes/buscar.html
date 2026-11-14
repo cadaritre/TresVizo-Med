@@ -4,12 +4,13 @@
 {% block contenido %}
 {% include "med/parciales/_subnav.html" with seccion="pacientes" %}
 <form method="get" action="{% url 'med:pacientes' %}" class="med-busqueda" role="search"
-      hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:#modo, submit" hx-push-url="true" hx-sync="this:replace">
+      hx-get="{% url 'med:pacientes' %}" hx-target="#resultados" hx-trigger="input changed delay:250ms from:#q, change from:#modo, submit" hx-push-url="true" hx-sync="this:replace" hx-indicator="#buscando">
   <div class="tv-campo"><label for="q">Buscar por nombre, folio o teléfono</label>
     <input id="q" name="q" type="search" value="{{ q }}" autocomplete="off" autofocus data-atajo-buscar></div>
   <div class="tv-campo"><label for="modo">Mostrar</label>
     <select id="modo" name="modo">{% for m in modos %}<option value="{{ m }}"{% if m == modo %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
   <button type="submit" class="tv-boton tv-boton--secundario med-busqueda__boton">Buscar</button>
+  <span id="buscando" class="med-buscando" role="status">Buscando…</span>
 </form>
 <div id="resultados" aria-live="polite">{% include "med/pacientes/_resultados.html" %}</div>
 {% endblock %}

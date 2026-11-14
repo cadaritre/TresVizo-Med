@@ -1,12 +1,12 @@
 {% load tv %}<p class="tv-tenue med-conteo">{{ total }} paciente{{ total|pluralize }}{% if q %} para «{{ q }}»{% endif %}</p>
 {% if filas %}
 <ul class="med-resultados">
+  <li class="med-resultados__cabecera" aria-hidden="true"><span>Paciente</span><span>Folio</span><span>Edad</span><span>Teléfono</span><span>Alergias</span></li>
   {% for f in filas %}
   <li><a class="tv-tarjeta tv-tarjeta--enlace med-paciente" href="{% url 'med:expediente' f.id %}" data-resultado>
-    <span class="med-paciente__nombre">{{ f.name }}</span>
-    <span class="med-paciente__datos">{{ f.file_number }} · {{ f.edad }}{% if f.phone %} · {{ f.phone }}{% endif %}</span>
-    {% if f.allergies %}<span class="med-paciente__alergias">Alergias: {{ f.allergies }}</span>{% endif %}
-    {% if f.archived %}<span class="tv-insignia">Archivado</span>{% endif %}
+    <span class="med-paciente__nombre">{{ f.name }}{% if f.archived %} <span class="tv-insignia">Archivado</span>{% endif %}</span>
+    <span class="med-paciente__datos"><span>{{ f.file_number }}</span><span>{{ f.edad }}</span><span class="med-paciente__telefono">{{ f.phone }}</span></span>
+    <span class="med-paciente__alergias-celda">{% if f.allergies %}<span class="med-paciente__alergias"><span class="med-paciente__alergias-rotulo">Alergias: </span>{{ f.allergies }}</span>{% endif %}</span>
   </a></li>
   {% endfor %}
 </ul>

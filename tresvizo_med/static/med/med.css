@@ -315,3 +315,26 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
 @media (hover: none) and (pointer: coarse) { .med-subida .tv-subida__zona > .tv-tenue { display: none; } }
 
 [data-abrir-al-terminar] .tv-alerta a { display: inline-flex; align-items: center; min-height: var(--tv-tactil-min); padding-inline: var(--tv-espacio-2); font-weight: 700; }
+
+/* Resultados de búsqueda: tarjetas en teléfono; lista compacta en columnas desde 900 px */
+.med-paciente__datos { display: flex; flex-wrap: wrap; gap: 0 var(--tv-espacio-2); }
+.med-paciente__datos > span:empty { display: none; }
+.med-paciente__datos > span + span:not(:empty)::before { content: "· "; }
+.med-paciente__alergias-celda:empty { display: none; }
+.med-resultados__cabecera { display: none; }
+.med-buscando { display: none; align-self: center; color: var(--tv-tenue); font-size: .875rem; }
+.med-buscando.htmx-request { display: inline-flex; align-items: center; gap: var(--tv-espacio-2); }
+.med-buscando.htmx-request::before { content: ""; width: 14px; height: 14px; border: 2px solid var(--tv-separador); border-top-color: var(--tv-primario); border-radius: 50%; animation: med-giro .8s linear infinite; }
+@keyframes med-giro { to { transform: rotate(360deg); } }
+.med-sin-movimiento .med-buscando.htmx-request::before, .med-sin-movimiento .med-buscando { animation: none; }
+@media (prefers-reduced-motion: reduce) { .med-buscando.htmx-request::before { animation: none; } }
+@media (min-width: 900px) {
+  .med-resultados { gap: var(--tv-espacio-1); }
+  .med-resultados__cabecera, .med-paciente { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.6fr) minmax(0, 2.2fr); align-items: center; column-gap: var(--tv-espacio-4); }
+  .med-resultados__cabecera { padding: 0 var(--tv-espacio-4); color: var(--tv-tenue); font-size: .8125rem; font-weight: 700; }
+  .med-paciente { padding-block: var(--tv-espacio-2); min-height: var(--tv-tactil-min); }
+  .med-paciente__datos { display: contents; }
+  .med-paciente__datos > span::before { content: none !important; }
+  .med-paciente__datos > span:empty, .med-paciente__alergias-celda:empty { display: block; }
+  .med-paciente__alergias-rotulo { display: none; }
+}
