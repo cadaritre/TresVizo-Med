@@ -1,4 +1,7 @@
 {% extends "tvplataforma/base.html" %}{% load static tv med %}
+{% block favicon %}<link rel="icon" href="{% static 'med/img/favicon-32.png' %}" type="image/png" sizes="32x32">
+<link rel="icon" href="{% static 'med/img/icono-192.png' %}" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="{% static 'med/img/apple-touch-icon.png' %}">{% endblock %}
 {% block cabeza %}
 <link rel="stylesheet" href="{% url 'med:tema' %}">
 <link rel="stylesheet" href="{% static 'med/med.css' %}">
