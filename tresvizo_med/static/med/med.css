@@ -300,3 +300,9 @@ fieldset.tv-tarjeta > legend { font-weight: 700; padding-inline: var(--tv-espaci
   #evolucion .tv-tabla td[data-etiqueta="Medición"] { grid-column: 1; grid-row: 1; color: var(--tv-texto); font-size: 1rem; font-weight: 600; }
   #evolucion .tv-tabla td[data-etiqueta="Valor"] { grid-column: 2; grid-row: 1; color: var(--tv-texto); font-size: 1rem; font-weight: 600; white-space: nowrap; }
 }
+
+/* Adendas de una consulta (bloque aparte, debajo de la nota) */
+.med-adendas { border-left: 4px solid var(--tv-primario); }
+.med-adenda + .med-adenda { border-top: 1px solid var(--tv-separador); margin-top: var(--tv-espacio-3); padding-top: var(--tv-espacio-3); }
+.med-adenda header { margin-bottom: var(--tv-espacio-1); }
+.med-adenda p { margin: 0 0 var(--tv-espacio-2); }

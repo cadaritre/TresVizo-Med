@@ -6,18 +6,18 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from tvplataforma import cuentas
 
-from ..dominio.clinical_models import encounter_sections, medication_text
+from ..dominio.clinical_models import medication_text
 from ..dominio.consultation_state import CAPTURE_NAMES, COLLECTIONS, ConsultationDraft, measurement_summary
 from ..dominio.editing_state import merge_draft
 from ..dominio.errores import DataError
+from ..dominio.presentacion import adendas as adendas_de, seccion_nota
 from ..formato import consulta_a_dict
 from ..formularios import consulta as form_consulta
 from ..formularios.consulta import TIPOS_CAPTURA, campos_captura, leer_captura, leer_soap, solo_soap
 from ..formularios.paciente import edad_texto
 from ..models import Consulta, Documento
-from ..servicios import NoEncontrado, PermisoDenegado, VersionConflict, borradores, consultas, documentos
+from ..servicios import NoEncontrado, PermisoDenegado, VersionConflict, borradores, consultas, documentos, profesionales
 from .comun import es_htmx, redirigir, vista_med
 
 CLAVE_CONFLICTO = 'med_conflicto_'
@@ -88,10 +88,10 @@ def paciente_dict_basico(p):
 def _contexto_lectura(request, c):
     d = consulta_a_dict(c)
     actor = request.actor
-    autores = cuentas.nombres({c.doctor_id, *[a['actor'] for a in d['addenda']]})
-    secciones = encounter_sections(d, autores)
+    autores = profesionales.nombres({c.doctor_id, *[a['actor'] for a in d['addenda']]})
+    secciones = seccion_nota(d)
     puede_anular = (c.doctor_id == actor.cuenta_id and actor.es_medico) or actor.es_admin
-    return {'c': c, 'p': c.paciente, 'd': d, 'secciones': secciones, 'doctor': autores.get(c.doctor_id, ''),
+    return {'c': c, 'p': c.paciente, 'd': d, 'secciones': secciones, 'adendas': adendas_de(d, autores), 'doctor': autores.get(c.doctor_id, ''),
             'puede_anular': puede_anular, 'puede_adenda': actor.es_medico, 'edad': edad_texto(paciente_dict_basico(c.paciente)),
             'alergias': [r.get('substance') for r in c.paciente.datos.get('allergy_records', []) if r.get('substance')],
             'documentos': documentos.listar(actor, c.paciente_id, c.id) if c.paciente_id else []}
@@ -286,7 +286,7 @@ def revisar(request, consulta):
             destino += '?abrir='+clave.replace(':', '/')
         pendientes.append({'texto': texto, 'enlace': destino})
     return render(request, 'med/consulta/revisar.html', {'c': c, 'p': c.paciente, 'pendientes': pendientes,
-                                                          'secciones': encounter_sections(draft.snapshot())})
+                                                          'secciones': seccion_nota(draft.snapshot())})
 
 
 @vista_med('medico', metodos=('POST',))

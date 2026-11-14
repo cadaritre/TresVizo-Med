@@ -288,7 +288,7 @@ def test_adendas_anulacion_y_restauracion_por_rol(web, borrador, cliente_med):
     web.post(url('adenda'), {'motivo': '', 'contenido': 'sin motivo'})
     assert borrador.adendas.count() == 1
     html = web.get(url('consulta')).content.decode()
-    assert 'Texto de la adenda' in html and 'Autor: ' in html
+    assert 'Texto de la adenda' in html and 'id="titulo-adendas"' in html and 'Motivo:' in html and 'Autor: ' not in html
     # Anular: no el médico ajeno; sí el responsable o el administrador.
     assert otro.post(url('anular'), {'motivo': 'Duplicada'}).status_code == 403
     assert 'Anular consulta' not in otro.get(url('consulta')).content.decode()
@@ -353,3 +353,13 @@ def test_los_botones_dentro_del_formulario_no_heredan_el_swap_none(web, borrador
     formulario = html.split('<form id="soap"')[1].split('</form>')[0]
     for boton in [b for b in formulario.split('<button') if 'hx-get' in b or 'hx-post' in b]:
         assert 'hx-swap=' in boton, boton[:120]
+
+
+def test_lectura_ordena_los_signos_y_pone_la_presion_en_una_linea(web, paciente):
+    toma = [{'at': '2026-09-10T10:00:00-06:00', 'values': {
+        'height': {'value': '165', 'unit': 'cm'}, 'weight': {'value': '70', 'unit': 'kg'}, 'glucose': {'value': '100', 'unit': 'mg/dL'},
+        'diastolic': {'value': '73', 'unit': 'mmHg'}, 'systolic': {'value': '157', 'unit': 'mmHg'}, 'heart_rate': {'value': '72', 'unit': 'lpm'}}}]
+    c = consultas.guardar(web.actor, datos_consulta(paciente, 'Finalizada', vitals=toma))
+    html = web.get(reverse('med:consulta', args=[c.id])).content.decode()
+    orden = [html.index(t) for t in ('Presión arterial: 157/73 mmHg', 'Frecuencia cardiaca: 72 lpm', 'Peso: 70 kg', 'Estatura: 165 cm', 'Glucosa: 100 mg/dL')]
+    assert orden == sorted(orden)
