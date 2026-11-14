@@ -123,10 +123,14 @@ def test_sin_senal_med_avisa_y_no_deja_datos_de_una_visita_anterior(telefono, ac
     pagina.evaluate("() => window.dispatchEvent(new Event('offline'))")
     expect(pagina.locator('#sin-conexion')).to_be_visible()
     expect(pagina.locator('#sin-conexion')).to_contain_text('Sin conexión')
+    antes = pagina.url
     with pytest.raises(Exception):
         pagina.goto(telefono.servidor+'/pacientes/')  # sin service worker, la navegación falla y no se muestra nada guardado
     pagina.wait_for_timeout(800)
-    assert pagina.url.startswith('chrome-error') or 'Ana Muñoz' not in pagina.content()
+    # Chromium pinta su página de error; WebKit deja en pantalla el documento que ya estaba abierto (el mismo expediente, sin
+    # cambiar de URL). En ninguno aparece la lista de pacientes desde una caché.
+    assert pagina.url.startswith('chrome-error') or pagina.url == antes, pagina.url
+    assert pagina.locator('[data-resultado]').count() == 0
     telefono.contexto.set_offline(False)
     pagina.goto(telefono.servidor+'/pacientes/')
     expect(pagina.locator('#sin-conexion')).to_be_hidden()
